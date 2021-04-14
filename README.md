@@ -23,7 +23,7 @@ $ pip install -e .[pytorch,tensorflow]
 ```
 
 ## Quick start and API references
-Please see [multiai documentation](https://utokyo-icepp.github.io/multiai-doc/index.html).
+Please see [multiml documentation](https://utokyo-icepp.github.io/multiml-doc/index.html).
 
 ## Tests and coding style
 Please test and apply yapf before you commit changes.
