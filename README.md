@@ -1,4 +1,4 @@
-![multiml package](https://github.com/UTokyo-ICEPP/multiai/workflows/multiai%20package/badge.svg)
+[![multiml package](https://github.com/UTokyo-ICEPP/multiml/actions/workflows/multiml.yaml/badge.svg)](https://github.com/UTokyo-ICEPP/multiml/actions/workflows/multiml.yaml)
 
 # multiml
 multiml is a prototype framework for developing multi-step machine learnings. The framework provides a method to connect multiple machine learnings with features of:
