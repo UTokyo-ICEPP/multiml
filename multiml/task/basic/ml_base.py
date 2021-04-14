@@ -1,0 +1,397 @@
+""" MLBaseTask module.
+"""
+from multiml import logger, const
+from multiml.task.basic import BaseTask, MLEnv
+
+
+class MLBaseTask(BaseTask):
+    """ Base task class for (deep) machine learning tasks.
+    """
+    def __init__(self,
+                 phases=None,
+                 input_var_names=None,
+                 output_var_names=None,
+                 true_var_names=None,
+                 var_names=None,
+                 model=None,
+                 model_args=None,
+                 optimizer=None,
+                 optimizer_args=None,
+                 loss=None,
+                 loss_args=None,
+                 max_patience=None,
+                 loss_weights=None,
+                 load_weights=False,
+                 save_weights=False,
+                 metrics=None,
+                 num_epochs=10,
+                 batch_size=64,
+                 **kwargs):
+        """ Initialize ML base task.
+
+        Args:
+            phases (list): list to indicates ML phases, e.g. ['train', 'test'].
+                If None is given, ['train', 'valid', 'test'] is set.
+            input_var_names (str or list): input variable names.
+            output_var_names (str or list): output variable names.
+            true_var_names (str or list): true variable names.
+            var_names (str): str of "input output true" variable names for
+                shortcut. This is not valid to specify multiple variables.
+            model (str or obj): name of model, or class object of model.
+            model_args (dict): args of model, e.g. dict(param0=0, param1=1).
+            optimizer (str or obj): name of optimizer, or class object of optimizer
+            optimizer_args (dict): args of optimizer.
+            loss (str or obj): name of loss, or class object of loss
+            loss_args (dict): args of loss.
+            max_patience (int): max number of patience for ealy stopping.
+                ``early_stopping`` is enabled if ```max_patience` is given.
+            loss_weights (list): scalar coefficients to weight the loss.
+            load_weights (bool or str): user defined algorithms should assume
+                the following behavior. If False, not load model weights. If
+                True, load model weights from default location. If str, load
+                weights from given path.
+            save_weights (bool or str): user defined algorithms should assume
+                the following behavior. If False, not save model weights. If
+                True, save model weights to default location. If str, save
+                weights to given path.
+            metrics (list): metrics of evaluation.
+            num_epochs (int): number of epochs.
+            batch_size (int): size of mini batch.
+        """
+        super().__init__(**kwargs)
+
+        if phases is None:
+            phases = ['train', 'valid', 'test']
+
+        if model_args is None:
+            model_args = {}
+
+        if optimizer_args is None:
+            optimizer_args = {}
+
+        if loss_args is None:
+            loss_args = {}
+
+        if var_names is not None:
+            input_var_names, output_var_names, true_var_names = var_names.split(
+            )
+
+        self._ml = MLEnv()
+
+        self._phases = phases
+        self._input_var_names = input_var_names
+        self._output_var_names = output_var_names
+        self._true_var_names = true_var_names
+        self._var_names = var_names
+
+        self._model = model
+        self._model_args = model_args
+        self._optimizer = optimizer
+        self._optimizer_args = optimizer_args
+        self._loss = loss
+        self._loss_args = loss_args
+        self._loss_weights = loss_weights
+        self._max_patience = max_patience
+        self._load_weights = load_weights
+        self._save_weights = save_weights
+        self._metrics = metrics
+        self._num_epochs = num_epochs
+        self._batch_size = batch_size
+
+        self._task_type = 'ml'
+
+    def __repr__(self):
+        result = f'{self.__class__.__name__}(task_type={self._task_type}, '\
+                                           f'job_id={self._job_id}, '\
+                                           f'phases={self._phases}, '\
+                                           f'input_var_names={self._input_var_names}, '\
+                                           f'output_var_names={self._output_var_names}, '\
+                                           f'true_var_names={self._true_var_names})'
+        return result
+
+    def set_hps(self, params):
+        """ Set hyperparameters to this task. 
+
+        Class attributes (self._XXX) are automatically set based on keys and
+        values of given dict. Hyperparameters start with 'model__',
+        'optimizer__' and 'loss__' are considred as args of model, optimizer,
+        loss, respectively. If value of hyperparameters is str and starts with
+        'saver__', value is retrieved from ```Saver``` instance, please see
+        exampels below.
+
+        Example:
+            >>> hps_dict = {
+            >>>    'num_epochs': 10, # normal hyperparameter    
+            >>>    'optimizer__lr': 0.01 # hyperparameter of optimizer
+            >>>    'saver_hp': 'saver__key__value' # hyperparamer from saver
+            >>> }
+            >>> task.set_hps(hps_dict)
+        """
+        for key, value in params.items():
+
+            if isinstance(value, str) and value.startswith('saver__'):
+                _, *params = value.split('__')
+
+                for index, param in enumerate(params):
+                    param = param.replace('\\', '')
+
+                    if index == 0:
+                        value = self._saver[param]
+                    else:
+                        value = value[param]
+
+            if key.startswith('model__'):
+                self._model_args[key.replace('model__', '')] = value
+
+            elif key.startswith('optimizer__'):
+                self._optimizer_args[key.replace('optimizer__', '')] = value
+
+            elif key.startswith('loss__'):
+                self._loss_args[key.replace('loss__', '')] = value
+
+            else:
+                if not hasattr(self, '_' + key):
+                    raise AttributeError(f'{key} is not defined.')
+
+                setattr(self, '_' + key, value)
+
+        if self.saver is not None:
+            self.saver[self.output_saver_key] = params
+
+    @logger.logging
+    def execute(self):
+        """ Execute a Keras task.
+        """
+        self.compile()
+
+        result = None
+        if const.TRAIN in self.phases:
+            result = self.fit()
+
+        if self._save_weights:
+            self.dump_model(dict(result=result))
+
+        if const.TEST in self.phases:
+            self.predict_update()
+
+    def fit(self):
+        """ Fit model.
+        """
+        pass
+
+    def predict(self, data=None):
+        """ Predict model.
+        """
+        pass
+
+    def fit_predict(self, fit_args=None, predict_args=None):
+        """ Fit and predict model.
+        Args:
+            fit_args (dict): arbitrary dict passed to ``fit()``.
+            predict_args (dict): arbitrary dict passed to ``predict()``.
+        Returns:
+            ndarray or list: results of predition.
+        """
+        if fit_args is None:
+            fit_args = {}
+
+        if predict_args is None:
+            predict_args = {}
+
+        self.fit(**fit_args)
+
+        return self.predict(**predict_args)
+
+    def predict_update(self, data=None):
+        """ Predict and update data in StoreGate.
+
+        Args:
+            data (ndarray): data passed to ``predict()`` method.
+        """
+        self.storegate.update_data(data=self.predict(data=data),
+                                   var_names=self._output_var_names,
+                                   phase='auto')
+
+    @property
+    def phases(self):
+        """ Returns ML phases.
+        """
+        return self._phases
+
+    @phases.setter
+    def phases(self, phases):
+        """ Set ML phases.
+
+        Args:
+            phases (list): a list contains 'train' or 'valid' or 'test'.
+        """
+        self._phases = phases
+
+    @property
+    def input_var_names(self):
+        """ Returns input_var_names.
+        """
+        return self._input_var_names
+
+    @input_var_names.setter
+    def input_var_names(self, input_var_names):
+        """ Set input_var_names.
+        """
+        self._input_var_names = input_var_names
+
+    @property
+    def output_var_names(self):
+        """ Returns output_var_names.
+        """
+        return self._output_var_names
+
+    @output_var_names.setter
+    def output_var_names(self, output_var_names):
+        """ Set output_var_names.
+        """
+        self._output_var_names = output_var_names
+
+    @property
+    def true_var_names(self):
+        """ Returns true_var_names.
+        """
+        return self._true_var_names
+
+    @true_var_names.setter
+    def true_var_names(self, true_var_names):
+        """ Set true_var_names.
+        """
+        self._true_var_names = true_var_names
+
+    @property
+    def ml(self):
+        """ Returns ML data class.
+        """
+        return self._ml
+
+    @ml.setter
+    def ml(self, ml):
+        """ Set ML data class.
+
+        Args:
+            ml (MLEnv): ML data class.
+        """
+        self._ml = ml
+
+    def compile(self):
+        """ Compile model, optimizer and loss.
+
+        Examples:
+            >>> # compile all together,
+            >>> self.compile()
+            >>> # which is equivalent to:
+            >>> self.build_model() # set self._model
+            >>> self.compile_model() # set self.ml.model
+            >>> self.compile_optimizer() # set self.ml.optimizer
+            >>> self.compile_loss() # set self.ml.loss
+        """
+        if self._model is None:
+            self.build_model()
+        self.ml.clear()
+        self.compile_loss()
+        self.compile_model()
+        self.compile_optimizer()
+
+    def build_model(self):
+        """ Build model.
+        """
+        pass
+
+    def compile_model(self):
+        """ Compile model.
+        """
+        pass
+
+    def compile_optimizer(self):
+        """ Compile optimizer.
+        """
+        pass
+
+    def compile_loss(self):
+        """ Compile loss.
+        """
+        pass
+
+    def load_model(self):
+        """ Load pre-trained model weights.
+        """
+        if isinstance(self._load_weights, str):
+            model_path = self._load_weights
+
+        elif self._load_weights is True:
+            model_path = self.get_metadata('model_path')
+
+        else:
+            raise ValueError('Unsupported load_weights type')
+
+        return model_path
+
+    def dump_model(self, extra_args=None):
+        """ Dump current model.
+        """
+        args_dump_ml = dict(key=self.get_unique_id())
+
+        if isinstance(self._save_weights, str):
+            args_dump_ml['model'] = self.ml.model
+            args_dump_ml['model_path'] = self._save_weights
+
+        elif self._save_weights is True:
+            args_dump_ml['model'] = self.ml.model
+
+        if extra_args is not None:
+            args_dump_ml.update(extra_args)
+
+        # to avoid overwrite
+        if args_dump_ml['key'] in self.saver.keys():
+            serial_id = 0
+            while f'{args_dump_ml["key"]}-{serial_id}' in self.saver.keys():
+                serial_id += 1
+            args_dump_ml['key'] = f'{args_dump_ml["key"]}-{serial_id}'
+
+        self._saver.dump_ml(**args_dump_ml)
+
+    def load_metadata(self):
+        """ Load metadata.
+        """
+        pass
+
+    def get_input_true_data(self, phase):
+        """ Get input and true data.
+
+        Args:
+            phase (str): data type (train, valid, test or None).
+
+        Returns:
+            tuple: (input, true) data for model.
+        """
+        input_data, true_data = None, None
+
+        if self._input_var_names is not None:
+            input_data = self._storegate.get_data(
+                var_names=self._input_var_names, phase=phase)
+        if self._true_var_names is not None:
+            true_data = self._storegate.get_data(
+                var_names=self._true_var_names, phase=phase)
+        return input_data, true_data
+
+    def get_input_var_shapes(self, phase='train'):
+        """ Get shape of input_var_names.
+
+        Args:
+            phase (str): train, valid, test or None.
+
+        Returns:
+            ndarray,shape of lit: shape of a variable, or list of shapes
+        """
+        return self.storegate.get_var_shapes(self.input_var_names, phase=phase)
+
+    def get_metadata(self, metadata_key):
+        """ Returns metadata.   
+        """
+        unique_id = self.get_unique_id()
+        return self.saver.load_ml(unique_id)[metadata_key]
