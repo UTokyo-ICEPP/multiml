@@ -1,5 +1,5 @@
 from multiml import StoreGate
-from multiml.agent import GridScanAgent
+from multiml.agent import GridSearchAgent
 from multiml.task import SkleanPipelineTask
 from multiml.task.pytorch import PytorchClassificationTask
 
@@ -29,7 +29,7 @@ def run_iris_classification():
     steps = [[(step0, hps_step0)], [(step1, hps_step1)]]
 
     # agent optimization
-    agent = GridScanAgent(storegate=sg, task_scheduler=steps, metric='ACC')
+    agent = GridSearchAgent(storegate=sg, task_scheduler=steps, metric='ACC')
     agent.execute_finalize()
 
 
