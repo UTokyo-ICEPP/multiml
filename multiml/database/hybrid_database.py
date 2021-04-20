@@ -1,5 +1,7 @@
 """ HybridDatabase module
 """
+import tempfile
+
 from multiml import logger
 from multiml.database.database import Database
 from multiml.database.zarr_database import ZarrDatabase
@@ -9,7 +11,11 @@ from multiml.database.numpy_database import NumpyDatabase
 class HybridDatabase(Database):
     """ Base class of Hybrid database
     """
-    def __init__(self, output_dir='/tmp/data.zarr', chunk=1000, mode='a'):
+    def __init__(self, output_dir=None, chunk=1000, mode='a'):
+
+        if output_dir is None:
+            output_dir = tempfile.mkdtemp()
+            logger.debug(f'creating tmpdir({output_dir}) for zarr')
 
         self._output_dir = output_dir
         self._chunk = chunk
@@ -22,7 +28,7 @@ class HybridDatabase(Database):
                                         mode=mode)
 
     def __repr__(self):
-        result = f'ZarrGate(output_dir={self._output_dir}, '\
+        result = f'HybridDatabase(output_dir={self._output_dir}, '\
                             f'chunk={self._chunk}, '\
                             f'mode={self._mode})'
         return result

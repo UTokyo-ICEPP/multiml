@@ -54,6 +54,9 @@ class StoreGate:
                 details.
             data_id (str): set default ``data_id`` if given.
         """
+        if backend_args is None:
+            backend_args = {}
+
         self._backend = backend
         self._backend_args = backend_args
         self._metadata = {}
