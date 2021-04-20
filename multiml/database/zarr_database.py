@@ -1,6 +1,6 @@
 """ ZarrDatabase module
 """
-
+import tempfile
 import zarr
 
 from multiml.database.database import Database
