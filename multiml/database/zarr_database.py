@@ -3,6 +3,7 @@
 import tempfile
 import zarr
 
+from multiml import logger
 from multiml.database.database import Database
 
 from .utils import get_slice
