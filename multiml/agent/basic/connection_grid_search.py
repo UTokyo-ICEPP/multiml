@@ -60,8 +60,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
                         # for compatibility
                         if unique_id not in self.saver.keys():
                             load_config = self._saver.load_ml(
-                                subtask_env.name,
-                                suffix=subtask_hps['job_id'])
+                                subtask_env.name, suffix=subtask_hps['job_id'])
                         else:
                             load_config = self._saver.load_ml(unique_id)
 
@@ -100,8 +99,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
 
                 if '_model_fit' in dir(subtask_env):
                     if self._freeze_model_weights:
-                        self._set_trainable_flags(subtask_env.ml.model,
-                                                  False)
+                        self._set_trainable_flags(subtask_env.ml.model, False)
 
                 result_task_ids.append(task_id)
                 result_subtask_ids.append(subtask_id)
