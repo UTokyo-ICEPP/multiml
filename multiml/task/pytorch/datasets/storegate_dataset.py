@@ -24,8 +24,12 @@ class StoreGateDataset(tdata.Dataset):
         return self._size
 
     def __getitem__(self, index):
-        data = self._storegate[self._phase][self._input_var_names][index]
-        target = self._storegate[self._phase][self._true_var_names][index]
+        data = self._storegate.get_data(var_names=self._input_var_names,
+                                        phase=self._phase,
+                                        index=index)
+        target = self._storegate.get_data(var_names=self._true_var_names,
+                                          phase=self._phase,
+                                          index=index)
 
         return data, target
 

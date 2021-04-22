@@ -974,9 +974,7 @@ class StoreGate:
         """
         for iphase in phases:
             shapes = self.get_var_shapes(var_names, phase=iphase)
-            if len(set(shapes)) != 1:
-                return False
-            if None in shapes:
+            if (len(set(shapes)) != 1) or (None in shapes):
                 return False
 
         return True
