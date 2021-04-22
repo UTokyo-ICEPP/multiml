@@ -184,7 +184,7 @@ class StoreGate:
         """
         self._check_valid_data_id()
 
-        if (self._phase is None):
+        if self._phase is None:
             raise ValueError(f'Please provide phase (train, valid, test, all)')
 
         if not isinstance(item, (str, list)):
@@ -572,7 +572,7 @@ class StoreGate:
             phase (str): *train* or *valid* or *test*.
 
         Returns:
-            ndarray.shape or list: shape of a varible, or list of shapes.
+            ndarray.shape or list: shape of a variable, or list of shapes.
         """
         self._check_valid_data_id()
 
@@ -979,7 +979,8 @@ class StoreGate:
 
         return True
 
-    def _is_recursive(self, var_names):
+    @staticmethod
+    def _is_recursive(var_names):
         """(private) check if var_names is recursive.
         """
         is_recursive = False

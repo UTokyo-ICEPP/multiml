@@ -27,7 +27,7 @@ class BaseAgent(Agent):
                 is initialized with *ordered tasks*. Please see
                 ``TaskScheduler`` class for details.
             metric (str or BaseMetric): str or Metric class instance. If str
-                is given, Metric class is searched from multiml.agent.metri,
+                is given, Metric class is searched from multiml.agent.metric,
                 and initialized with ``metric_args`` below.
             metric_args (dict): arbitrary args of Metric class. This option is
                 valid only if ``metric`` is str.

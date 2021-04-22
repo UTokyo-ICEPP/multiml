@@ -1,5 +1,5 @@
-class MLEnv():
-    """ Ddata class to store compiled ML objects.
+class MLEnv:
+    """ Data class to store compiled ML objects.
     """
     def __init__(
         self,

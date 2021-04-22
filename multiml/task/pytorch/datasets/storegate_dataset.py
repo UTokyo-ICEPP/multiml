@@ -43,4 +43,4 @@ class StoreGateDataset(tdata.Dataset):
 
     @property
     def data_slice(self):
-        return (self._input_slice, self._true_slice)
+        return self._input_slice, self._true_slice

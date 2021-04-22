@@ -1,5 +1,4 @@
 from abc import abstractmethod
-import itertools
 
 from multiml import logger
 from multiml.agent.basic.random_search import resulttuple

@@ -1,7 +1,5 @@
 """ ModelConnectionTask module.
 """
-import copy
-
 import numpy as np
 
 from multiml import logger
@@ -35,10 +33,9 @@ class ModelConnectionTask(MLBaseTask):
         >>> 
         >>> input_var_names = ['input0', 'input1', 'input2']
         >>> output_var_names = ['output0', 'output1']
-        >>> input_var_index = [[0, 1], [2]]
+        >>> input_var_index = [[0, 1], [-1, 2]]
         >>> output_var_index = [[0], [1]]
-        >>> cavhe_var_index = [[], [0]]
- 
+
     Examples:
         >>> task = ModelConnectionTask(subtasks=[your_subtask0, your_subtask2],
         >>>                            optimizer='SGD')
@@ -52,12 +49,12 @@ class ModelConnectionTask(MLBaseTask):
         """ Constructor of ModelConnectionTask.
 
         Args:
-            subtasks (list): list must contains ordered instrance objects
+            subtasks (list): list must contains ordered instance objects
                 inherited from ``MLBaseTask``.
             use_multi_loss (bool): If False, intermediate losses are not
                 considered in training steps.
             variable_mapping (list(str, str)): Input variables are replaced
-                following this list. Used for the case that the input varialbes
+                following this list. Used for the case that the input variables
                 change from pre-training to main-training (with model connecting).
             **kwargs: Arbitrary keyword arguments passed to ``MLBaseTask``.
         """
@@ -72,12 +69,12 @@ class ModelConnectionTask(MLBaseTask):
 
         if self._input_var_names is not None:
             logger.warn(
-                'input_var_names is geiven but it will be set automatically ')
+                'input_var_names is given but it will be set automatically ')
             self._input_var_names = None
 
         if self._output_var_names is not None:
             logger.warn(
-                'output_var_names is geiven but it will be set automatically ')
+                'output_var_names is given but it will be set automatically ')
             self._output_var_names = None
 
     def compile(self):
@@ -161,7 +158,7 @@ class ModelConnectionTask(MLBaseTask):
             self.ml.loss_weights = new_loss_weights
         else:
             raise ValueError(
-                'Length of loss and loss_weights is not conssitent.')
+                'Length of loss and loss_weights is not consistent.')
 
     def compile_index(self):
         """ Compile subtask dependencies and I/O variables.
@@ -260,7 +257,6 @@ class ModelConnectionTask(MLBaseTask):
 
         for subtask in self._subtasks:
             input_index = []
-            cache_index = []
             input_var_names = subtask.input_var_names
 
             if input_var_names is None:

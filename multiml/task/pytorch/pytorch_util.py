@@ -24,10 +24,10 @@ def compile(obj, obj_args, modules):
 
 def inputs_size(inputs):
     if isinstance(inputs, torch.Tensor):
-        inputs_size = inputs.size(0)
+        result = inputs.size(0)
     else:
-        inputs_size = inputs[0].size(0)
-    return inputs_size
+        result = inputs[0].size(0)
+    return result
 
 
 class EarlyStopping:

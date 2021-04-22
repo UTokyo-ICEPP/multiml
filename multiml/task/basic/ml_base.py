@@ -43,7 +43,7 @@ class MLBaseTask(BaseTask):
             optimizer_args (dict): args of optimizer.
             loss (str or obj): name of loss, or class object of loss
             loss_args (dict): args of loss.
-            max_patience (int): max number of patience for ealy stopping.
+            max_patience (int): max number of patience for early stopping.
                 ``early_stopping`` is enabled if ```max_patience` is given.
             loss_weights (list): scalar coefficients to weight the loss.
             load_weights (bool or str): user defined algorithms should assume
@@ -174,7 +174,7 @@ class MLBaseTask(BaseTask):
         if const.TEST in self.phases:
             self.predict_update()
 
-    def fit(self):
+    def fit(self, train_data=None, valid_data=None):
         """ Fit model.
         """
         pass
@@ -190,7 +190,7 @@ class MLBaseTask(BaseTask):
             fit_args (dict): arbitrary dict passed to ``fit()``.
             predict_args (dict): arbitrary dict passed to ``predict()``.
         Returns:
-            ndarray or list: results of predition.
+            ndarray or list: results of prediction.
         """
         if fit_args is None:
             fit_args = {}

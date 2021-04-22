@@ -2,7 +2,6 @@
 """
 
 import multiprocessing as mp
-import itertools
 
 from multiml import logger
 from multiml.agent.basic.random_search import RandomSearchAgent, resulttuple
@@ -11,7 +10,7 @@ from multiml.agent.basic.random_search import RandomSearchAgent, resulttuple
 class GridSearchAgent(RandomSearchAgent):
     """ Agent scanning all possible subtasks and hyper parameters.
     """
-    def __init__(self, num_workers=None, dump_all_results=False, **kwargs):
+    def __init__(self, num_workers=None, **kwargs):
         """ Initialize grid scan agent.
 
         Args:

@@ -1,6 +1,5 @@
 """ PytorchClassificationTask module
 """
-from multiml import logger
 from multiml.task.pytorch import PytorchBaseTask
 
 

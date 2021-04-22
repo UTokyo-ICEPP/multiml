@@ -1,5 +1,4 @@
 import os
-import itertools
 import json
 
 from multiml import logger
@@ -54,21 +53,21 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
                     if 'load_weights' in self._connectiontask_args and isinstance(
                             self._connectiontask_args['load_weights'], dict):
                         model_path = self._connectiontask_args['load_weights'][
-                            f"{subtask_env._name}__{subtask_hps['job_id']}"]
+                            f"{subtask_env.name}__{subtask_hps['job_id']}"]
                     else:
                         unique_id = subtask_env.get_unique_id()
 
-                        # for comatibility
+                        # for compatibility
                         if unique_id not in self.saver.keys():
                             load_config = self._saver.load_ml(
-                                subtask_env._name,
+                                subtask_env.name,
                                 suffix=subtask_hps['job_id'])
                         else:
                             load_config = self._saver.load_ml(unique_id)
 
                         if 'model_path' not in load_config:
                             raise ValueError(
-                                f"model_path is missing. subtaskname = {subtask_env._name} / job_id = {subtask_hps['job_id']} is not saved correctly."
+                                f"model_path is missing. subtaskname = {subtask_env.name} / job_id = {subtask_hps['job_id']} is not saved correctly."
                             )
                         model_path = load_config['model_path']
 
@@ -101,7 +100,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
 
                 if '_model_fit' in dir(subtask_env):
                     if self._freeze_model_weights:
-                        self._set_trainable_flags(subtask_env._model_fit,
+                        self._set_trainable_flags(subtask_env.ml.model,
                                                   False)
 
                 result_task_ids.append(task_id)
@@ -140,6 +139,6 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
 
         Returns:
             resulttuple: best result
-            dict: auxiality value of the best result
+            dict: auxiliary value of the best result
         """
         return self._best_result, self._best_result_config

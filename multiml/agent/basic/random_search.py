@@ -4,7 +4,6 @@ Attributes:
     resulttuple (namedtuple): namedtuple contains lists of results.
 """
 import random
-import itertools
 from collections import namedtuple
 
 from multiml import logger
@@ -41,6 +40,7 @@ class RandomSearchAgent(BaseAgent):
         self._seed = seed
         self._dump_all_results = dump_all_results
         self._task_prod = self.task_scheduler.get_all_subtasks_with_hps()
+        self._best_result = None
 
         if metric_type is None:
             self._metric_type = self._metric.type
