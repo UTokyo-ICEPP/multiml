@@ -20,7 +20,6 @@ data23 = [data2, data3]
 data01 = np.array(data01)
 data23 = np.array(data23)
 
-# for bind_vars = True
 data01_bind = data01.transpose(1, 0)
 data23_bind = data23.transpose(1, 0)
 
@@ -38,30 +37,21 @@ def test_storegate_zarr():
 
     phase = (0.8, 0.1, 0.1)
 
-    # add new variables (bind_vars=True)
+    # add new variables
     storegate.add_data(var_names=var_names01, data=data01_bind, phase=phase)
+    storegate.add_data(var_names=var_names23, data=data23_bind, phase=phase)
 
     assert storegate.get_data_ids() == [data_id]
 
     # change hybrid mode
     storegate.set_mode('numpy')
 
-    # add new variables (bind_vars=False)
-    storegate.add_data(var_names=var_names23,
-                       data=data23,
-                       phase=phase,
-                       bind_vars=False)
     storegate.to_storage(var_names=var_names23, phase='all')
     storegate.to_memory(var_names=var_names23, phase='train')
 
-    # update existing variables and data (bind_vars=True)
+    # update existing variables and data
     storegate.update_data(var_names=var_names23, data=data23_bind, phase=phase)
-
-    # update existing variables and data (bind_vars=False)
-    storegate.update_data(var_names=var_names23,
-                          data=data23,
-                          phase=phase,
-                          bind_vars=False)
+    storegate.update_data(var_names=var_names23, data=data23_bind, phase=phase)
 
     # compile for multiai
     storegate.compile()
@@ -69,10 +59,7 @@ def test_storegate_zarr():
     storegate.show_info()
 
     # update data by auto mode
-    storegate.update_data(var_names=var_names23,
-                          data=data23,
-                          phase='all',
-                          bind_vars=False)
+    storegate.update_data(var_names=var_names23, data=data23_bind, phase='all')
     storegate['all'][var_names23][:] = data23_bind
     storegate.compile()
 

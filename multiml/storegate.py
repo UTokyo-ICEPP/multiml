@@ -269,7 +269,6 @@ class StoreGate:
                  data,
                  phase='train',
                  shuffle=False,
-                 bind_vars=True,
                  do_compile=False):
         """Add data to the storegate with given options.
 
@@ -283,8 +282,7 @@ class StoreGate:
                 allowed to add only one variable.
             data (list or ndarray): If ``var_names`` is single string, data
                 shape must be (N,) where N is the number of samples.
-                If ``var_names`` is a list, data shape must be
-                (N, M, k) (bind_vars=True) or (M, N, k) (bind_vars=False),
+                If ``var_names`` is a list, data shape must be (N, M, k),
                 where M is the number of variables and k is an arbitrary shape
                 of each data.
             phase (str or tuple): *all (auto)*, *train*, *valid*, *test* or
@@ -297,8 +295,6 @@ class StoreGate:
                 are split by given indexes.
             shuffle (bool or int): data are shuffled if True or int. If int is
                 given, it is used as random seed of ``np.random``.
-            bind_vars (bool): specify the data structure. The data structure in
-                the example is a case of ``bind_vars`` = True.
             do_compile (bool): do compile if True after adding data.
 
         Examples:
@@ -307,7 +303,7 @@ class StoreGate:
         """
         self._check_valid_data_id()
 
-        var_names, data = self._view_to_list(var_names, data, bind_vars)
+        var_names, data = self._view_to_list(var_names, data)
         self._check_valid_phase(phase)
 
         for var_name, idata in zip(var_names, data):
@@ -339,7 +335,6 @@ class StoreGate:
                     data,
                     phase='train',
                     index=-1,
-                    bind_vars=True,
                     do_compile=True):
         """Update data in storegate with given options.
 
@@ -355,7 +350,6 @@ class StoreGate:
                 updated for given options. If ``index`` is int, only the data
                 with ``index`` is updated. If index is (x, y), data in the
                 range (x, y) are updated.
-            bind_vars (bool): see ``add_data()`` method.
             do_compile (bool): do compile if True after updating data.
 
         Examples:
@@ -364,7 +358,7 @@ class StoreGate:
         """
         self._check_valid_data_id()
 
-        var_names, data = self._view_to_list(var_names, data, bind_vars)
+        var_names, data = self._view_to_list(var_names, data)
         self._check_valid_phase(phase)
 
         for var_name, idata in zip(var_names, data):
@@ -381,8 +375,7 @@ class StoreGate:
                 if var_name not in metadata.keys():
                     logger.debug(
                         f'Adding {phase} : {var_name} to {self._data_id}')
-                    self.add_data(var_name, phase_data, iphase, False,
-                                  bind_vars)
+                    self.add_data(var_name, phase_data, iphase, False)
 
                 else:
                     self._db.update_data(self._data_id, var_name, phase_data,
@@ -394,7 +387,7 @@ class StoreGate:
         if do_compile:
             self.compile(reset=False)
 
-    def get_data(self, var_names, phase='train', index=-1, bind_vars=True):
+    def get_data(self, var_names, phase='train', index=-1):
         """Retrieve data from storegate with given options.
 
         Get data from the storegate. All retrieved data are concatenated by
@@ -411,7 +404,6 @@ class StoreGate:
                 If ``phase`` is *all* or *None*, data in all phases are
                 returned, but it is allowed only after the ``compile``.
             index (int or tuple): see update_data method.
-            bind_vars (bool): see ``add_data()`` method.
 
         Returns:
             ndarray or list: selected data by given options.
@@ -420,13 +412,11 @@ class StoreGate:
             >>> # index   var_names  | single var | list vars
             >>> # ------------------------------------------------------------
             >>> # single index (>=0) | k          | (M, k)
-            >>> # otherwise          | (N, k)     | (N, M, k) (y) or (M, N, k) (n)
+            >>> # otherwise          | (N, k)     | (N, M, k)
             >>> # ------------------------------------------------------------
             >>> # k = arbitrary shape of data
             >>> # M = number of var_names
             >>> # N = number of samples
-            >>> # y = bind_vars = True (default)
-            >>> # n = bind_vars = False
 
         Examples:
             >>> # get data by var_names, phase and index
@@ -460,8 +450,7 @@ class StoreGate:
         if self._is_recursive(var_names):
             results = []
             for var_name in var_names:
-                results.append(self.get_data(var_name, phase, index,
-                                             bind_vars))
+                results.append(self.get_data(var_name, phase, index))
             return results
 
         phases = [phase]
@@ -473,8 +462,7 @@ class StoreGate:
         if (len(var_names) > 1) and (not self._is_concatenate(
                 var_names, phases)):
             for var_name in var_names:
-                results.append(self.get_data(var_name, phase, index,
-                                             bind_vars))
+                results.append(self.get_data(var_name, phase, index))
             return results
 
         for iphase in phases:
@@ -499,7 +487,7 @@ class StoreGate:
             np_results = np.concatenate(results, 1)
             np_results = np_results[0]
 
-        elif bind_vars:
+        else:
             np_results = np.concatenate(results, 1)
             shape = list(range(len(np_results.shape)))
             shape = [shape[1]] + [shape[0]] + shape[2:]
@@ -787,9 +775,7 @@ class StoreGate:
 
             if phase_events:
                 if reset:
-                    self.update_data('active', [1] * phase_events[0],
-                                     phase,
-                                     bind_vars=False)
+                    self.update_data('active', [1] * phase_events[0], phase)
                 total_events.append(phase_events[0])
                 phases.append(phase)
             else:
@@ -853,7 +839,7 @@ class StoreGate:
     # Internal methods
     ##########################################################################
     @staticmethod
-    def _view_to_list(var_names, data, bind_vars):
+    def _view_to_list(var_names, data):
         """(private) utility method to convert var_names.
 
         ```var_names``` is converted to a list if it is string, and check shape
@@ -867,7 +853,7 @@ class StoreGate:
             var_names = [var_names]
             data = [data]
 
-        elif bind_vars:
+        else:
             len_var_names = len(var_names)
             len_data = len(data[0])
 
