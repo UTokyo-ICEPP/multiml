@@ -418,7 +418,9 @@ class StoreGate:
             >>> # get data by var_names, phase and index
             >>> storegate.get_data(var_names='var0', phase='train', index=1)
         """
-        self._check_valid_data_id()
+        # recursive operation
+        if isinstance(var_names, list):
+            return [self.get_data(v, phase, index) for v in var_names]
 
         all_phase = bool(phase == 'all' or phase is None)
 
@@ -439,16 +441,10 @@ class StoreGate:
             is_single_index = True
 
         # single variable and single index
-        if is_single_var and is_single_index and not all_phase:
+        if is_single_var and is_single_index:
             return self._db.get_data(self._data_id, var_names[0], phase, index)
 
         results = []
-
-        # recursive operation
-        if isinstance(var_names, list):
-            for var_name in var_names:
-                results.append(self.get_data(var_name, phase, index))
-            return results
 
         phases = [phase]
         if all_phase:
