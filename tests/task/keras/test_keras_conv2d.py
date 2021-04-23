@@ -38,15 +38,15 @@ def test_keras_conv2d():
         'phases': None,
         'save_weights': True,
         # KerasBaseTask
-        'input_var_names': ['var0'],
-        'output_var_names': ['output0'],
+        'input_var_names': ('var0',),
+        'output_var_names': ('output0',),
         'optimizer': 'adam',
         'num_epochs': 2,
         'max_patience': 1,
         'loss': 'binary_crossentropy',
         'run_eagerly': True,
         # MLPTask
-        'true_var_names': ['label'],
+        'true_var_names': ('label',),
         'layers': [4, 1],
         'input_shapes': (1, 3, 3, 1),
         'activation': 'relu',

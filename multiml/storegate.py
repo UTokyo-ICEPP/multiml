@@ -118,11 +118,7 @@ class StoreGate:
             self._phase = item
             return self
 
-        if isinstance(item, str):
-            self._var_names = item
-            return self
-
-        if isinstance(item, list):
+        if isinstance(item, (str, list, tuple)):
             self._var_names = item
             return self
 
@@ -390,16 +386,16 @@ class StoreGate:
     def get_data(self, var_names, phase='train', index=-1):
         """Retrieve data from storegate with given options.
 
-        Get data from the storegate. All retrieved data are concatenated by
-        ``var_names`` with numpy format by default. If ``var_names` have
-        different shapes of data, list is returned. python getitem sytax is
-        also supprted, please see ``__getitem__`` method.
+        Get data from the storegate. Python getitem sytax is also supprted,
+        please see ``__getitem__`` method.
 
         Args:
-            var_names (str or list): list of variable names, e.g.
-                ['var0', 'var1', 'var2']. Single string, e.g. 'var0', is also
-                allowed. If ``var_names`` is a list, data with shape (N, M, k) or
-                (M, N, k) are returned. See the matrix below.
+            var_names (tuple or list or str): If tuple of variable names is
+                given, e.g. ('var0', 'var1', 'var2'), data with ndarray format
+                are returned. Please see the matrix below for shape of data.
+                If list of variable names is given, e.g. ['var0', 'var1', 'var2'],
+                list of data for each variable are returned. Single string,
+                e.g. 'var0', is also allowed.
             phase (str or None): *all*, *train*, *valid*, *test* or *None*.
                 If ``phase`` is *all* or *None*, data in all phases are
                 returned, but it is allowed only after the ``compile``.
@@ -409,7 +405,7 @@ class StoreGate:
             ndarray or list: selected data by given options.
 
         Shape of returns:
-            >>> # index   var_names  | single var | list vars
+            >>> # index   var_names  | single var | tuple vars
             >>> # ------------------------------------------------------------
             >>> # single index (>=0) | k          | (M, k)
             >>> # otherwise          | (N, k)     | (N, M, k)
@@ -436,7 +432,7 @@ class StoreGate:
         is_single_var = False
         if isinstance(var_names, str):
             is_single_var = True
-            var_names = [var_names]
+            var_names = (var_names, )
 
         is_single_index = False
         if (isinstance(index, int)) and (index > -1):
@@ -446,9 +442,10 @@ class StoreGate:
         if is_single_var and is_single_index and not all_phase:
             return self._db.get_data(self._data_id, var_names[0], phase, index)
 
+        results = []
+
         # recursive operation
-        if self._is_recursive(var_names):
-            results = []
+        if isinstance(var_names, list):
             for var_name in var_names:
                 results.append(self.get_data(var_name, phase, index))
             return results
@@ -456,14 +453,6 @@ class StoreGate:
         phases = [phase]
         if all_phase:
             phases = self._metadata[self._data_id]['valid_phases']
-
-        # check shapes to concatenate
-        results = []
-        if (len(var_names) > 1) and (not self._is_concatenate(
-                var_names, phases)):
-            for var_name in var_names:
-                results.append(self.get_data(var_name, phase, index))
-            return results
 
         for iphase in phases:
             phase_results = []
@@ -477,7 +466,6 @@ class StoreGate:
                 phase_results.append(
                     self._db.get_data(self._data_id, var_name, iphase, index))
 
-            #results.append(np.array(phase_results))
             results.append(phase_results)
 
         if (not is_single_var) and is_single_index:
@@ -845,11 +833,11 @@ class StoreGate:
         ```var_names``` is converted to a list if it is string, and check shape
         of data.
         """
-        if not isinstance(var_names, (list, str)):
+        if not isinstance(var_names, (tuple, list, str)):
             raise ValueError(
                 f'{type(var_names)} is not supported for var_names')
 
-        if not isinstance(var_names, list):
+        if isinstance(var_names, str):
             var_names = [var_names]
             data = [data]
 
@@ -954,23 +942,3 @@ class StoreGate:
             return False
 
         return True
-
-    def _is_concatenate(self, var_names, phases):
-        """(private) check if can concatenate or not.
-        """
-        for iphase in phases:
-            shapes = self.get_var_shapes(var_names, phase=iphase)
-            if (len(set(shapes)) != 1) or (None in shapes):
-                return False
-
-        return True
-
-    @staticmethod
-    def _is_recursive(var_names):
-        """(private) check if var_names is recursive.
-        """
-        is_recursive = False
-        for var_name in var_names:
-            if isinstance(var_name, list):
-                is_recursive = True
-        return is_recursive

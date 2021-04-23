@@ -15,7 +15,7 @@ def build_storegate():
     data0 = np.random.normal(size=(100, 2))
     label = np.random.binomial(n=1, p=0.5, size=(100, ))
     phase = (0.8, 0.1, 0.1)
-    storegate.add_data(var_names=['var0', 'var1'], data=data0, phase=phase)
+    storegate.add_data(var_names=('var0', 'var1'), data=data0, phase=phase)
     storegate.add_data(var_names='label', data=label, phase=phase)
     storegate.compile()
     storegate.show_info()
@@ -40,7 +40,7 @@ def test_keras_mlp():
         'phases': None,
         'save_weights': True,
         # KerasBaseTask
-        'input_var_names': ['var0', 'var1'],
+        'input_var_names': ('var0', 'var1'),
         'output_var_names': 'output0',
         'true_var_names': 'label',
         'optimizer': 'adam',
