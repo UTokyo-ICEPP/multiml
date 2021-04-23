@@ -57,7 +57,7 @@ Pytorch implementaion
    # create task instance
    subtask = PytorchBaseTask(storegate=storegate,
                              model=MyPytorchModel,
-                             input_var_names=['x0', 'x1'],
+                             input_var_names=('x0', 'x1'),
                              output_var_names='outputs-pytorch',
                              true_var_names='labels',
                              optimizer='SGD',
@@ -93,7 +93,7 @@ Keras implementaion
    # create task instance
    subtask = KerasBaseTask(storegate=storegate,
                            model=MyKerasModel,
-                           input_var_names=['x0', 'x1'],
+                           input_var_names=('x0', 'x1'),
                            output_var_names='outputs-keras',
                            true_var_names='labels',
                            optimizer='adam',
@@ -118,8 +118,8 @@ Sklean implementaion
    subtask = SkleanPipelineTask(storegate=storegate,
                                 model=SelectKBest,
                                 model_args=dict(score_func=chi2, k=2),
-                                input_var_names=['x0', 'x1', 'x2', 'x3'],
-                                output_var_names=['k0', 'k1'],
+                                input_var_names=('x0', 'x1', 'x2', 'x3'),
+                                output_var_names=('k0', 'k1'),
                                 true_var_names='labels')
 
    # execute
@@ -145,14 +145,14 @@ The following example connects two-step tasks and creates a differentiable deep 
                       optimizer_args=dict(lr=0.1))
 
    subtask0 = PytorchBaseTask(model=MyPytorchModel(2, 2),
-                              input_var_names=['x0', 'x1'],
-                              output_var_names=['output0-pytorch', 'output1-pytorch'],
-                              true_var_names=['x2', 'x3'],
+                              input_var_names=('x0', 'x1'),
+                              output_var_names=('output0-pytorch', 'output1-pytorch'),
+                              true_var_names=('x2', 'x3'),
                               loss='MSELoss',
                               **common_args)
 
    subtask1 = PytorchBaseTask(model=MyPytorchModel(3, 2),
-                              input_var_names=['output0-pytorch', 'output1-pytorch', 'x2'],
+                              input_var_names=('output0-pytorch', 'output1-pytorch', 'x2'),
                               output_var_names='output2-pytorch',
                               true_var_names='labels',
                               loss='CrossEntropyLoss',
@@ -185,26 +185,26 @@ The following example connects multiple tasks in parallel and creates a differen
                       loss='binary_crossentropy')
 
    subtask0 = KerasBaseTask(model=MyKerasModel,
-                            input_var_names=['x0', 'x1', 'x2'],
-                            output_var_names=['output0-keras'],
+                            input_var_names=('x0', 'x1', 'x2'),
+                            output_var_names=('output0-keras'),
                             true_var_names='labels',
                             **common_args)
 
    subtask1 = KerasBaseTask(model=MyKerasModel,
-                            input_var_names=['x0', 'x1', 'x2'],
-                            output_var_names=['output1-keras'],
+                            input_var_names=('x0', 'x1', 'x2'),
+                            output_var_names=('output1-keras',),
                             true_var_names='labels',
                             **common_args)
 
    subtask2 = KerasBaseTask(model=MyKerasModel,
-                            input_var_names=['x0', 'x1', 'x2'],
-                            output_var_names=['output2-keras'],
+                            input_var_names=('x0', 'x1', 'x2'),
+                            output_var_names=('output2-keras',),
                             true_var_names='labels',
                             **common_args)
 
    # connect subtasks
    subtask = EnsembleTask(subtasks=[subtask0, subtask1, subtask2],
-                          output_var_names=['outputs'],
+                          output_var_names=('outputs',),
                           **common_args)
 
    # set hyperparameters
