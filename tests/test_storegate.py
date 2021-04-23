@@ -6,8 +6,8 @@ from multiml.storegate import StoreGate
 # user defined parameters
 
 data_id = 'test_storegate'
-var_names01 = ['var0', 'var1']
-var_names23 = ['var2', 'var3']
+var_names01 = ('var0', 'var1')
+var_names23 = ('var2', 'var3')
 
 data0 = np.linspace(0, 9, 10)
 data1 = np.linspace(10, 19, 10)

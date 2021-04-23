@@ -15,7 +15,7 @@ def build_storegate():
     data0 = np.random.normal(size=(100, 2))
     label = np.random.binomial(n=1, p=0.5, size=(100, ))
     phase = (0.8, 0.1, 0.1)
-    storegate.add_data(var_names=['var0', 'var1'], data=data0, phase=phase)
+    storegate.add_data(var_names=('var0', 'var1'), data=data0, phase=phase)
     storegate.add_data(var_names='label', data=label, phase=phase)
     storegate.compile()
     storegate.show_info()
@@ -47,15 +47,15 @@ def test_keras_ensemble():
     }
 
     subtask0 = MLPTask(name='subtask0',
-                       input_var_names=['var0', 'var1'],
-                       output_var_names=['output0'],
-                       true_var_names=['label'],
+                       input_var_names=('var0', 'var1'),
+                       output_var_names=('output0'),
+                       true_var_names=('label'),
                        layers=[4, 1],
                        **args_mlptask)
     subtask1 = MLPTask(name='subtask1',
-                       input_var_names=['var0', 'var1'],
-                       output_var_names=['output0'],
-                       true_var_names=['label'],
+                       input_var_names=('var0', 'var1'),
+                       output_var_names=('output0'),
+                       true_var_names=('label'),
                        layers=[4, 1],
                        **args_mlptask)
 
@@ -76,8 +76,8 @@ def test_keras_ensemble():
 
     assert task.get_inputs()[0].shape[1] == len(['var0', 'var1'])
 
-    assert task.input_var_names == ['var0', 'var1']
-    assert task.output_var_names == ['output0']
+    assert task.input_var_names == ('var0', 'var1')
+    assert task.output_var_names == ('output0')
 
     task.execute()
     task.finalize()

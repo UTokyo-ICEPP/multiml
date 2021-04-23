@@ -17,7 +17,7 @@ def build_storegate():
     data = np.random.normal(size=(100, 6))
     label = np.random.binomial(n=1, p=0.5, size=(100, ))
     phase = (0.8, 0.1, 0.1)
-    storegate.add_data(var_names=['var0', 'var1', 'var2', 'var3', 'var4', 'var5'],
+    storegate.add_data(var_names=('var0', 'var1', 'var2', 'var3', 'var4', 'var5'),
                        data=data,
                        phase=phase)
     storegate.add_data(var_names='label', data=label, phase=phase)
@@ -50,19 +50,19 @@ def test_keras_module_connection_model():
         'activation_last': 'sigmoid',
     }
 
-    task0 = MLPTask(input_var_names=['var0', 'var1'],
-                    output_var_names=['output0', 'output1'],
-                    true_var_names=['var2', 'var3'],
+    task0 = MLPTask(input_var_names=('var0', 'var1'),
+                    output_var_names=('output0', 'output1'),
+                    true_var_names=('var2', 'var3'),
                     layers=[4, 2],
                     **args_mlptask)
-    task1 = MLPTask(input_var_names=['output0', 'output1'],
-                    output_var_names=['output2'],
-                    true_var_names=['var4'],
+    task1 = MLPTask(input_var_names=('output0', 'output1'),
+                    output_var_names=('output2'),
+                    true_var_names=('var4',),
                     layers=[4, 1],
                     **args_mlptask)
-    task2 = MLPTask(input_var_names=['output2'],
-                    output_var_names=['output3'],
-                    true_var_names=['label'],
+    task2 = MLPTask(input_var_names=('output2',),
+                    output_var_names=('output3',),
+                    true_var_names=('label',),
                     layers=[4, 1],
                     **args_mlptask)
     task0.execute()

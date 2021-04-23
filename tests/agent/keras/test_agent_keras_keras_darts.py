@@ -18,7 +18,7 @@ def build_storegate():
     data = np.random.normal(size=(100, 5))
     label = np.random.binomial(n=1, p=0.5, size=(100, ))
     phase = (0.8, 0.1, 0.1)
-    storegate.add_data(var_names=['var0', 'var1', 'var2', 'var3', 'var4'],
+    storegate.add_data(var_names=('var0', 'var1', 'var2', 'var3', 'var4'),
                        data=data,
                        phase=phase)
     storegate.add_data(var_names='label', data=label, phase=phase)
@@ -53,28 +53,28 @@ def test_agent_keras_darts():
     }
 
     subtask0 = MLPTask(name='subtask0',
-                       input_var_names=['var0', 'var1'],
-                       output_var_names=['output0', 'output1'],
-                       true_var_names=['var2', 'var3'],
+                       input_var_names=('var0', 'var1'),
+                       output_var_names=('output0', 'output1'),
+                       true_var_names=('var2', 'var3'),
                        layers=[4, 2],
                        batch_norm=True,
                        **args_mlptask)
     subtask1 = MLPTask(name='subtask1',
-                       input_var_names=['var0', 'var1'],
-                       output_var_names=['output0', 'output1'],
-                       true_var_names=['var2', 'var3'],
+                       input_var_names=('var0', 'var1'),
+                       output_var_names=('output0', 'output1'),
+                       true_var_names=('var2', 'var3'),
                        layers=[4, 2],
                        **args_mlptask)
     subtask2 = MLPTask(name='subtask2',
-                       input_var_names=['var2', 'var3'],
-                       output_var_names=['output2'],
-                       true_var_names=['label'],
+                       input_var_names=('var2', 'var3'),
+                       output_var_names=('output2'),
+                       true_var_names=('label'),
                        layers=[4, 1],
                        **args_mlptask)
     subtask3 = MLPTask(name='subtask3',
-                       input_var_names=['var2', 'var3'],
-                       output_var_names=['output2'],
-                       true_var_names=['label'],
+                       input_var_names=('var2', 'var3'),
+                       output_var_names=('output2'),
+                       true_var_names=('label'),
                        layers=[4, 1],
                        **args_mlptask)
 
