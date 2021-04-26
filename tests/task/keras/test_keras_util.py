@@ -26,6 +26,9 @@ def test_keras_util():
     y_train = np.random.binomial(n=1, p=0.5, size=(100, ))
     y_valid = np.random.binomial(n=1, p=0.5, size=(100, ))
     chpt_path = f"{saver.save_dir}/test_keras_util"
+
+    from tensorflow.keras.callbacks import ReduceLROnPlateau
+    my_cb = ReduceLROnPlateau(patience=1)
     from multiml.task.keras.keras_util import training_keras_model
     training_keras_model(model=model,
                          num_epochs=2,
@@ -36,6 +39,7 @@ def test_keras_util():
                          x_valid=x_valid,
                          y_valid=y_valid,
                          chpt_path=chpt_path,
+                         callbacks=['EarlyStopping', 'ModelCheckpoint', 'TensorBoard', my_cb],
                          tensorboard_path=f'{saver.save_dir}/test_keras_util')
 
     from multiml.task.keras.keras_util import get_optimizer

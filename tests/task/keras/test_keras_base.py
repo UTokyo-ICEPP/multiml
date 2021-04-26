@@ -32,7 +32,9 @@ def test_keras_base():
 
     saver = Saver()
 
-    task = KerasBaseTask(saver=saver, )
+    from tensorflow.keras.callbacks import ReduceLROnPlateau
+    my_cb = ReduceLROnPlateau(patience=1)
+    task = KerasBaseTask(saver=saver, callbacks=['EarlyStopping', 'ModelCheckpoint', my_cb])
     task.load_metadata()  # Do nothing
 
 

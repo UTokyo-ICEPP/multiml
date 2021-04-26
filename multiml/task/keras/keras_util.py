@@ -20,16 +20,18 @@ def compile(obj, obj_args, modules):
         return copy.copy(obj)
 
 
-def training_keras_model(model,
-                         num_epochs,
-                         batch_size,
-                         max_patience,
-                         x_train,
-                         y_train,
-                         x_valid,
-                         y_valid,
-                         chpt_path=None,
-                         tensorboard_path=None):
+def training_keras_model(
+        model,
+        num_epochs,
+        batch_size,
+        max_patience,
+        x_train,
+        y_train,
+        x_valid,
+        y_valid,
+        chpt_path=None,
+        callbacks=['EarlyStopping', 'ModelCheckpoint', 'TensorBoard'],
+        tensorboard_path=None):
     """ Training keras model
 
     Args:
@@ -41,6 +43,9 @@ def training_keras_model(model,
         x_valid (np.darray): input array for validation
         y_valid (np.darray): output array for validation
         chpt_path (str): path for Keras check-point saving. If None, temporary directory will be used.
+        callbacks (str or keras.Callback): callback for keras model training.
+            Predefined callbacks (EarlyStopping, ModelCheckpoint, and TensorBoard) can be selected by str.
+            Other user-defined callbacks should be given as keras.Callback object.
         tensorboard_path (str): Path for tensorboard callbacks. If None, tensorboard callback is not used.
 
     Returns:
@@ -55,30 +60,41 @@ def training_keras_model(model,
     logger.info(f'chpt_path = {chpt_path}')
 
     cbs = []
-    if max_patience is not None:
-        from tensorflow.keras.callbacks import EarlyStopping
-        es_cb = EarlyStopping(monitor='val_loss',
-                              patience=max_patience,
-                              verbose=0,
-                              mode='min',
-                              restore_best_weights=True)
-        cbs.append(es_cb)
+    from tensorflow.keras.callbacks import Callback
+    for callback in callbacks:
+        if callback == 'EarlyStopping':
+            if max_patience is not None:
+                from tensorflow.keras.callbacks import EarlyStopping
+                es_cb = EarlyStopping(monitor='val_loss',
+                                      patience=max_patience,
+                                      verbose=0,
+                                      mode='min',
+                                      restore_best_weights=True)
+                cbs.append(es_cb)
 
-    from tensorflow.keras.callbacks import ModelCheckpoint
-    cp_cb = ModelCheckpoint(filepath=chpt_path,
-                            monitor='val_loss',
-                            verbose=0,
-                            save_best_only=True,
-                            save_weights_only=True,
-                            mode='min')
-    cbs.append(cp_cb)
+        elif callback == 'ModelCheckpoint':
+            from tensorflow.keras.callbacks import ModelCheckpoint
+            cp_cb = ModelCheckpoint(filepath=chpt_path,
+                                    monitor='val_loss',
+                                    verbose=0,
+                                    save_best_only=True,
+                                    save_weights_only=True,
+                                    mode='min')
+            cbs.append(cp_cb)
 
-    if tensorboard_path is not None:
-        from tensorflow.keras.callbacks import TensorBoard
-        tb_cb = TensorBoard(log_dir=tensorboard_path,
-                            histogram_freq=1,
-                            profile_batch=5)
-        cbs.append(tb_cb)
+        elif callback == 'TensorBoard':
+            if tensorboard_path is not None:
+                from tensorflow.keras.callbacks import TensorBoard
+                tb_cb = TensorBoard(log_dir=tensorboard_path,
+                                    histogram_freq=1,
+                                    profile_batch=5)
+                cbs.append(tb_cb)
+
+        elif issubclass(callback.__class__, Callback):
+            cbs.append(callback)
+
+        else:
+            raise ValueError(f"{callback} is not supported.")
 
     training_verbose_mode = 0
     if logger.MIN_LEVEL <= logger.DEBUG:
