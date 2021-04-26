@@ -20,17 +20,18 @@ def compile(obj, obj_args, modules):
         return copy.copy(obj)
 
 
-def training_keras_model(model,
-                         num_epochs,
-                         batch_size,
-                         max_patience,
-                         x_train,
-                         y_train,
-                         x_valid,
-                         y_valid,
-                         chpt_path=None,
-                         callbacks=['EarlyStopping', 'ModelCheckpoint', 'TensorBoard'],
-                         tensorboard_path=None):
+def training_keras_model(
+        model,
+        num_epochs,
+        batch_size,
+        max_patience,
+        x_train,
+        y_train,
+        x_valid,
+        y_valid,
+        chpt_path=None,
+        callbacks=['EarlyStopping', 'ModelCheckpoint', 'TensorBoard'],
+        tensorboard_path=None):
     """ Training keras model
 
     Args:
@@ -42,7 +43,9 @@ def training_keras_model(model,
         x_valid (np.darray): input array for validation
         y_valid (np.darray): output array for validation
         chpt_path (str): path for Keras check-point saving. If None, temporary directory will be used.
-        callbacks (str or keras.Callback): callback for keras model training. Predefined callbacks (EarlyStopping, ModelCheckpoint, and TensorBoard) can be selected by str. Other user-defined callbacks should be given as keras.Callback object.
+        callbacks (str or keras.Callback): callback for keras model training.
+            Predefined callbacks (EarlyStopping, ModelCheckpoint, and TensorBoard) can be selected by str.
+            Other user-defined callbacks should be given as keras.Callback object.
         tensorboard_path (str): Path for tensorboard callbacks. If None, tensorboard callback is not used.
 
     Returns:

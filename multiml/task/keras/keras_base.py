@@ -9,18 +9,29 @@ from ..basic import MLBaseTask
 class KerasBaseTask(MLBaseTask):
     """ Base class for Keras model.
     """
-    def __init__(self, run_eagerly=None, save_tensorboard=False, **kwargs):
+    def __init__(self,
+                 run_eagerly=None,
+                 callbacks=['EarlyStopping', 'ModelCheckpoint'],
+                 save_tensorboard=False,
+                 **kwargs):
         """
 
         Args:
             run_eagerly (bool): Run on eager execution mode (not graph mode).
+            callbacks (list(str or keras.Callback)): callback for keras model training.
+                Predefined callbacks (EarlyStopping, ModelCheckpoint, and TensorBoard) can be selected by str.
+                Other user-defined callbacks should be given as keras.Callback object.
             save_tensorboard (bool): use tensorboard callback in training.
             **kwargs: Arbitrary keyword arguments.
         """
         super().__init__(**kwargs)
 
         self._run_eagerly = run_eagerly
+        self._callbacks = callbacks
         self._save_tensorboard = save_tensorboard
+
+        if save_tensorboard and ('TensorBoard' not in self._callbacks):
+            self._callbacks += ['TensorBoard']
 
         if self._metrics is None:
             self._metrics = ['accuracy']
@@ -108,6 +119,7 @@ class KerasBaseTask(MLBaseTask):
                                       x_valid=x_valid,
                                       y_valid=y_valid,
                                       chpt_path=None,
+                                      callbacks=self._callbacks,
                                       tensorboard_path=tensorboard_path)
 
         return result
