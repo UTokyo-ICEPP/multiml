@@ -5,7 +5,7 @@ Adding data
 -----------
 Base arguments:
   * ``backend`` (str): ``numpy``, ``zarr`` or ``hybrid``. ``numpy`` is suitable for small dataset, and ``zarr`` is suitable for large dataset that exceds capacity of memory 
-  * ``data_id``` (str): unique identifer of dataset
+  * ``data_id`` (str): unique identifer of dataset
   * ``backend_args`` (dict): args passed to backend database, e.g. directory path to zarr
   
 .. code-block:: python

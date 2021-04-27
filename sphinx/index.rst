@@ -62,6 +62,8 @@ Out:
    test   numpy    true            int64           1               (1,)
    ================================================================================
    
+Please see :doc:`StoreGate tutorial <storegate>` for more details.
+
 Impementing algorithms (``Task``)  
 ------------------------------
 .. code-block:: python
