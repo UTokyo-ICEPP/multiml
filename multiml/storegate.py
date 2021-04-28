@@ -297,6 +297,12 @@ class StoreGate:
             >>> # add data to train phase
             >>> storegate.add_data(var_names='var0', data=[0, 1, 2], phase='train')
         """
+        # recursive operation
+        if isinstance(var_names, list):
+            for var_name, idata in zip(var_names, data):
+                self.add_data(var_name, idata, phase, shuffle, do_compile)
+            return
+
         self._check_valid_data_id()
 
         var_names, data = self._view_to_list(var_names, data)
@@ -352,6 +358,12 @@ class StoreGate:
             >>> # update data of train phase
             >>> storegate.update_data(var_names='var0', data=[1], phase='train', index=1)
         """
+        # recursive operation
+        if isinstance(var_names, list):
+            for var_name, idata in zip(var_names, data):
+                self.update_data(var_name, idata, phase, index, do_compile)
+            return
+
         self._check_valid_data_id()
 
         var_names, data = self._view_to_list(var_names, data)
