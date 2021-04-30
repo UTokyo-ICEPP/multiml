@@ -1,3 +1,5 @@
+import inspect
+
 import torch
 from torch.nn import Module, ModuleList
 from multiml.task.basic.modules import ConnectionModel
@@ -17,7 +19,7 @@ class ConnectionModel(ConnectionModel, Module):
         for i_subtask in self._models:
             self._sub_models.append(i_subtask)
 
-    def forward(self, inputs):
+    def forward(self, inputs, training=True):
         outputs = []
         caches = [None] * self._num_outputs
 
@@ -49,7 +51,10 @@ class ConnectionModel(ConnectionModel, Module):
                 tensor_inputs = torch.cat(tensor_inputs, dim=1)
 
             # Apply model in subtask
-            tensor_outputs = sub_model(tensor_inputs)
+            if 'training' in inspect.getargspec(sub_model.forward)[0]:
+                tensor_outputs = sub_model(tensor_inputs, training=training)
+            else:
+                tensor_outputs = sub_model(tensor_inputs)
 
             # TODO: If outputs is list, special treatment
             if isinstance(tensor_outputs, list):

@@ -1,6 +1,7 @@
 """ PytorchBaseTask module.
 """
 import copy
+import inspect
 
 import numpy as np
 from tqdm import tqdm
@@ -82,6 +83,7 @@ class PytorchBaseTask(MLBaseTask):
         self._unpack_inputs = unpack_inputs
         self._view_as_outputs = view_as_outputs
 
+        self._pass_training = False
         self._early_stopping = False
         self._scheduler = None
         self._scaler = None
@@ -338,6 +340,11 @@ class PytorchBaseTask(MLBaseTask):
         if logger.MIN_LEVEL <= logger.DEBUG:
             disable_tqdm = False
 
+        if 'training' in inspect.getargspec(self.ml.model.forward)[0]:
+            self._pass_training = True
+        else:
+            self._pass_training = False
+
         epoch_loss, epoch_corrects, total = 0.0, 0, 0
         results = {}
         pbar_args = dict(total=len(dataloader),
@@ -357,7 +364,7 @@ class PytorchBaseTask(MLBaseTask):
                     labels = self.add_device(data[true_index], rank)
 
                     with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                        outputs = self._step_model(inputs)
+                        outputs = self._step_model(inputs, True)
                         loss = self._step_loss(outputs, labels)
 
                     if phase == 'train':
@@ -417,6 +424,11 @@ class PytorchBaseTask(MLBaseTask):
 
         self.ml.model.eval()
 
+        if 'training' in inspect.getargspec(self.ml.model.forward)[0]:
+            self._pass_training = True
+        else:
+            self._pass_training = False
+
         if data is not None:
             dataset = self.get_tensor_dataset(data)
             dataloader = DataLoader(dataset,
@@ -441,7 +453,7 @@ class PytorchBaseTask(MLBaseTask):
                 inputs = self.add_device(data[input_index], self._device)
 
                 with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                    outputs = self._step_model(inputs)
+                    outputs = self._step_model(inputs, False)
 
                     if isinstance(outputs, Tensor):
                         results.append(outputs.cpu().numpy())
@@ -512,14 +524,19 @@ class PytorchBaseTask(MLBaseTask):
     ##########################################################################
     # Internal methods
     ##########################################################################
-    def _step_model(self, inputs):
+    def _step_model(self, inputs, training):
+        if self._pass_training:
+            forward_args = dict(training=training)
+        else:
+            forward_args = {}
+
         if isinstance(inputs, list):
             if self._unpack_inputs:
-                outputs = self.ml.model(*inputs)
+                outputs = self.ml.model(*inputs, **forward_args)
             else:
-                outputs = self.ml.model(inputs)
+                outputs = self.ml.model(inputs, **forward_args)
         else:
-            outputs = self.ml.model(inputs)
+            outputs = self.ml.model(inputs, **forward_args)
 
         return outputs
 
