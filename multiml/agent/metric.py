@@ -234,6 +234,12 @@ class ACCMetric(BaseMetric):
         """
         y_true, y_pred = self.get_true_pred_data()
 
+        if len(y_true.shape) != 1:
+            y_true = np.argmax(y_true, axis=1)
+
+        if len(y_pred.shape) != 1:
+            y_pred = np.argmax(y_pred, axis=1)
+
         from sklearn.metrics import accuracy_score
         acc = accuracy_score(y_true, y_pred)
 
