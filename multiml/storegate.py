@@ -299,7 +299,9 @@ class StoreGate:
         """
         # recursive operation
         if isinstance(var_names, list):
-            for var_name, idata in zip(var_names, data):
+            for i_vars in range(len(var_names)):
+                var_name = var_names[i_vars]
+                idata = data[:, i_vars]
                 self.add_data(var_name, idata, phase, shuffle, do_compile)
             return
 
@@ -360,7 +362,9 @@ class StoreGate:
         """
         # recursive operation
         if isinstance(var_names, list):
-            for var_name, idata in zip(var_names, data):
+            for i_vars in range(len(var_names)):
+                var_name = var_names[i_vars]
+                idata = data[:, i_vars]
                 self.update_data(var_name, idata, phase, index, do_compile)
             return
 
