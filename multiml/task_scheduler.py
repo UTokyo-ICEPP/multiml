@@ -25,6 +25,7 @@ from collections import namedtuple
 import networkx as nx
 
 from multiml import logger
+from multiml.task.basic import BaseTask
 
 tasktuple = namedtuple('tasktuple', ('task_id', 'subtasks'))
 subtasktuple = namedtuple('subtasktuple',
@@ -73,7 +74,7 @@ class TaskScheduler:
             if isinstance(ordered_tasks[0], str):
                 self.add_ordered_tasks(ordered_tasks)
 
-            elif isinstance(ordered_tasks[0], list):
+            else:
                 self.add_ordered_subtasks(ordered_tasks)
 
     def __repr__(self):
@@ -204,9 +205,23 @@ class TaskScheduler:
 
             self.add_task(task_id, parents=parents)
 
+            if not isinstance(subtasks, list):
+                subtasks = [subtasks]
+
             for subtask in subtasks:
-                env, hps = subtask
-                self.add_subtask(task_id, env=env, hps=hps)
+                if isinstance(subtask, tuple) and len(subtask) == 2:
+                    env, hps = subtask
+                    self.add_subtask(task_id, env=env, hps=hps)
+
+                elif isinstance(subtask, tuple) and len(subtask) == 3:
+                    subtask_id, env, hps = subtask
+                    self.add_subtask(task_id,
+                                     subtask_id=subtask_id,
+                                     env=env,
+                                     hps=hps)
+
+                else:
+                    self.add_subtask(task_id, env=subtask)
 
     def add_subtask(self, task_id, subtask_id=None, env=None, hps=None):
         """Register a subtask to given task. 
@@ -226,6 +241,9 @@ class TaskScheduler:
 
         if env is None:
             raise ValueError("subtask object is required.")
+
+        if not isinstance(env, BaseTask):
+            raise ValueError('env must inherit BaseTask class.')
 
         if subtask_id is None:
             subtask_id = env.name
