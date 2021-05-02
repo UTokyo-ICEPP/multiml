@@ -76,7 +76,7 @@ class ConnectionModel(ConnectionModel, Model):
                     caches[output_index] = tensor_outputs[:, ii]
             else:
                 raise ValueError(
-                    'length of model outoputs and indeses are not consistent.')
+                    'length of model outputs and indices are not consistent.')
         return outputs
 
     def _get_variables(self):
