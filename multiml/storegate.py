@@ -574,6 +574,18 @@ class StoreGate:
                 shapes.append(self.get_var_shapes(var_name, phase))
             return shapes
 
+        elif isinstance(var_names, tuple):
+            # Check shape consistency
+            shape = self.get_var_shapes(var_names[0], phase)
+            for var_name in var_names:
+                if self.get_var_shapes(var_name, phase) != shape:
+                    raise ValueError(f"Shape of {var_name} is different from {var_names[0]}.")
+
+            if shape == ():
+                return (len(var_names),)
+            else:
+                return (len(var_names),) + shape
+
         else:
             raise ValueError(f'invalid type of var_names: {var_names}.')
 

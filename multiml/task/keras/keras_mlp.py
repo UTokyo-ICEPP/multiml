@@ -62,7 +62,7 @@ class MLPTask(KerasBaseTask):
         input = self.get_inputs()[0]
         x = input
         # MEMO: Flatten() causes shape error when using model saving...
-        x = K.reshape(input, (-1, ) + tuple(self._input_shapes))
+        x = K.reshape(input, (-1, input.shape[-1]))
 
         from .modules import MLPBlock
         mlp = MLPBlock(layers=self._layers,
@@ -75,6 +75,3 @@ class MLPTask(KerasBaseTask):
 
         self._model = Model(inputs=input, outputs=x)
 
-    def get_inputs(self):
-        from tensorflow.keras.layers import Input
-        return [Input(shape=self._input_shapes)]
