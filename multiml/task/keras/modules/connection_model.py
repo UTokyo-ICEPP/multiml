@@ -24,8 +24,10 @@ class ConnectionModel(ConnectionModel, Model):
 
         for index, model in enumerate(self._models):
             # Create input tensor
-            tensor_inputs = [None] * len(self._input_var_index[index])
-            for ii, input_index in enumerate(self._input_var_index[index]):
+            input_indexes = self._input_var_index[index]
+            tensor_inputs = [None] * len(input_indexes)
+
+            for ii, input_index in enumerate(input_indexes):
                 if input_index >= 0:  # inputs
                     tensor_inputs[ii] = inputs[input_index]
                 else:  # caches
@@ -36,15 +38,8 @@ class ConnectionModel(ConnectionModel, Model):
             if len(tensor_inputs) == 1:
                 tensor_inputs = tensor_inputs[0]
 
-            # check the shapes of each variable and set a flag
-            elif self._binds[index] is None:
-                shapes = [
-                    tuple(tensor_input.shape) for tensor_input in tensor_inputs
-                ]
-                self._binds[index] = len(set(shapes)) == 1
-
-            # If shape of each variable is same, convert from list to tensor
-            if self._binds[index] is True:
+            # If index is tuple, convert from list to tensor
+            elif isinstance(input_indexes, tuple):
                 tensor_inputs = [
                     tf.expand_dims(tensor_input, 1)
                     for tensor_input in tensor_inputs

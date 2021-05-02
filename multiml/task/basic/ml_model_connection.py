@@ -263,7 +263,7 @@ class ModelConnectionTask(MLBaseTask):
                 continue
 
             if isinstance(input_var_names, str):
-                input_var_names = [input_var_names]
+                input_var_names = (input_var_names, )
 
             input_var_names = self._apply_variable_mapping(input_var_names)
 
@@ -282,7 +282,10 @@ class ModelConnectionTask(MLBaseTask):
                     input_index.append(
                         self.input_var_names.index(input_var_name))
 
-            self._input_var_index.append(input_index)
+            if isinstance(input_var_names, tuple):
+                self._input_var_index.append(tuple(input_index))
+            else:
+                self._input_var_index.append(input_index)
 
     def set_ordered_subtasks(self):
         """ Order subtasks based on input_var_names and output_var_names.
@@ -363,6 +366,10 @@ class ModelConnectionTask(MLBaseTask):
         if self._variable_mapping is None:
             return input_vars
 
+        is_tuple = False
+        if isinstance(input_vars, tuple):
+            is_tuple = True
+
         ret = []
         if isinstance(input_vars[0], list):
             for v in input_vars:
@@ -375,6 +382,9 @@ class ModelConnectionTask(MLBaseTask):
                     input_var = v_to
                     break
             ret.append(input_var)
+
+        if is_tuple:
+            ret = tuple(ret)
 
         return ret
 

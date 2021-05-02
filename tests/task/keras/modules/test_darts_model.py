@@ -117,8 +117,8 @@ def test_keras_module_darts_model():
         zeta=1e-3,
         # ConnectionModel
         models=[task0.ml.model, task1.ml.model],
-        input_var_index=[[0, 1], [-1, -2]],
-        output_var_index=[[0, 1], [2]])
+        input_var_index=[(0, 1), (-1, -2)],
+        output_var_index=[(0, 1), (2,)])
 
     # Directly use objest for optimizer instead of str
     DARTSModel(
