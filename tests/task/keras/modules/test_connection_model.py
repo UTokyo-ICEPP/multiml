@@ -70,8 +70,8 @@ def test_keras_module_connection_model():
     task2.execute()
 
     model = ConnectionModel(models=[task0.ml.model, task1.ml.model, task2.ml.model],
-                            input_var_index=[[0, 1], [-1, -2], [-3]],
-                            output_var_index=[[0, 1], [2], [3]])
+                            input_var_index=[(0, 1), (-1, -2), (-3,)],
+                            output_var_index=[(0, 1), (2,), (3,)])
 
     trainalbe_variables = model._get_variables()
     assert len(trainalbe_variables) > 0
