@@ -19,7 +19,7 @@ class ConnectionModel(ConnectionModel, Module):
         for i_subtask in self._models:
             self._sub_models.append(i_subtask)
 
-    def forward(self, inputs, training=True):
+    def forward(self, inputs):
         outputs = []
         caches = [None] * self._num_outputs
 
@@ -47,35 +47,26 @@ class ConnectionModel(ConnectionModel, Module):
                 ]
                 tensor_inputs = torch.cat(tensor_inputs, dim=1)
 
-            # Apply model in subtask
-            if 'training' in inspect.getargspec(sub_model.forward)[0]:
-                tensor_outputs = sub_model(tensor_inputs, training=training)
-            else:
-                tensor_outputs = sub_model(tensor_inputs)
+            tensor_outputs = sub_model(tensor_inputs)
+            output_indexes = self._output_var_index[index]
 
             # TODO: If outputs is list, special treatment
             if isinstance(tensor_outputs, list):
-                for tensor_output in tensor_outputs:
-                    outputs.append(tensor_output)
+                outputs += tensor_outputs
 
                 # only the first output is passed to next
                 tensor_outputs = tensor_outputs[0]
             else:
                 outputs.append(tensor_outputs)
 
-            output_indexes = self._output_var_index[index]
-
             # model output is not list
             tensor_outputs = self.squeeze_without_batch(tensor_outputs)
             if len(output_indexes) == 1:
                 caches[output_indexes[0]] = tensor_outputs
 
-            elif len(output_indexes) == tensor_outputs.shape[1]:
+            else:
                 for ii, output_index in enumerate(output_indexes):
                     caches[output_index] = tensor_outputs[:, ii]
-            else:
-                raise ValueError(
-                    'length of model outoputs and indeses are not consistent.')
 
         return outputs
 
