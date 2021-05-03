@@ -163,10 +163,9 @@ class ModelConnectionTask(MLBaseTask):
     def compile_index(self):
         """ Compile subtask dependencies and I/O variables.
         """
+        self.set_ordered_subtasks()
         self.set_output_var_index()
         self.set_input_var_index()
-
-        self.set_ordered_subtasks()
 
     def predict_update(self, data=None):
         """ Predict and update results to storegate.
@@ -239,9 +238,8 @@ class ModelConnectionTask(MLBaseTask):
 
             for output_var_name in output_var_names:
                 if output_var_name in self.output_var_names:
-                    output_index.append(
-                        self.output_var_names.index(output_var_name))
-
+                    logger.error(
+                        f'output_var_name: {output_var_name} is duplicated.')
                 else:
                     self.output_var_names.append(output_var_name)
                     output_index.append(
@@ -348,17 +346,10 @@ class ModelConnectionTask(MLBaseTask):
                     dag.add_edge(node, v)
 
         new_subtasks = []
-        new_input_var_index = []
-        new_output_var_index = []
-
         for i_subtask in nx.topological_sort(dag):
             new_subtasks.append(self._subtasks[i_subtask])
-            new_input_var_index.append(self._input_var_index[i_subtask])
-            new_output_var_index.append(self._output_var_index[i_subtask])
 
         self._subtasks = new_subtasks
-        self._input_var_index = new_input_var_index
-        self._output_var_index = new_output_var_index
 
     def _apply_variable_mapping(self, input_vars):
         """ Convert variable name by given mapping.
