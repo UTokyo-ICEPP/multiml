@@ -34,14 +34,20 @@ class EnsembleTask(KerasBaseTask):
         self._true_var_names = self._proxy_model._true_var_names
 
         if self._output_var_names is None:
-            self._output_var_names = self._proxy_model.output_var_names
+            output_var_names = self._proxy_model.output_var_names
+            if self._individual_loss:
+                self._output_var_names = [output_var_names]
+
+                for index in range(len(subtasks)):
+                    sub_var_names = self._get_sub_var_names(
+                        output_var_names, index)
+                    self._output_var_names.append(sub_var_names)
+
+            else:
+                self._output_var_names = output_var_names
 
         if self._optimizer is None:
             self._optimizer = self._proxy_model._optimizer
-
-        #self._num_epochs = self._proxy_model._num_epochs
-        #self._batch_size = self._proxy_model._batch_size
-        #self._max_patience = self._proxy_model._max_patience
 
     def compile(self):
         for subtask in self._subtasks:
@@ -81,26 +87,6 @@ class EnsembleTask(KerasBaseTask):
 
     def get_input_true_data(self, phase):
         return self._proxy_model.get_input_true_data(phase)
-
-    def predict_update(self, data=None):
-        """ Update storegate.
-        """
-        y_preds = self.predict(data)
-        output_var_names = self._output_var_names
-
-        if self._individual_loss:
-            for index, y_pred in enumerate(y_preds):
-                if index > 0:
-                    output_var_names = self._subtasks[index -
-                                                      1].output_var_names
-
-                self._storegate.update_data(data=y_pred,
-                                            var_names=output_var_names,
-                                            phase='auto')
-        else:
-            self._storegate.update_data(data=y_preds,
-                                        var_names=output_var_names,
-                                        phase='auto')
 
     def get_inputs(self):
         return self._proxy_model.get_inputs()
@@ -143,3 +129,19 @@ class EnsembleTask(KerasBaseTask):
                 ensemble_weights.append(var)
 
         return ensemble_weights
+
+    def _get_sub_var_names(self, output_var_names, index):
+        if isinstance(output_var_names, str):
+            return f'{output_var_names}.{index}'
+
+        elif isinstance(output_var_names, list):
+            results = [
+                self._get_sub_var_names(v, index) for v in output_var_names
+            ]
+            return results
+
+        elif isinstance(output_var_names, tuple):
+            results = [
+                self._get_sub_var_names(v, index) for v in output_var_names
+            ]
+            return tuple(results)
