@@ -137,12 +137,13 @@ class ModelConnectionTask(MLBaseTask):
             for subtask in self._subtasks:
                 if isinstance(subtask.ml.loss, list):
                     self.ml.loss.append([None] * len(subtask.ml.loss))
+                    self.ml.loss_weights.append([0.0] * len(subtask.ml.loss))
                 else:
                     self.ml.loss.append(None)
-                self.ml.loss_weights.append(0.0)
+                    self.ml.loss_weights.append(0.0)
 
             self.ml.loss[-1] = self._subtasks[-1].ml.loss
-            self.ml.loss_weights[-1] = 1.0
+            self.ml.loss_weights[-1] = self._subtasks[-1].ml.loss_weights
 
         # TODO: special treatment for ensemble tasks
         new_loss = []
@@ -151,7 +152,7 @@ class ModelConnectionTask(MLBaseTask):
         for index, loss in enumerate(self.ml.loss):
             if isinstance(loss, list):
                 new_loss += loss
-                new_loss_weights += [w * self.ml.loss_weights[index] for w in self._subtasks[index].ml.loss_weights]
+                new_loss_weights += self.ml.loss_weights[index]
 
             else:
                 new_loss.append(loss)
