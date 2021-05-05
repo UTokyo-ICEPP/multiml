@@ -1,9 +1,9 @@
 import tensorflow as tf
-from tensorflow.keras import Model
 from multiml.task.basic.modules import ConnectionModel
+from multiml.task.keras.modules import BaseModel
 
 
-class ConnectionModel(ConnectionModel, Model):
+class ConnectionModel(ConnectionModel, BaseModel):
     def __init__(self, *args, **kwargs):
         """
 
