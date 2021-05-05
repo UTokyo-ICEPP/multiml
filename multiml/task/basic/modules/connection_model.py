@@ -25,8 +25,6 @@ class ConnectionModel(metaclass=ABCMeta):
         self._input_var_index = input_var_index
         self._output_var_index = output_var_index
 
-        self._binds = [None] * len(self._models)
-
         self._num_outputs = 0
 
         for outputs in self._output_var_index:
