@@ -99,67 +99,61 @@ class ModelConnectionTask(MLBaseTask):
           * If ``use_multi_loss`` is True and ``loss_weights`` is None,
             ``loss_weights`` is retrieved from each subtask.
         """
-        if self._use_multi_loss:
-            self.ml.loss = []
+        self.ml.loss = []
+        self.ml.loss_weights = []
 
-            for index, subtask in enumerate(self._subtasks):
-                self.ml.loss.append(subtask.ml.loss)
+        n_subtasks = len(self._subtasks)
 
-            if self._loss_weights is None:
-                self.ml.loss_weights = []
+        # Define loss weights for each task
+        if self._loss_weights is None or self._use_multi_loss is False:
+            task_weights = [1.0 for _ in range(n_subtasks)]
+        elif isinstance(self._loss_weights, list):
+            task_weights = self._loss_weights
+        elif isinstance(self._loss_weights, dict):
+            task_weights = [
+                self._loss_weights[subtask.task_id]
+                for subtask in self._subtasks
+            ]
 
-                for index, subtask in enumerate(self._subtasks):
-                    loss_weights = subtask.ml.loss_weights
+        # Collect loss and weights for the loss from each subtask
+        for index in range(n_subtasks):
+            subtask = self._subtasks[index]
+            task_weight = task_weights[index]
 
-                    if loss_weights is None:
-                        self.ml.loss_weights.append(1.0)
-                    elif isinstance(loss_weights, (int, float)):
-                        self.ml.loss_weights.append(loss_weights)
+            if type(subtask.ml.loss) is list or type(
+                    subtask.ml.loss_weights) is list:
+                if type(subtask.ml.loss) != type(subtask.ml.loss_weights):
+                    raise ValueError(
+                        f"Inconsistent type: loss={type(subtask.ml.loss)}, loss_weights={type(subtask.ml.loss_weights)}"
+                    )
 
-                    else:
-                        raise ValueError(
-                            f'loss_weights {loss_weights} is not supported')
+                if len(subtask.ml.loss) != len(subtask.ml.loss_weights):
+                    raise ValueError(
+                        f"Inconsistent list length: loss={len(subtask.ml.loss)}, loss_weights={len(subtask.ml.loss_weights)}"
+                    )
 
-            elif isinstance(self._loss_weights, list):
-                self.ml.loss_weights = self._loss_weights
+            loss_weights = subtask.ml.loss_weights
+            if loss_weights is None:
+                loss_weights = 1.0
 
-            elif isinstance(self._loss_weights, dict):
-                self.ml.loss_weights = []
-
-                for index, subtask in enumerate(self._subtasks):
-                    loss_weights = self._loss_weights[subtask.task_id]
-                    self.ml.loss_weights.append(loss_weights)
-
-        else:
-            self.ml.loss = []
-            self.ml.loss_weights = []
-
-            num_subtasks = len(self._subtasks)
-            self.ml.loss = [None] * num_subtasks
-            self.ml.loss_weights = [0.0] * num_subtasks
-
-            self.ml.loss[-1] = self._subtasks[-1].ml.loss
-            self.ml.loss_weights[-1] = 1.0
-
-        # TODO: special treatment for ensemble tasks
-        new_loss = []
-        new_loss_weights = []
-
-        for index, loss in enumerate(self.ml.loss):
-            if isinstance(loss, list):
-                new_loss += loss
-                new_loss_weights += self._subtasks[index].ml.loss_weights
+            if self._use_multi_loss or index == n_subtasks - 1:
+                if isinstance(subtask.ml.loss, list):
+                    self.ml.loss += subtask.ml.loss
+                    self.ml.loss_weights += [
+                        l * task_weight for l in loss_weights
+                    ]
+                else:
+                    self.ml.loss.append(subtask.ml.loss)
+                    self.ml.loss_weights.append(loss_weights * task_weight)
 
             else:
-                new_loss.append(loss)
-                new_loss_weights.append(self.ml.loss_weights[index])
-
-        if len(new_loss) == len(new_loss_weights):
-            self.ml.loss = new_loss
-            self.ml.loss_weights = new_loss_weights
-        else:
-            raise ValueError(
-                'Length of loss and loss_weights is not consistent.')
+                # Dummy loss which is not used in backpropagation
+                if isinstance(subtask.ml.loss, list):
+                    self.ml.loss += [None] * len(subtask.ml.loss)
+                    self.ml.loss_weights += [0.0] * len(subtask.ml.loss)
+                else:
+                    self.ml.loss.append(None)
+                    self.ml.loss_weights.append(0.0)
 
     def compile_index(self):
         """ Compile subtask dependencies and I/O variables.
