@@ -358,44 +358,65 @@ class PytorchBaseTask(MLBaseTask):
             pbar.set_description(pbar_desc)
 
             for data in dataloader:
-                self.ml.optimizer.zero_grad()
+                inputs = self.add_device(data[input_index], rank)
+                labels = self.add_device(data[true_index], rank)
 
-                with torch.set_grad_enabled(phase == 'train'):
-                    inputs = self.add_device(data[input_index], rank)
-                    labels = self.add_device(data[true_index], rank)
+                batch_result = self.step_train(inputs, labels, phase)
 
-                    with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                        outputs = self._step_model(inputs, True)
-                        loss = self._step_loss(outputs, labels)
+                inputs_size = util.inputs_size(inputs)
+                total += inputs_size
+                epoch_loss += batch_result['loss'] * inputs_size
+                running_loss = epoch_loss / total
+                results['loss'] = f'{running_loss:.2e}'
 
-                    if phase == 'train':
-                        self._step_optimizer(loss)
+                if 'acc' in self._metrics:
+                    accuracy = batch_result['acc'] / total
+                    results['acc'] = f'{accuracy:.2e}'
 
-                    inputs_size = util.inputs_size(inputs)
-                    total += inputs_size
-                    epoch_loss += loss.item() * inputs_size
-                    running_loss = epoch_loss / total
+                if 'lrs' in self._metrics:
+                    lrs = [f"{float(lr):.2e}" for lr in batch_result['lrs']]
+                    results['lrs'] = f'{lrs}'
 
-                    if 'loss' in self._metrics:
-                        results['loss'] = f'{running_loss:.2e}'
-
-                    if 'acc' in self._metrics:
-                        _, preds = torch.max(outputs, 1)
-                        epoch_corrects += torch.sum(preds == labels.data)
-                        accuracy = epoch_corrects.item() / total
-                        results['acc'] = f'{accuracy:.2e}'
-
-                    if 'lrs' in self._metrics:
-                        lrs = [
-                            f"{float(param['lr']):.2e}"
-                            for param in self.ml.optimizer.param_groups
-                        ]
-                        results['lrs'] = f'{lrs}'
-                    pbar.set_postfix(results)
-                    pbar.update(1)
+                pbar.set_postfix(results)
+                pbar.update(1)
 
         results['running_loss'] = running_loss
         return results
+
+    def step_train(self, inputs, labels, phase):
+        """ Process batch data and update weights.
+
+        Args:
+            inputs (obj): input tensor data.
+            labels (obj): true tensor data.
+            phase (str): *train* mode or *valid* mode.
+
+        Returns:
+            dict: dict of result.
+        """
+        result = {}
+        self.ml.optimizer.zero_grad()
+
+        with torch.set_grad_enabled(phase == 'train'):
+            with torch.cuda.amp.autocast(self._is_gpu and self._amp):
+                outputs = self._step_model(inputs, True)
+                loss = self._step_loss(outputs, labels)
+
+            if phase == 'train':
+                self._step_optimizer(loss)
+
+            result['loss'] = loss.item()
+
+            if 'acc' in self._metrics:
+                _, preds = torch.max(outputs, 1)
+                corrects = torch.sum(preds == labels.data)
+                result['acc'] = corrects.item()
+
+            if 'lrs' in self._metrics:
+                lrs = [param['lr'] for param in self.ml.optimizer.param_groups]
+                result['lrs'] = lrs
+
+        return result
 
     def predict(self,
                 data=None,
