@@ -340,7 +340,8 @@ class PytorchBaseTask(MLBaseTask):
         if logger.MIN_LEVEL <= logger.DEBUG:
             disable_tqdm = False
 
-        if 'training' in inspect.getargspec(self.ml.model.forward)[0]:
+        sig = inspect.signature(self.ml.model.forward)
+        if 'training' in sig.parameters:
             self._pass_training = True
         else:
             self._pass_training = False
@@ -424,7 +425,8 @@ class PytorchBaseTask(MLBaseTask):
 
         self.ml.model.eval()
 
-        if 'training' in inspect.getargspec(self.ml.model.forward)[0]:
+        sig = inspect.signature(self.ml.model.forward)
+        if 'training' in sig.parameters:
             self._pass_training = True
         else:
             self._pass_training = False
