@@ -47,35 +47,22 @@ class ConnectionModel(ConnectionModel, Module):
                 ]
                 tensor_inputs = torch.cat(tensor_inputs, dim=1)
 
+            # Apply model in subtask
             tensor_outputs = sub_model(tensor_inputs)
             output_indexes = self._output_var_index[index]
 
             # TODO: If outputs is list, special treatment
             if isinstance(tensor_outputs, list):
                 outputs += tensor_outputs
-
-                # only the first output is passed to next
-                tensor_outputs = tensor_outputs[0]
+                for ii, output_index in enumerate(output_indexes):
+                    caches[output_index] = tensor_outputs[ii]
             else:
                 outputs.append(tensor_outputs)
+                if len(output_indexes) == 1:
+                    caches[output_indexes[0]] = tensor_outputs
 
-            # model output is not list
-            tensor_outputs = self.squeeze_without_batch(tensor_outputs)
-            if len(output_indexes) == 1:
-                caches[output_indexes[0]] = tensor_outputs
-
-            else:
-                for ii, output_index in enumerate(output_indexes):
-                    caches[output_index] = tensor_outputs[:, ii]
+                else:
+                    for ii, output_index in enumerate(output_indexes):
+                        caches[output_index] = tensor_outputs[:, ii]
 
         return outputs
-
-    @staticmethod
-    def squeeze_without_batch(tensor_outputs):
-        offset = 0
-        for index, shape in enumerate(tensor_outputs.shape):
-            if shape == 1 and index != 0:
-                dim = index - offset
-                tensor_outputs = torch.squeeze(tensor_outputs, dim=dim)
-                offset += 1
-        return tensor_outputs

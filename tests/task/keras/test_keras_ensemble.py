@@ -77,7 +77,7 @@ def test_keras_ensemble():
     assert task.get_inputs()[0].shape[1] == len(['var0', 'var1'])
 
     assert task.input_var_names == ('var0', 'var1')
-    assert task.output_var_names == ('output0')
+    assert task.output_var_names == ['output0', 'output0.0', 'output0.1']
 
     task.execute()
     task.finalize()

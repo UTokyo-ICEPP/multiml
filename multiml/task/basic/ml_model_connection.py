@@ -64,6 +64,7 @@ class ModelConnectionTask(MLBaseTask):
         self._use_multi_loss = use_multi_loss
         self._variable_mapping = variable_mapping
 
+        self._cache_var_names = None
         self._input_var_index = None
         self._output_var_index = None
 
@@ -98,67 +99,61 @@ class ModelConnectionTask(MLBaseTask):
           * If ``use_multi_loss`` is True and ``loss_weights`` is None,
             ``loss_weights`` is retrieved from each subtask.
         """
-        if self._use_multi_loss:
-            self.ml.loss = []
+        self.ml.loss = []
+        self.ml.loss_weights = []
 
-            for index, subtask in enumerate(self._subtasks):
-                self.ml.loss.append(subtask.ml.loss)
+        n_subtasks = len(self._subtasks)
 
-            if self._loss_weights is None:
-                self.ml.loss_weights = []
+        # Define loss weights for each task
+        if self._loss_weights is None or self._use_multi_loss is False:
+            task_weights = [1.0 for _ in range(n_subtasks)]
+        elif isinstance(self._loss_weights, list):
+            task_weights = self._loss_weights
+        elif isinstance(self._loss_weights, dict):
+            task_weights = [
+                self._loss_weights[subtask.task_id]
+                for subtask in self._subtasks
+            ]
 
-                for index, subtask in enumerate(self._subtasks):
-                    loss_weights = subtask.ml.loss_weights
+        # Collect loss and weights for the loss from each subtask
+        for index in range(n_subtasks):
+            subtask = self._subtasks[index]
+            task_weight = task_weights[index]
 
-                    if loss_weights is None:
-                        self.ml.loss_weights.append(1.0)
-                    elif isinstance(loss_weights, (int, float)):
-                        self.ml.loss_weights.append(loss_weights)
+            if type(subtask.ml.loss) is list or type(
+                    subtask.ml.loss_weights) is list:
+                if type(subtask.ml.loss) != type(subtask.ml.loss_weights):
+                    raise ValueError(
+                        f"Inconsistent type: loss={type(subtask.ml.loss)}, loss_weights={type(subtask.ml.loss_weights)}"
+                    )
 
-                    else:
-                        raise ValueError(
-                            f'loss_weights {loss_weights} is not supported')
+                if len(subtask.ml.loss) != len(subtask.ml.loss_weights):
+                    raise ValueError(
+                        f"Inconsistent list length: loss={len(subtask.ml.loss)}, loss_weights={len(subtask.ml.loss_weights)}"
+                    )
 
-            elif isinstance(self._loss_weights, list):
-                self.ml.loss_weights = self._loss_weights
+            loss_weights = subtask.ml.loss_weights
+            if loss_weights is None:
+                loss_weights = 1.0
 
-            elif isinstance(self._loss_weights, dict):
-                self.ml.loss_weights = []
-
-                for index, subtask in enumerate(self._subtasks):
-                    loss_weights = self._loss_weights[subtask.task_id]
-                    self.ml.loss_weights.append(loss_weights)
-
-        else:
-            self.ml.loss = []
-            self.ml.loss_weights = []
-
-            num_subtasks = len(self._subtasks)
-            self.ml.loss = [None] * num_subtasks
-            self.ml.loss_weights = [0.0] * num_subtasks
-
-            self.ml.loss[-1] = self._subtasks[-1].ml.loss
-            self.ml.loss_weights[-1] = 1.0
-
-        # TODO: special treatment for ensemble tasks
-        new_loss = []
-        new_loss_weights = []
-
-        for index, loss in enumerate(self.ml.loss):
-            if isinstance(loss, list):
-                new_loss += loss
-                new_loss_weights += self._subtasks[index].ml.loss_weights
+            if self._use_multi_loss or index == n_subtasks - 1:
+                if isinstance(subtask.ml.loss, list):
+                    self.ml.loss += subtask.ml.loss
+                    self.ml.loss_weights += [
+                        l * task_weight for l in loss_weights
+                    ]
+                else:
+                    self.ml.loss.append(subtask.ml.loss)
+                    self.ml.loss_weights.append(loss_weights * task_weight)
 
             else:
-                new_loss.append(loss)
-                new_loss_weights.append(self.ml.loss_weights[index])
-
-        if len(new_loss) == len(new_loss_weights):
-            self.ml.loss = new_loss
-            self.ml.loss_weights = new_loss_weights
-        else:
-            raise ValueError(
-                'Length of loss and loss_weights is not consistent.')
+                # Dummy loss which is not used in backpropagation
+                if isinstance(subtask.ml.loss, list):
+                    self.ml.loss += [None] * len(subtask.ml.loss)
+                    self.ml.loss_weights += [0.0] * len(subtask.ml.loss)
+                else:
+                    self.ml.loss.append(None)
+                    self.ml.loss_weights.append(0.0)
 
     def compile_index(self):
         """ Compile subtask dependencies and I/O variables.
@@ -166,25 +161,6 @@ class ModelConnectionTask(MLBaseTask):
         self.set_ordered_subtasks()
         self.set_output_var_index()
         self.set_input_var_index()
-
-    def predict_update(self, data=None):
-        """ Predict and update results to storegate.
-        """
-        y_pred = self.predict(data)
-
-        offset = 0
-        for index, subtask in enumerate(self._subtasks):
-            output_var_names = subtask.output_var_names
-
-            data = self._squeeze(y_pred[index + offset], 2)
-
-            # TODO: special treatment for ensemble tasks
-            if isinstance(subtask.ml.loss, list):
-                offset += len(subtask.ml.loss) - 1
-
-            self._storegate.update_data(data=data,
-                                        var_names=output_var_names,
-                                        phase='auto')
 
     def get_input_true_data(self, phase=None):
         """ Returns input and true data retrieved from storegate.
@@ -222,6 +198,7 @@ class ModelConnectionTask(MLBaseTask):
     def set_output_var_index(self):
         """ Set output_var_names and output_var_index.
         """
+        self._cache_var_names = []
         self._output_var_index = []
         self._output_var_names = []
 
@@ -233,17 +210,22 @@ class ModelConnectionTask(MLBaseTask):
             if output_var_names is None:
                 continue
 
+            if isinstance(output_var_names, list):
+                self._output_var_names += output_var_names
+            else:
+                self._output_var_names.append(output_var_names)
+
             if isinstance(output_var_names, str):
-                output_var_names = [output_var_names]
+                output_var_names = (output_var_names, )
 
             for output_var_name in output_var_names:
-                if output_var_name in self.output_var_names:
+                if output_var_name in self._cache_var_names:
                     logger.error(
                         f'output_var_name: {output_var_name} is duplicated.')
                 else:
-                    self.output_var_names.append(output_var_name)
+                    self._cache_var_names.append(output_var_name)
                     output_index.append(
-                        self.output_var_names.index(output_var_name))
+                        self._cache_var_names.index(output_var_name))
 
             self._output_var_index.append(output_index)
 
@@ -265,20 +247,27 @@ class ModelConnectionTask(MLBaseTask):
 
             input_var_names = self._apply_variable_mapping(input_var_names)
 
-            for input_var_name in input_var_names:
-                if input_var_name in self.input_var_names:
-                    input_index.append(
-                        self.input_var_names.index(input_var_name))
+            # try tuple matching
+            if input_var_names in self._cache_var_names:
+                index = self._cache_var_names.index(input_var_names)
+                index = (index + 1) * -1
+                input_index.append(index)
 
-                elif input_var_name in self.output_var_names:
-                    index = self.output_var_names.index(input_var_name)
-                    index = (index + 1) * -1
-                    input_index.append(index)
+            else:
+                for input_var_name in input_var_names:
+                    if input_var_name in self.input_var_names:
+                        input_index.append(
+                            self.input_var_names.index(input_var_name))
 
-                else:
-                    self.input_var_names.append(input_var_name)
-                    input_index.append(
-                        self.input_var_names.index(input_var_name))
+                    elif input_var_name in self._cache_var_names:
+                        index = self._cache_var_names.index(input_var_name)
+                        index = (index + 1) * -1
+                        input_index.append(index)
+
+                    else:
+                        self.input_var_names.append(input_var_name)
+                        input_index.append(
+                            self.input_var_names.index(input_var_name))
 
             if isinstance(input_var_names, tuple):
                 self._input_var_index.append(tuple(input_index))
@@ -319,7 +308,8 @@ class ModelConnectionTask(MLBaseTask):
             output_var_names = subtask.output_var_names
             if isinstance(output_var_names, str):
                 output_var_names = [output_var_names]
-            for var in output_var_names:
+
+            for var in _flatten(output_var_names):
                 if not dag_sub.has_node('var_' + var):
                     dag_sub.add_node('var_' + var)
                 dag_sub.add_edge(i_subtask, 'var_' + var)
@@ -378,15 +368,3 @@ class ModelConnectionTask(MLBaseTask):
             ret = tuple(ret)
 
         return ret
-
-    @staticmethod
-    def _squeeze(numpy_outputs, dim=0):
-        """ Squeeze ndarray.
-        """
-        offset = 0
-        for index, shape in enumerate(numpy_outputs.shape):
-            if shape == 1 and index >= dim:
-                axis = index - offset
-                numpy_outputs = np.squeeze(numpy_outputs, axis=axis)
-                offset += 1
-        return numpy_outputs
