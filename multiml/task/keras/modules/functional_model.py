@@ -14,11 +14,11 @@ class FunctionalModel(Model):
         super().__init__(*args, **kwargs)
 
         self._pred_index = None
-       
+
         logger.warn('FunctionalModel assumes that Functional API is used to '\
                     'create a model. Pease consider to use Subclassing API '\
-                    'instead to avoid a mix of different APIs.') 
-        
+                    'instead to avoid a mix of different APIs.')
+
     def set_pred_index(self, pred_index):
         self._pred_index = pred_index
 
