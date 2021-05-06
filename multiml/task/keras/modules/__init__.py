@@ -1,3 +1,4 @@
+from .base_model import BaseModel
 from .softmax_dense_layer import SoftMaxDenseLayer
 from .mlp import MLPBlock
 from .conv2d import Conv2DBlock

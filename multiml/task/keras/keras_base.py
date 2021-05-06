@@ -43,6 +43,9 @@ class KerasBaseTask(MLBaseTask):
         """
         self.ml.model = compile(self._model, self._model_args, modules)
 
+        if self._pred_var_names is not None:
+            self.ml.model.set_pred_index(self.get_pred_index())
+
         from .keras_util import get_optimizer
         self.ml.optimizer = get_optimizer(self._optimizer,
                                           self._optimizer_args)

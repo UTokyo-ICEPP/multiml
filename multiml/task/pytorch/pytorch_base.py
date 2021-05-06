@@ -83,6 +83,7 @@ class PytorchBaseTask(MLBaseTask):
         self._unpack_inputs = unpack_inputs
         self._view_as_outputs = view_as_outputs
 
+        self._pred_index = None
         self._pass_training = False
         self._early_stopping = False
         self._scheduler = None
@@ -109,6 +110,9 @@ class PytorchBaseTask(MLBaseTask):
             return
 
         self.ml.model = util.compile(self._model, self._model_args, modules)
+
+        if self.pred_var_names is not None:
+            self._pred_index = self.get_pred_index()
 
         if self._load_weights:
             self.load_model()
@@ -400,6 +404,9 @@ class PytorchBaseTask(MLBaseTask):
         with torch.set_grad_enabled(phase == 'train'):
             with torch.cuda.amp.autocast(self._is_gpu and self._amp):
                 outputs = self._step_model(inputs, True)
+                if self._pred_index is not None:
+                    outputs = self._select_pred_data(outputs)
+
                 loss = self._step_loss(outputs, labels)
 
             if phase == 'train':
@@ -592,3 +599,9 @@ class PytorchBaseTask(MLBaseTask):
         else:
             loss.backward()
             self.ml.optimizer.step()
+
+    def _select_pred_data(self, y_pred):
+        if len(self._pred_index) == 1:
+            return y_pred[self._pred_index[0]]
+        else:
+            return [y_pred[index] for index in self._pred_index]

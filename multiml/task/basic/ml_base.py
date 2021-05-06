@@ -11,6 +11,7 @@ class MLBaseTask(BaseTask):
                  phases=None,
                  input_var_names=None,
                  output_var_names=None,
+                 pred_var_names=None,
                  true_var_names=None,
                  var_names=None,
                  model=None,
@@ -32,8 +33,9 @@ class MLBaseTask(BaseTask):
         Args:
             phases (list): list to indicates ML phases, e.g. ['train', 'test'].
                 If None is given, ['train', 'valid', 'test'] is set.
-            input_var_names (str or list): input variable names.
-            output_var_names (str or list): output variable names.
+            input_var_names (str or list): input variable names in StoreGate.
+            output_var_names (str or list): output variable names of model.
+            pred_var_names (str or list): prediction variable names passed to loss.
             true_var_names (str or list): true variable names.
             var_names (str): str of "input output true" variable names for
                 shortcut. This is not valid to specify multiple variables.
@@ -81,6 +83,7 @@ class MLBaseTask(BaseTask):
         self._phases = phases
         self._input_var_names = input_var_names
         self._output_var_names = output_var_names
+        self._pred_var_names = pred_var_names
         self._true_var_names = true_var_names
         self._var_names = var_names
 
@@ -252,6 +255,18 @@ class MLBaseTask(BaseTask):
         self._output_var_names = output_var_names
 
     @property
+    def pred_var_names(self):
+        """ Returns pred_var_names.
+        """
+        return self._pred_var_names
+
+    @pred_var_names.setter
+    def pred_var_names(self, pred_var_names):
+        """ Set pred_var_names.
+        """
+        self._pred_var_names = pred_var_names
+
+    @property
     def true_var_names(self):
         """ Returns true_var_names.
         """
@@ -395,3 +410,26 @@ class MLBaseTask(BaseTask):
         """
         unique_id = self.get_unique_id()
         return self.saver.load_ml(unique_id)[metadata_key]
+
+    def get_pred_index(self):
+        """ Set prediction index.   
+        """
+        pred_index = []
+        output_var_names = self.output_var_names
+        pred_var_names = self.pred_var_names
+
+        if not isinstance(output_var_names, list):
+            raise ValueError(
+                f'output_var_names: {output_var_names} is not list.')
+
+        if not isinstance(pred_var_names, list):
+            pred_var_names = [pred_var_names]
+
+        for pred_var_name in pred_var_names:
+            if pred_var_name in output_var_names:
+                pred_index.append(output_var_names.index(pred_var_name))
+
+        if not pred_index:
+            raise ValueError(f'Not valid pred_var_names: {pred_var_names}.')
+
+        return pred_index
