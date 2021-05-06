@@ -1,11 +1,11 @@
 import tensorflow as tf
-from tensorflow.keras import Model
+from tensorflow.python.keras.engine import functional
 from tensorflow.python.keras.engine import data_adapter
 
 from multiml import logger
 
 
-class FunctionalModel(Model):
+class FunctionalModel(functional.Functional):
     def __init__(self, *args, **kwargs):
         """ Base model to overwrite train_step().
 
