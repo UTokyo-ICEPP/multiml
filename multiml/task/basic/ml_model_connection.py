@@ -78,6 +78,11 @@ class ModelConnectionTask(MLBaseTask):
                 'output_var_names is given but it will be set automatically ')
             self._output_var_names = None
 
+        if self._pred_var_names is not None:
+            logger.warn(
+                'pred_var_names is given but it will be set automatically ')
+            self._pred_var_names = None
+
     def compile(self):
         """ Compile subtasks and this task.
         """
@@ -201,20 +206,36 @@ class ModelConnectionTask(MLBaseTask):
         self._cache_var_names = []
         self._output_var_index = []
         self._output_var_names = []
+        self._pred_var_names = []
 
         for subtask in self._subtasks:
 
             output_index = []
             output_var_names = subtask.output_var_names
+            pred_var_names = subtask.pred_var_names
 
             if output_var_names is None:
                 continue
 
+            # set output_var_names
             if isinstance(output_var_names, list):
                 self._output_var_names += output_var_names
             else:
                 self._output_var_names.append(output_var_names)
 
+            # set pred_var_names
+            if pred_var_names is None:
+                if isinstance(output_var_names, list):
+                    self._pred_var_names += output_var_names
+                else:
+                    self._pred_var_names.append(output_var_names)
+            else:
+                if isinstance(pred_var_names, list):
+                    self._pred_var_names += pred_var_names
+                else:
+                    self._pred_var_names.append(pred_var_names)
+
+            # set cache_var_names
             if isinstance(output_var_names, str):
                 output_var_names = (output_var_names, )
 

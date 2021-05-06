@@ -1,8 +1,8 @@
 import tensorflow as tf
+from tensorflow.keras import Model
+from tensorflow.python.keras.engine import data_adapter
 
 from multiml import logger
-
-from tensorflow.keras import Model
 
 
 class BaseModel(Model):
@@ -11,29 +11,44 @@ class BaseModel(Model):
         """
         super().__init__(*args, **kwargs)
 
-        self._output_var_names = None
-        self._pred_var_names = None
+        self._pred_index = None
+
+    def set_pred_index(self, pred_index):
+        self._pred_index = pred_index
 
     def train_step(self, data):
-        x, y = data
+        # original implementation:
+        # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/engine/training.py#L768
+
+        data = data_adapter.expand_1d(data)
+        x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
 
         with tf.GradientTape() as tape:
             y_pred = self(x, training=True)
 
             # select pred_var_names
-            if self._pred_var_names is not None:
+            if self._pred_index is not None:
                 y_pred = self.select_pred_data(y_pred)
 
             loss = self.compiled_loss(y,
                                       y_pred,
+                                      sample_weight,
                                       regularization_losses=self.losses)
 
-        trainable_vars = self.trainable_variables
-        gradients = tape.gradient(loss, trainable_vars)
-        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
-        self.compiled_metrics.update_state(y, y_pred)
-        return {m.name: m.result() for m in self.metrics}
+        self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
+        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+
+        return_metrics = {}
+        for metric in self.metrics:
+            result = metric.result()
+            if isinstance(result, dict):
+                return_metrics.update(result)
+            else:
+                return_metrics[metric.name] = result
+        return return_metrics
 
     def select_pred_data(self, y_pred):
-        # do selection
-        return
+        if len(self._pred_index) == 1:
+            return y_pred[self._pred_index[0]]
+        else:
+            return [y_pred[index] for index in self._pred_index]

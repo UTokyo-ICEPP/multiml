@@ -410,3 +410,26 @@ class MLBaseTask(BaseTask):
         """
         unique_id = self.get_unique_id()
         return self.saver.load_ml(unique_id)[metadata_key]
+
+    def get_pred_index(self):
+        """ Set prediction index.   
+        """
+        pred_index = []
+        output_var_names = self.output_var_names
+        pred_var_names = self.pred_var_names
+
+        if not isinstance(output_var_names, list):
+            raise ValueError(
+                f'output_var_names: {output_var_names} is not list.')
+
+        if not isinstance(pred_var_names, list):
+            pred_var_names = [pred_var_names]
+
+        for pred_var_name in pred_var_names:
+            if pred_var_name in output_var_names:
+                pred_index.append(output_var_names.index(pred_var_name))
+
+        if not pred_index:
+            raise ValueError(f'Not valid pred_var_names: {pred_var_names}.')
+
+        return pred_index
