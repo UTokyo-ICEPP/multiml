@@ -1,7 +1,7 @@
 from multiml import logger
 from multiml.task.pytorch import PytorchChoiceBlockTask
 
-from multiml.agent.basic.random_search import resulttuple
+from multiml.agent.basic.sequential import resulttuple
 from . import PytorchConnectionRandomSearchAgent
 
 

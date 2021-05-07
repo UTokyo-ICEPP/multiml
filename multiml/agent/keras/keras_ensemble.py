@@ -1,6 +1,6 @@
 from multiml import logger
 from multiml.task.keras import EnsembleTask
-from multiml.agent.basic.random_search import resulttuple
+from multiml.agent.basic.sequential import resulttuple
 
 from . import KerasConnectionRandomSearchAgent
 

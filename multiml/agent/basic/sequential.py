@@ -61,11 +61,7 @@ class SequentialAgent(BaseAgent):
                 'Multiple sutasks or hyperparameters are defined.')
 
         subtasktuples = self.task_scheduler[0]
-        if self._differentiable is None:
-            self._result = self.execute_pipeline(subtasktuples, 0)
-
-        else:
-            self._result = self.execute_connection_model(subtasktuples, 0)
+        self._result = self.execute_subtasktuples(subtasktuples, 0)
 
     @logger.logging
     def finalize(self):
@@ -76,6 +72,15 @@ class SequentialAgent(BaseAgent):
 
         else:
             self._print_result(self._result)
+
+    def execute_subtasktuples(self, subtasktuples, counter):
+        """ Execute given subtasktuples..
+        """
+        if self._differentiable is None:
+            return self.execute_pipeline(subtasktuples, counter)
+
+        else:
+            return self.execute_differentiable(subtasktuples, counter)
 
     def execute_pipeline(self, subtasktuples, counter):
         """ Execute pipeline.
@@ -105,7 +110,7 @@ class SequentialAgent(BaseAgent):
         return resulttuple(result_task_ids, result_subtask_ids,
                            result_subtask_hps, metric)
 
-    def execute_connection_model(self, subtasktuples, counter):
+    def execute_differentiable(self, subtasktuples, counter):
         """ Execute connection model.
         """
         result_task_ids = []

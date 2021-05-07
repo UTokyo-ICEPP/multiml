@@ -4,17 +4,13 @@ Attributes:
     resulttuple (namedtuple): namedtuple contains lists of results.
 """
 import random
-from collections import namedtuple
 
 from multiml import logger
-from multiml.agent.basic import BaseAgent
-
-resulttuple = namedtuple(
-    'resulttuple', ('task_ids', 'subtask_ids', 'subtask_hps', 'metric_value'))
+from multiml.agent.basic import SequentialAgent
 
 
-class RandomSearchAgent(BaseAgent):
-    """ Agent executing with only one possible hyper parameter combination.
+class RandomSearchAgent(SequentialAgent):
+    """ Agent executing random search..
     """
     def __init__(self,
                  samplings=[0],
@@ -34,7 +30,6 @@ class RandomSearchAgent(BaseAgent):
             dump_all_results (bool): dump all results or not.
         """
         super().__init__(**kwargs)
-        self._result = None  # backward compatibility
         self._history = []
         self._samplings = samplings
         self._seed = seed
@@ -49,16 +44,16 @@ class RandomSearchAgent(BaseAgent):
         random.seed(seed)
 
     @property
-    def result(self):
-        """ Return result of execution.
+    def history(self):
+        """ Return history of execution.
         """
-        return self._result
+        return self._history
 
-    @result.setter
-    def result(self, result):
-        """ Set result of execution.
+    @history.setter
+    def history(self, history):
+        """ Set history of execution.
         """
-        self._result = result
+        self._hisotry = history
 
     @logger.logging
     def execute(self):
@@ -66,11 +61,12 @@ class RandomSearchAgent(BaseAgent):
         """
         if isinstance(self._samplings, int):
             samples = range(0, len(self.task_scheduler))
-            self._samplings = random.sample(samples, k=self._samplings)
+            self._samplings = random.choices(samples, k=self._samplings)
 
         for counter, index in enumerate(self._samplings):
             subtasktuples = self.task_scheduler[index]
-            self._history.append(self.execute_pipeline(subtasktuples, counter))
+            result = self.execute_subtasktuples(subtasktuples, counter)
+            self._history.append(result)
 
     @logger.logging
     def finalize(self):
@@ -97,54 +93,3 @@ class RandomSearchAgent(BaseAgent):
 
         logger.header1('Best results')
         self._print_result(self._result)
-
-    def execute_pipeline(self, subtasktuples, counter):
-        """ Execute pipeline.
-        """
-        result_task_ids = []
-        result_subtask_ids = []
-        result_subtask_hps = []
-
-        for subtasktuple in subtasktuples:
-            task_id = subtasktuple.task_id
-            subtask_id = subtasktuple.subtask_id
-            subtask_env = subtasktuple.env
-            subtask_hps = subtasktuple.hps.copy()
-            subtask_hps['job_id'] = counter
-
-            subtask_env.saver = self._saver
-            subtask_env.set_hps(subtask_hps)
-            self._execute_subtask(subtasktuple)
-
-            result_task_ids.append(task_id)
-            result_subtask_ids.append(subtask_id)
-            result_subtask_hps.append(subtask_hps)
-
-        self._metric.storegate = self._storegate
-        metric = self._metric.calculate()
-
-        return resulttuple(result_task_ids, result_subtask_ids,
-                           result_subtask_hps, metric)
-
-    def _execute_subtask(self, subtask):
-        """ Execute subtask.
-        """
-        subtask.env.storegate = self._storegate
-        subtask.env.saver = self._saver
-        subtask.env.execute()
-        subtask.env.finalize()
-
-    def _print_result(self, result):
-        """ Show result.
-        """
-        logger.header2('Result')
-        for task_id, subtask_id, subtask_hp in zip(result.task_ids,
-                                                   result.subtask_ids,
-                                                   result.subtask_hps):
-            logger.info(f'task_id {task_id} and subtask_id {subtask_id} with:')
-            if subtask_hp is None or len(subtask_hp) == 0:
-                logger.info('  No hyperparameters')
-            else:
-                for key, value in subtask_hp.items():
-                    logger.info(f'  {key} = {value}')
-        logger.info(f'Metric ({self._metric.name}) is {result.metric_value}')

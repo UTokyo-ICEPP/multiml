@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 from multiml import logger
-from multiml.agent.basic.random_search import resulttuple
+from multiml.agent.basic.sequential import resulttuple
 
 from ..basic import RandomSearchAgent
 
