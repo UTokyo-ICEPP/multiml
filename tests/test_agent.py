@@ -65,7 +65,7 @@ def test_agent():
     agent.execute()
     agent.finalize()
 
-    best_result = agent.get_best_result()
+    best_result = agent.result
     assert best_result.metric_value > 0
 
 

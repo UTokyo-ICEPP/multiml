@@ -40,7 +40,6 @@ class RandomSearchAgent(BaseAgent):
         self._seed = seed
         self._dump_all_results = dump_all_results
         self._task_prod = self.task_scheduler.get_all_subtasks_with_hps()
-        self._best_result = None
 
         if metric_type is None:
             self._metric_type = self._metric.type
@@ -77,63 +76,27 @@ class RandomSearchAgent(BaseAgent):
     def finalize(self):
         """ Finalize grid scan agent.
         """
-        # backward compatibility
-        if self._result is not None:
-            self.finalize_legacy()
-            return
+        if self._result is None:
+            metrics = [result.metric_value for result in self._history]
 
+            if self._metric_type == 'max':
+                index = metrics.index(max(metrics))
+            elif self._metric_type == 'min':
+                index = metrics.index(min(metrics))
+            else:
+                raise NotImplementedError(
+                    f'{self._metric_type} is not valid option.')
+
+            self._result = self._history[index]
+
+        # print results
         if self._dump_all_results:
             logger.header1('All results')
             for result in self._history:
                 self._print_result(result)
-            logger.header1('Best results')
 
-        metrics = [result.metric_value for result in self._history]
-        if self._metric_type == 'max':
-            index = metrics.index(max(metrics))
-        elif self._metric_type == 'min':
-            index = metrics.index(min(metrics))
-        else:
-            raise NotImplementedError(
-                f'{self._metric_type} is not valid option.')
-        best_result = self._history[index]
-        self._print_result(best_result)
-
-        scan_history = [{
-            "task_ids": result.task_ids,
-            "subtask_ids": result.subtask_ids,
-            "subtask_hps": result.subtask_hps,
-            "metric_value": result.metric_value
-        } for result in self._history]
-
-        self._saver.add('scan_history', scan_history)
-
-        self._saver.add('result.task_ids', best_result.task_ids)
-        self._saver.add('result.subtask_ids', best_result.subtask_ids)
-        self._saver.add('result.subtask_hps', best_result.subtask_hps)
-        self._saver.add('result.metric_value', best_result.metric_value)
-
-        self._best_result = best_result
-
-        self._saver.save()
-
-    @logger.logging
-    def finalize_legacy(self):
-        """ Finalize simple agent. Result is shown and saved.
-        """
+        logger.header1('Best results')
         self._print_result(self._result)
-
-        self._saver.add('result.task_ids', self._result.task_ids)
-        self._saver.add('result.subtask_ids', self._result.subtask_ids)
-        self._saver.add('result.subtask_hps', self._result.subtask_hps)
-        self._saver.add('result.metric_value', self._result.metric_value)
-
-        self._saver.save()
-
-    def get_best_result(self):
-        """ Return the best result.
-        """
-        return self._best_result
 
     def execute_pipeline(self, subtasktuples, counter):
         """ Execute pipeline.

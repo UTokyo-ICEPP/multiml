@@ -139,4 +139,4 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
             resulttuple: best result
             dict: auxiliary value of the best result
         """
-        return self._best_result, self._best_result_config
+        return self._result, self._best_result_config

@@ -37,8 +37,6 @@ def test_agent_basic_grid_scan():
         agent.execute()
         agent.finalize()
 
-        agent.get_best_result()
-
     with pytest.raises(NotImplementedError):
         agent = GridSearchAgent(
             saver=saver,
