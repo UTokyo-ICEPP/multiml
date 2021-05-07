@@ -396,20 +396,30 @@ class TaskScheduler:
     def show_info(self):
         """Show information of registered tasks and subtasks.
         """
-        logger.header2('')
-        for task_id in self._tasktuples:
-            in_dag = self._in_dag(task_id)
-            parents = self.get_parents_task_ids(task_id)
-            children = self.get_children_task_ids(task_id)
+        header = f'TaskScheduler: total combination {len(self)}'
+        names = ['task_id', 'subtask_id', 'hps', 'DAG', 'parents', 'children']
+        data = []
 
-            logger.info(
-                f' task_id: {task_id}, DAG: {in_dag} (parents: {parents}, children: {children}):'
-            )
-            for subtask in self._tasktuples[task_id].subtasks:
-                hp_name = subtask.hps.get_hp_names()
-                logger.info(
-                    f'   subtask_id: {subtask.subtask_id}, hps: {hp_name}')
-            logger.header2('')
+        for task_id in self._tasktuples:
+            in_dag = f'{self._in_dag(task_id)}'
+            parents = f'{self.get_parents_task_ids(task_id)}'
+            children = f'{self.get_children_task_ids(task_id)}'
+
+            for index, subtask in enumerate(
+                    self._tasktuples[task_id].subtasks):
+                subtask_id = subtask.subtask_id
+                hp_name = f'{subtask.hps.get_hp_names()}'
+
+                if index == 0:
+                    data.append([
+                        task_id, subtask_id, hp_name, in_dag, parents, children
+                    ])
+                else:
+                    data.append(
+                        ['', subtask_id, hp_name, in_dag, parents, children])
+            data.append('-')
+
+        logger.table(header=header, names=names, data=data)
 
     ##########################################################################
     # Internal methods

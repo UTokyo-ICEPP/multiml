@@ -381,8 +381,6 @@ class StoreGate:
                     continue
 
                 if var_name not in metadata.keys():
-                    logger.debug(
-                        f'Adding {phase} : {var_name} to {self._data_id}')
                     self.add_data(var_name, phase_data, iphase, False)
 
                 else:
@@ -796,40 +794,31 @@ class StoreGate:
         """Show information currently registered in storegate.
         """
         self._check_valid_data_id()
-
-        headers = dict(
-            phase='phase'.ljust(6),
-            backend='backend'.ljust(8),
-            var_names='var_names'.ljust(15),
-            var_types='var_types'.ljust(15),
-            total_events='total_events'.ljust(15),
-            var_shape='var_shape'.ljust(15),
-        )
-
         is_compiled = self._is_compiled()
-        logger.header3('')
-        logger.info(f'data_id : {self._data_id}, compiled : {is_compiled}')
+        header = f'StoreGate data_id : {self._data_id}, compiled : {is_compiled}'
 
+        names = [
+            'phase', 'backend', 'var_name', 'var_type', 'total_events',
+            'var_shape'
+        ]
+
+        table_data = []
         for phase in ['train', 'valid', 'test']:
             metadata = self._db.get_metadata(self._data_id, phase)
             if not metadata.keys():
                 continue
 
-            logger.header2('')
-            logger.info(' '.join(headers.values()))
-            logger.header3('')
             for var_name, data in metadata.items():
-                phase = phase.ljust(6)
-                backend = data['backend'].ljust(8)
-                var_name = var_name.ljust(15)
-                dtype = data['type'].ljust(15)
-                total_events = str(data["total_events"]).ljust(15)
-                shape = data["shape"]
+                backend = data['backend']
+                dtype = data['type']
+                total_events = str(data["total_events"])
+                shape = f'{data["shape"]}'
 
-                logger.info(
-                    f'{phase} {backend} {var_name} {dtype} {total_events} {shape}'
-                )
-        logger.header3('')
+                table_data.append(
+                    [phase, backend, var_name, dtype, total_events, shape])
+            table_data.append('-')
+
+        logger.table(header=header, names=names, data=table_data)
 
     ##########################################################################
     # Internal methods

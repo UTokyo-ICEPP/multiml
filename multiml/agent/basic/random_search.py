@@ -121,12 +121,17 @@ class RandomSearchAgent(SequentialAgent):
 
         # print results
         if self._dump_all_results:
-            logger.header1('All results')
+            header = f'All result of {self.__class__.__name__}'
+            data = []
             for result in self._history:
-                self._print_result(result)
+                names, tmp_data = self._print_result(result)
+                data += tmp_data
+                data += '-'
+            logger.table(header=header, names=names, data=data, max_length=40)
 
-        logger.header1('Best results')
-        self._print_result(self._result)
+        header = f'Best result of {self.__class__.__name__}'
+        names, data = self._print_result(self._result)
+        logger.table(header=header, names=names, data=data, max_length=40)
 
     def execute_jobs(self, ctx, queue, args):
         """ (expert method) Execute multiprocessing jobs.

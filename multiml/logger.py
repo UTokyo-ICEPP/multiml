@@ -136,6 +136,60 @@ def header3(message, level=info):
         level(("=" * len2) + ' ' + message + ' ' + ("=" * len2))
 
 
+def table(names, data, header=None, footer=None, max_length=30):
+    """ Show table. All data must be str.
+    """
+    lengths = [5] * len(names)
+
+    for index, name in enumerate(names):
+        if len(name) > lengths[index]:
+            lengths[index] = len(name)
+        if len(name) > max_length:
+            lengths[index] = max_length
+
+    for idata in data:
+        for index, var in enumerate(idata):
+            if len(var) > lengths[index]:
+                lengths[index] = len(var)
+
+            if len(var) > max_length:
+                lengths[index] = max_length
+
+    total_length = sum(lengths) + len(names) * 2
+
+    # header
+    if header is not None:
+        info('=' * total_length)
+        info(header)
+
+    # names
+    info('=' * total_length)
+    message = ''
+    for index, name in enumerate(names):
+        name = name.ljust(lengths[index])
+        message += f'{name[:max_length]}  '
+    info(message)
+    info('-' * total_length)
+
+    # data
+    for idata in data:
+        if idata == '-':
+            info('-' * total_length)
+            continue
+
+        message = ''
+        for index, var in enumerate(idata):
+            var = var.ljust(lengths[index])
+            message += f'{var[:max_length]}  '
+        info(message)
+    info('=' * total_length)
+
+    # footer
+    if footer is not None:
+        info(footer)
+        info('=' * total_length)
+
+
 def logging(func):
     """ Show the header and footer indicating start and end algorithm.
 

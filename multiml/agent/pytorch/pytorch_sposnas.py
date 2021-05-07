@@ -99,8 +99,9 @@ class PytorchSPOSNASAgent(PytorchConnectionRandomSearchAgent):
         self._execute_subtask(subtask, is_pretraining=False)
         self._metric.storegate = self._storegate
         metric = self._metric.calculate()
-        self.result = resulttuple('connection', f"choiceblock_{model_name}",
-                                  [], metric)
+        self.result = resulttuple(['connection'],
+                                  [f"choiceblock_{model_name}"], [None],
+                                  metric)
 
     def _build_choiceblock_task(self, subtasks, task_id=None):
         # Merge sub-tasks with choiceblock

@@ -71,7 +71,9 @@ class SequentialAgent(BaseAgent):
             logger.warn(f'No result at finalize of {self.__class__.__name__}')
 
         else:
-            self._print_result(self._result)
+            header = f'Result of {self.__class__.__name__}'
+            names, data = self._print_result(self._result)
+            logger.table(header=header, names=names, data=data, max_length=40)
 
     def execute_subtasktuples(self, subtasktuples, counter):
         """ Execute given subtasktuples..
@@ -179,17 +181,30 @@ class SequentialAgent(BaseAgent):
         subtask.env.finalize()
 
     def _print_result(self, result):
-        """ Show result.
+        """ Returns print result.
         """
-        logger.header2('Result')
+        names = [
+            'task_id', 'subtask_id', 'hps', f'metric({self._metric.name})'
+        ]
+        data = []
+
         for task_id, subtask_id, subtask_hp in zip(result.task_ids,
                                                    result.subtask_ids,
                                                    result.subtask_hps):
-            logger.info(f'task_id {task_id} and subtask_id {subtask_id} with:')
             if subtask_hp is None or len(subtask_hp) == 0:
-                logger.info('  No hyperparameters')
+                data.append([task_id, subtask_id, 'no hyperparameters'])
             else:
-                for key, value in subtask_hp.items():
-                    logger.info(f'  {key} = {value}')
-        logger.info(f'Metric ({self._metric.name}) is {result.metric_value}')
-        logger.header2('')
+                for index, (key, value) in enumerate(subtask_hp.items()):
+                    if index == 0:
+                        data.append([task_id, subtask_id, f'{key} = {value}'])
+                    else:
+                        data.append(['', '', f'{key} = {value}'])
+
+        metric_data = []
+        for index, idata in enumerate(data):
+            if index == 0:
+                metric_data.append(idata + [f'{result.metric_value}'])
+            else:
+                metric_data.append(idata + [''])
+
+        return names, metric_data
