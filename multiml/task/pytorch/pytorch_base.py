@@ -344,7 +344,7 @@ class PytorchBaseTask(MLBaseTask):
         if self._verbose is None:
             if logger.MIN_LEVEL <= logger.DEBUG:
                 disable_tqdm = False
-        elif self._verbose == 1: 
+        elif self._verbose == 1:
             disable_tqdm = False
 
         sig = inspect.signature(self.ml.model.forward)
