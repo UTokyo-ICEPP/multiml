@@ -27,6 +27,7 @@ class MLBaseTask(BaseTask):
                  metrics=None,
                  num_epochs=10,
                  batch_size=64,
+                 verbose=None,
                  **kwargs):
         """ Initialize ML base task.
 
@@ -59,6 +60,7 @@ class MLBaseTask(BaseTask):
             metrics (list): metrics of evaluation.
             num_epochs (int): number of epochs.
             batch_size (int): size of mini batch.
+            verbose (int): verbose option for fitting step. If None, it's set based on logger.MIN_LEVEL
         """
         super().__init__(**kwargs)
 
@@ -100,6 +102,7 @@ class MLBaseTask(BaseTask):
         self._metrics = metrics
         self._num_epochs = num_epochs
         self._batch_size = batch_size
+        self._verbose = verbose
 
         self._task_type = 'ml'
 
