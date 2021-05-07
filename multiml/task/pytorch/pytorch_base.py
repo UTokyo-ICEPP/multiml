@@ -341,7 +341,10 @@ class PytorchBaseTask(MLBaseTask):
             rank = self._device
 
         disable_tqdm = True
-        if logger.MIN_LEVEL <= logger.DEBUG:
+        if self._verbose is None:
+            if logger.MIN_LEVEL <= logger.DEBUG:
+                disable_tqdm = False
+        elif self._verbose == 1: 
             disable_tqdm = False
 
         sig = inspect.signature(self.ml.model.forward)
@@ -383,6 +386,9 @@ class PytorchBaseTask(MLBaseTask):
 
                 pbar.set_postfix(results)
                 pbar.update(1)
+
+        if self._verbose == 2:
+            logger.info(f'{pbar_desc} {results}')
 
         results['running_loss'] = running_loss
         return results

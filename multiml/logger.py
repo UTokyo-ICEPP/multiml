@@ -138,6 +138,22 @@ def header3(message, level=info):
 
 def table(names, data, header=None, footer=None, max_length=30):
     """ Show table. All data must be str.
+   
+    >>> names = ['var0', 'var1']
+    >>> data = [['hoge0', 'hoge1'], ['hoge2', 'hoge3']]
+    >>> header = 'header message'
+    >>> footer = 'footer message'
+    >>> 
+    >>> ==============
+    >>> header message
+    >>> ==============
+    >>> var0   var1
+    >>> --------------
+    >>> hoge0  hoge1
+    >>> hoge2  hoge3
+    >>> --------------
+    >>> footer message
+    >>> ==============
     """
     lengths = [5] * len(names)
 
