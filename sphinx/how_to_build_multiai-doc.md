@@ -26,19 +26,11 @@ git clone git@github.com:UTokyo-ICEPP/multiml-doc.git
 |- workdir
 ```
 
-## Build (first execution)
+## Build
 ```bash
 mkdir workdir; cd workdir
 sphinx-apidoc -F -e -o docs ../multiml/multiml
 cp ../multiml/sphinx/* docs/
-cd docs
-make html
-```
-
-## Build (second or later execution)
-```bash
-cd workdir
-sphinx-apidoc -f -e -o docs ../multiml/multiml
 cd docs
 make html
 ```
