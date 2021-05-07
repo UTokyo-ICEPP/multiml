@@ -11,20 +11,13 @@ from multiml.agent.basic.sequential import resulttuple
 class GridSearchAgent(RandomSearchAgent):
     """ Agent scanning all possible subtasks and hyper parameters.
     """
-    def __init__(self, num_workers=None, **kwargs):
+    def __init__(self, **kwargs):
         """ Initialize grid scan agent.
 
         Args:
-            num_workers (int): number of workers for multiprocessing. If
-                ``num_workers`` is given, multiprocessing is enabled.
             kwargs (dict): arbitrary kwargs passed to ``RandomSearchAgent`` class.
         """
         super().__init__(**kwargs)
-        self._num_workers = num_workers
-        self._multiprocessing = False
-
-        if self._num_workers is not None:
-            self._multiprocessing = True
 
     @logger.logging
     def execute(self):
@@ -62,34 +55,3 @@ class GridSearchAgent(RandomSearchAgent):
                                    divide=1)
 
             self.execute_jobs(ctx, queue, args)
-
-    def execute_jobs(self, ctx, queue, args):
-        """ (expert method) Execute multiprocessing jobs.
-        """
-        jobs = []
-
-        for pool_id, pargs in enumerate(args):
-            process = ctx.Process(target=self.execute_wrapper,
-                                  args=(pool_id, queue, *pargs),
-                                  daemon=False)
-            jobs.append(process)
-            process.start()
-
-        for job in jobs:
-            job.join()
-
-        while not queue.empty():
-            self._history.append(queue.get())
-
-    def execute_wrapper(self, pool_id, queue, subtasktuples, counter):
-        """ (expert method) Wrapper method to execute multiprocessing pipeline.
-        """
-        self._saver.set_mode('dict')
-        if self._storegate.backend == 'hybrid':
-            self._storegate.set_mode('numpy')
-
-        for subtasktuple in subtasktuples:
-            subtasktuple.env.pool_id = pool_id
-
-        result = self.execute_pipeline(subtasktuples, counter)
-        queue.put(result)
