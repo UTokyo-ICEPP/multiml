@@ -123,7 +123,8 @@ class KerasBaseTask(MLBaseTask):
                                       y_valid=y_valid,
                                       chpt_path=None,
                                       callbacks=self._callbacks,
-                                      tensorboard_path=tensorboard_path)
+                                      tensorboard_path=tensorboard_path,
+                                      verbose=self._verbose)
 
         return result
 

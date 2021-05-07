@@ -31,7 +31,8 @@ def training_keras_model(
         y_valid,
         chpt_path=None,
         callbacks=['EarlyStopping', 'ModelCheckpoint', 'TensorBoard'],
-        tensorboard_path=None):
+        tensorboard_path=None,
+        verbose=None):
     """ Training keras model
 
     Args:
@@ -47,6 +48,7 @@ def training_keras_model(
             Predefined callbacks (EarlyStopping, ModelCheckpoint, and TensorBoard) can be selected by str.
             Other user-defined callbacks should be given as keras.Callback object.
         tensorboard_path (str): Path for tensorboard callbacks. If None, tensorboard callback is not used.
+        verbose (int): verbose option for Model.fit(). If None, it's set based on logger.MIN_LEVEL
 
     Returns:
         dict: training results, which contains loss histories.
@@ -96,9 +98,13 @@ def training_keras_model(
         else:
             raise ValueError(f"{callback} is not supported.")
 
-    training_verbose_mode = 0
-    if logger.MIN_LEVEL <= logger.DEBUG:
-        training_verbose_mode = 1
+    if verbose is None:
+        if logger.MIN_LEVEL <= logger.DEBUG:
+            training_verbose_mode = 2
+        else:
+            training_verbose_mode = 0
+    else:
+        training_verbose_mode = verbose
 
     history = model.fit(x_train,
                         y_train,

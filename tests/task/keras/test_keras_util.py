@@ -40,7 +40,8 @@ def test_keras_util():
                          y_valid=y_valid,
                          chpt_path=chpt_path,
                          callbacks=['EarlyStopping', 'ModelCheckpoint', 'TensorBoard', my_cb],
-                         tensorboard_path=f'{saver.save_dir}/test_keras_util')
+                         tensorboard_path=f'{saver.save_dir}/test_keras_util',
+                         verbose=1)
 
     from multiml.task.keras.keras_util import get_optimizer
     get_optimizer('adam', dict(learning_rate=None))
