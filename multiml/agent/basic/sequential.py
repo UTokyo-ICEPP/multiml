@@ -79,6 +79,7 @@ class SequentialAgent(BaseAgent):
             header = f'Result of {self.__class__.__name__}'
             names, data = self._print_result(self._result)
             logger.table(header=header, names=names, data=data, max_length=40)
+            self.saver['result'] = self._result
 
     def execute_subtasktuples(self, subtasktuples, counter):
         """ Execute given subtasktuples.
@@ -196,9 +197,8 @@ class SequentialAgent(BaseAgent):
     def _print_result(self, result):
         """ Returns print result.
         """
-        names = [
-            'task_id', 'subtask_id', 'hps', f'metric({self._metric.name})'
-        ]
+        metric_name = self._metric.name
+        names = ['task_id', 'subtask_id', 'hps', f'metric({metric_name})']
         data = []
 
         for task_id, subtask_id, subtask_hp in zip(result['task_ids'],
