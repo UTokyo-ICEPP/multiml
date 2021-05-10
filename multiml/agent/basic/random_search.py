@@ -122,13 +122,11 @@ class RandomSearchAgent(SequentialAgent):
             data = []
             for result in self._history:
                 names, tmp_data = self._print_result(result)
-                data += tmp_data
-                data += '-'
+                data += tmp_data + ['-']
             logger.table(header=header, names=names, data=data, max_length=40)
+            self.saver['history'] = self._history
 
-        header = f'Best result of {self.__class__.__name__}'
-        names, data = self._print_result(self._result)
-        logger.table(header=header, names=names, data=data, max_length=40)
+        super().finalize()
 
     def execute_jobs(self, ctx, queue, args):
         """ (expert method) Execute multiprocessing jobs.
