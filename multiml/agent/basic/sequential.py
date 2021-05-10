@@ -14,6 +14,17 @@ resulttuple = namedtuple(
 
 class SequentialAgent(BaseAgent):
     """ Agent execute sequential tasks.
+
+    Examples:
+        >>> task0 = your_task0
+        >>> task1 = your_task1
+        >>> task2 = your_task2
+        >>>
+        >>> agent = SequentialAgent(storegate=storegate,
+        >>>                         task_scheduler=[task0, task1, task2],
+        >>>                         metric=your_metric)
+        >>> agent.execute()
+        >>> agent.finalize()
     """
     def __init__(self,
                  differentiable=None,
@@ -76,7 +87,7 @@ class SequentialAgent(BaseAgent):
             logger.table(header=header, names=names, data=data, max_length=40)
 
     def execute_subtasktuples(self, subtasktuples, counter):
-        """ Execute given subtasktuples..
+        """ Execute given subtasktuples.
         """
         if self._differentiable is None:
             return self.execute_pipeline(subtasktuples, counter)

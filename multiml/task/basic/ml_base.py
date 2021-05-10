@@ -31,13 +31,26 @@ class MLBaseTask(BaseTask):
                  **kwargs):
         """ Initialize ML base task.
 
+        This base class will be inherited by deep learning task classes, ``KerasBaseTask()``
+        and ``PytorchBaseTask()``. ``input_var_names`` and ``output_var_names`` specify data
+        for model inputs and outputs. If ``input_var_names`` is list, e.g. ['var0', 'var1'],
+        model will receive data with format of [(batch size, k), (batch size, k)], where k
+        is arbitrary shape of each variable. If ``input_var_names`` is tuple,
+        e.g. ('var0', 'var1'), model will receive data with (batch size, M, k), where M is
+        the number of variables. If `output_var_names`` is list, model must returns list of
+        tensor data for each variable. If `output_var_names`` is tuple, model must returns
+        a tensor data. ``pred_var_names`` and ``true_var_names`` specify data for loss
+        calculations. If ``pred_var_names`` is given, only variables indicated by
+        ``pred_var_names`` are selected from model outputs before being passed to loss calculation.
+        Please see ``KerasBaseTask()` or ``PytorchBaseTask()`` for actual examples.
+
         Args:
             phases (list): list to indicates ML phases, e.g. ['train', 'test'].
                 If None is given, ['train', 'valid', 'test'] is set.
-            input_var_names (str or list): input variable names in StoreGate.
-            output_var_names (str or list): output variable names of model.
+            input_var_names (str or list or tuple): input variable names in StoreGate.
+            output_var_names (str or list or tuple): output variable names of model.
             pred_var_names (str or list): prediction variable names passed to loss.
-            true_var_names (str or list): true variable names.
+            true_var_names (str or list or tuple): true variable names.
             var_names (str): str of "input output true" variable names for
                 shortcut. This is not valid to specify multiple variables.
             model (str or obj): name of model, or class object of model.
@@ -60,7 +73,8 @@ class MLBaseTask(BaseTask):
             metrics (list): metrics of evaluation.
             num_epochs (int): number of epochs.
             batch_size (int): size of mini batch.
-            verbose (int): verbose option for fitting step. If None, it's set based on logger.MIN_LEVEL
+            verbose (int): verbose option for fitting step. If None, it's set
+                based on logger.MIN_LEVEL
         """
         super().__init__(**kwargs)
 
@@ -125,6 +139,9 @@ class MLBaseTask(BaseTask):
         'saver__', value is retrieved from ```Saver``` instance, please see
         exampels below.
 
+        Args:
+            params (dict): key and value of hyperparameters.
+
         Example:
             >>> hps_dict = {
             >>>    'num_epochs': 10, # normal hyperparameter    
@@ -166,7 +183,7 @@ class MLBaseTask(BaseTask):
 
     @logger.logging
     def execute(self):
-        """ Execute a Keras task.
+        """ Execute a task.
         """
         self.compile()
 
@@ -182,19 +199,28 @@ class MLBaseTask(BaseTask):
 
     def fit(self, train_data=None, valid_data=None):
         """ Fit model.
+
+        Args:
+            train_data (ndarray): training data.
+            valid_data (ndarray): validation data.
         """
         pass
 
     def predict(self, data=None):
         """ Predict model.
+
+        Args:
+            data (ndarray): prediction data.
         """
         pass
 
     def fit_predict(self, fit_args=None, predict_args=None):
         """ Fit and predict model.
+
         Args:
             fit_args (dict): arbitrary dict passed to ``fit()``.
             predict_args (dict): arbitrary dict passed to ``predict()``.
+
         Returns:
             ndarray or list: results of prediction.
         """
@@ -299,6 +325,9 @@ class MLBaseTask(BaseTask):
     def compile(self):
         """ Compile model, optimizer and loss.
 
+        Compiled objects will be avaialble via ``self.ml.model``, ``self.ml.optimizer``
+        and ``self.ml.loss``.
+
         Examples:
             >>> # compile all together,
             >>> self.compile()
@@ -336,7 +365,10 @@ class MLBaseTask(BaseTask):
         pass
 
     def load_model(self):
-        """ Load pre-trained model weights.
+        """ Load pre-trained model path from ``Saver``.
+
+        Returns:
+            str: model path.
         """
         if isinstance(self._load_weights, str):
             model_path = self._load_weights
@@ -350,7 +382,10 @@ class MLBaseTask(BaseTask):
         return model_path
 
     def dump_model(self, extra_args=None):
-        """ Dump current model.
+        """ Dump current model to ``saver``.
+
+        Args:
+            extra_args (dict): extra metadata to be stored together with model.
         """
         args_dump_ml = dict(key=self.get_unique_id())
 
@@ -409,13 +444,22 @@ class MLBaseTask(BaseTask):
         return self.storegate.get_var_shapes(self.input_var_names, phase=phase)
 
     def get_metadata(self, metadata_key):
-        """ Returns metadata.   
+        """ Returns metadata.
+
+        Args:
+            metadata_key (str): key of ``Saver()``.
+
+        Returns:
+            Obj: arbitrary object stored in ``Saver``.
         """
         unique_id = self.get_unique_id()
         return self.saver.load_ml(unique_id)[metadata_key]
 
     def get_pred_index(self):
-        """ Set prediction index.   
+        """ Returns prediction index passed to loss calculation.
+
+        Returns:
+            list: list of prediction index.
         """
         pred_index = []
         output_var_names = self.output_var_names

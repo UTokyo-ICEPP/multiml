@@ -57,9 +57,9 @@ class TaskScheduler:
         Args:
             ordered_tasks (list): list of ordered task_ids, or list of ordered
                 subtasks. If given value is list of str,
-                ``add_ordered_tasks()`` is called to register task_ids, and if
-                given value is list of list, ``add_ordered_subtasks()`` is
-                called to register subtasks.
+                ``add_ordered_tasks()`` is called to register task_ids. If
+                given value is list of other types, ``add_ordered_subtasks()``
+                is called to register subtasks.
 
         Examples:
             >>> # ordered task_ids
@@ -179,7 +179,7 @@ class TaskScheduler:
     def add_ordered_subtasks(self, ordered_tasks):
         """Register ordered subtasks.
 
-        ``ordered_tasks`` need to be a format of [task0, task1...], where task0
+        ``ordered_tasks`` need to be a format of [task0, task1...], where e.g. task0
         is a list of tuples [('subtask0', env0, hps0), ('subtask1', env0, hps0)...].
         ``task_id`` is automatically set with 'step0', 'step1'...
         For the examples below, scheme of pipeline is:
@@ -190,11 +190,21 @@ class TaskScheduler:
             ordered_tasks (list): list of subtasks. Please see examples below.
 
         Examples:
+           >>> # ordered tasks with subtask_id and hyperparameters
            >>> step0 = [('subtask0', env0, hps0), ('subtask1', env1, hps1)] 
            >>> step1 = [('subtask2', env2, hps2), ('subtask3', env3, hps3)] 
            >>> steps = [step0, step1]
            >>> task_scheduler.add_ordered_subtasks(steps)
-
+           >>>
+           >>> # ordered tasks with hyperparameters (subtask_id will be class name)
+           >>> step0 = [(env0, hps0), (env1, hps1)]
+           >>> step1 = [(env2, hps2), (env3, hps3)]
+           >>> steps = [step0, step1]
+           >>> task_scheduler.add_ordered_subtasks(steps)
+           >>>
+           >>> # ordered tasks without hyperparameters
+           >>> steps = [env0, env1]
+           >>> task_scheduler.add_ordered_subtasks(steps)
         """
         for index, subtasks in enumerate(ordered_tasks):
             task_id = f'step{index}'
@@ -315,7 +325,7 @@ class TaskScheduler:
             task_id (str): unique task identifier.
 
         Returns:
-            list: list of parent task_ids for given task_ids.
+            list: list of parent ``task_ids`` for given ``task_ids``.
         """
         if not self._in_dag(task_id):
             return []
@@ -331,7 +341,7 @@ class TaskScheduler:
             task_id (str): unique task identifier.
 
         Returns:
-            list: list of child task_ids for given task_id.
+            list: list of child ``task_ids`` for given ``task_id``.
         """
         if not self._in_dag(task_id):
             return []
@@ -344,7 +354,7 @@ class TaskScheduler:
         """Returns topologically sorted task_ids.
 
         Returns:
-            list: a list of topologically sorted task_ids.
+            list: a list of topologically sorted ``task_ids``.
         """
         tasks = list(nx.topological_sort(self._dag))
         tasks = [self._dag.nodes[task]['name'] for task in tasks]
@@ -357,7 +367,8 @@ class TaskScheduler:
             task_id (str): unique task identifier.
 
         Returns:
-            list: list of modified subtasktuples. Modified subtasktuple format
+            list:
+                list of modified subtasktuples. Modified subtasktuple format
                 is .task_id: task_id, .subtask_id: subtask_id,
                 .env: subtask class instance, .hps: *dictionary of hps*.
         """
@@ -379,7 +390,10 @@ class TaskScheduler:
         return results
 
     def get_all_subtasks_with_hps(self):
-        """ Get all subtask combinations with hps.
+        """ Returns all combination of subtask_ids and hps for all task_ids.
+
+        Returns:
+            list: list of ``get_subtasks_with_hps()`` for each ``task_id``.
         """
         all_combs = []
         for task_id in self.get_sorted_task_ids():
@@ -388,6 +402,11 @@ class TaskScheduler:
         return all_combs
 
     def get_subtasks_pipeline(self, index):
+        """ Returns modified subtasktuples for given index.
+
+        Returns:
+            list: list of modified subtasktuples.
+        """
         all_combs = self.get_all_subtasks_with_hps()
 
         # TODO: combination explosion

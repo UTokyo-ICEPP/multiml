@@ -8,7 +8,7 @@ from tqdm import tqdm
 import torch
 from torch import optim, Tensor, LongTensor
 from torch.nn.modules import loss as tl
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 
 from multiml import logger, const
 from multiml.task.basic import MLBaseTask
@@ -21,18 +21,26 @@ class PytorchBaseTask(MLBaseTask):
     """ Base task for PyTorch model.
 
     Examples:
-        >>> class MyPytorchTask(PytorchBaseTask):
-        >>>     def execute(self):
-        >>>         dataloaders = dict(train=your_dataloader,
-        >>>                            valid=your_dataloader)
-        >>>         self.compile()
-        >>>         self.fit(dataloaders)
+        >>> # your pytorch model
+        >>> class MyPytorchModel(nn.Module):
+        >>>     def __init__(self, inputs=2, outputs=2):
+        >>>         super(MyPytorchModel, self).__init__()
         >>>
-        >>> task = MyPytorchTask(saver=saver,
-        >>>                      model=your_pytorch_model,
-        >>>                      optimizer='SGD',
-        >>>                      optimizer_args=dict(lr=0.1),
-        >>>                      loss='CrossEntropyLoss')
+        >>>         self.fc1 = nn.Linear(inputs, outputs)
+        >>>         self.relu = nn.ReLU()
+        >>>
+        >>>     def forward(self, x):
+        >>>         return self.relu(self.fc1(x))
+        >>>
+        >>> # create task instance
+        >>> task = PytorchBaseTask(storegate=storegate,
+        >>>                        model=MyPytorchModel,
+        >>>                        input_var_names=('x0', 'x1'),
+        >>>                        output_var_names='outputs-pytorch',
+        >>>                        true_var_names='labels',
+        >>>                        optimizer='SGD',
+        >>>                        optimizer_args=dict(lr=0.1),
+        >>>                        loss='CrossEntropyLoss')
         >>> task.set_hps({'num_epochs': 5})
         >>> task.execute()
         >>> task.finalize()

@@ -5,7 +5,6 @@ import multiprocessing as mp
 
 from multiml import logger
 from multiml.agent.basic.random_search import RandomSearchAgent
-from multiml.agent.basic.sequential import resulttuple
 
 
 class GridSearchAgent(RandomSearchAgent):

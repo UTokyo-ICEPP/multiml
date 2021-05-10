@@ -7,7 +7,32 @@ from ..basic import MLBaseTask
 
 
 class KerasBaseTask(MLBaseTask):
-    """ Base class for Keras model.
+    """ Base task for Keras model.
+
+    Examples:
+        >>> # your keras model
+        >>> class MyKerasModel(Model):
+        >>>     def __init__(self, units=1):
+        >>>         super(MyKerasModel, self).__init__()
+        >>>
+        >>>         self.dense = Dense(units)
+        >>>         self.relu = ReLU()
+        >>>
+        >>>     def call(self, x):
+        >>>         return self.relu(self.dense(x))
+        >>>
+        >>> # create task instance
+        >>> task = KerasBaseTask(storegate=storegate,
+        >>>                      model=MyKerasModel,
+        >>>                      input_var_names=('x0', 'x1'),
+        >>>                      output_var_names='outputs-keras',
+        >>>                      true_var_names='labels',
+        >>>                      optimizer='adam',
+        >>>                      optimizer_args=dict(lr=0.1),
+        >>>                      loss='binary_crossentropy')
+        >>> task.set_hps({'num_epochs': 5})
+        >>> task.execute()
+        >>> task.finalize()
     """
     def __init__(self,
                  run_eagerly=None,

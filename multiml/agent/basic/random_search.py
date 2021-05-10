@@ -1,7 +1,4 @@
 """ RandomSearchAgent module.
-
-Attributes:
-    resulttuple (namedtuple): namedtuple contains lists of results.
 """
 import random
 import multiprocessing as mp
@@ -63,7 +60,7 @@ class RandomSearchAgent(SequentialAgent):
     def history(self, history):
         """ Set history of execution.
         """
-        self._hisotry = history
+        self._history = history
 
     @logger.logging
     def execute(self):

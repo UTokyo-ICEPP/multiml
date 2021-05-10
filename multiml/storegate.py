@@ -141,6 +141,7 @@ class StoreGate:
 
         Args:
             item (int or slice): Index of data to be updated.
+            data (list or ndarray): new data.
 
         Example:
             >>> # update all train data
@@ -277,10 +278,12 @@ class StoreGate:
                 ['var0', 'var1', 'var2']. Single string, e.g. 'var0', is also
                 allowed to add only one variable.
             data (list or ndarray): If ``var_names`` is single string, data
-                shape must be (N,) where N is the number of samples.
-                If ``var_names`` is a list, data shape must be (N, M, k),
-                where M is the number of variables and k is an arbitrary shape
-                of each data.
+                shape must be (N, k) where N is the number of samples and k is
+                an arbitrary shape of each data. If ``var_names`` is a tuple,
+                data shape must be (N, M, k), where M is the number of variables.
+                If ``var_names`` is a list, data mustbe a list of
+                [(N, k), (N, k), (N, k)...], where diffeernt shapes of k are
+                allowed.
             phase (str or tuple): *all (auto)*, *train*, *valid*, *test* or
                 tuple. *all* divides the data to *train*, *valid* and *test*
                 automatically, but only after the ``compile``. If tuple
@@ -295,7 +298,7 @@ class StoreGate:
 
         Examples:
             >>> # add data to train phase
-            >>> storegate.add_data(var_names='var0', data=[0, 1, 2], phase='train')
+            >>> storegate.add_data(var_names='var0', data=np.array([0, 1, 2]), phase='train')
         """
         # recursive operation
         if isinstance(var_names, list):
@@ -396,16 +399,16 @@ class StoreGate:
     def get_data(self, var_names, phase='train', index=-1):
         """Retrieve data from storegate with given options.
 
-        Get data from the storegate. Python getitem sytax is also supprted,
+        Get data from the storegate. Python getitem sytax is also supported,
         please see ``__getitem__`` method.
 
         Args:
-            var_names (tuple or list or str): If tuple of variable names is
+            var_names (tuple or list or str): If a tuple of variable names is
                 given, e.g. ('var0', 'var1', 'var2'), data with ndarray format
-                are returned. Please see the matrix below for shape of data.
+                are returned. Single string, e.g. 'var0', is also allowed.
+                Please see the matrix below for shape of data.
                 If list of variable names is given, e.g. ['var0', 'var1', 'var2'],
-                list of data for each variable are returned. Single string,
-                e.g. 'var0', is also allowed.
+                list of ndarray data for each variable are returned.
             phase (str or None): *all*, *train*, *valid*, *test* or *None*.
                 If ``phase`` is *all* or *None*, data in all phases are
                 returned, but it is allowed only after the ``compile``.
@@ -666,7 +669,7 @@ class StoreGate:
 
         This method is valid for only *hybrid* database. If ``mode`` is
         *numpy*, basically data will be written in memory, and ``mode`` is
-        *zarr*, dataw ill be written to storage.
+        *zarr*, data will be written to storage.
 
         Args:
             mode (str): *numpy* or *zarr*.
@@ -712,7 +715,7 @@ class StoreGate:
         """Move data from storage to memory.
 
         This method is valid for only hybrid backend. This is useful if data
-        are large, then need to be escaped to storage.
+        are large, then data need to be escaped to storage.
 
         Args:
             var_names (str or list): see ``add_data()`` method.
@@ -739,8 +742,7 @@ class StoreGate:
         """Check if registered samples are valid.
 
         It is assumed that the ``compile`` is always called after
-        ``add_data()`` or ``update_data()`` methods to validate registered,
-        data.
+        ``add_data()`` or ``update_data()`` methods to validate registered data.
 
         Args:
             reset (bool): special variable ``active`` is (re)set if True,
