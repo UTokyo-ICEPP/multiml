@@ -1,6 +1,5 @@
 from multiml import logger
 from multiml.task.keras import EnsembleTask
-from multiml.agent.basic.sequential import resulttuple
 
 from . import KerasConnectionRandomSearchAgent
 
@@ -68,8 +67,11 @@ class KerasEnsembleAgent(KerasConnectionRandomSearchAgent):
 
         self._metric.storegate = self._storegate
         metric = self._metric.calculate()
-        self.result = resulttuple('connection', 'connection_ensemble', [],
-                                  metric)
+
+        self.result = dict(task_ids=['connection'],
+                           subtask_ids=['connection_ensemble'],
+                           subtask_hps=[None],
+                           metric_value=metric)
 
         # Save ensemble weights
         self._save_ensemble_weights(subtask, "connection_ensemble")

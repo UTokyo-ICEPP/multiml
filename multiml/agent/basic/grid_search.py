@@ -31,7 +31,7 @@ class GridSearchAgent(RandomSearchAgent):
                 logger.counter(counter + 1,
                                len(self.task_scheduler),
                                divide=1,
-                               message=f'metric={result.metric_value}')
+                               message=f'metric={result["metric_value"]}')
 
         else:  # multiprocessing
             if self._storegate.backend not in ('numpy', 'hybrid'):

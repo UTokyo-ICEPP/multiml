@@ -66,7 +66,7 @@ def test_agent():
     agent.finalize()
 
     best_result = agent.result
-    assert best_result.metric_value > 0
+    assert best_result['metric_value'] > 0
 
 
 if __name__ == '__main__':

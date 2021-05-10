@@ -1,7 +1,6 @@
 from multiml import logger
 from multiml.task.pytorch import PytorchChoiceBlockTask
 
-from multiml.agent.basic.sequential import resulttuple
 from . import PytorchConnectionRandomSearchAgent
 
 
@@ -99,9 +98,11 @@ class PytorchSPOSNASAgent(PytorchConnectionRandomSearchAgent):
         self._execute_subtask(subtask, is_pretraining=False)
         self._metric.storegate = self._storegate
         metric = self._metric.calculate()
-        self.result = resulttuple(['connection'],
-                                  [f"choiceblock_{model_name}"], [None],
-                                  metric)
+
+        self.result = dict(task_ids=['connection'],
+                           subtask_ids=[f"choiceblock_{model_name}"],
+                           subtask_hps=[None],
+                           metric_value=metric)
 
     def _build_choiceblock_task(self, subtasks, task_id=None):
         # Merge sub-tasks with choiceblock
