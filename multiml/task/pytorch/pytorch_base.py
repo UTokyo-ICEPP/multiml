@@ -369,7 +369,8 @@ class PytorchBaseTask(MLBaseTask):
                 results['loss'] = f'{running_loss:.2e}'
 
                 if 'acc' in self._metrics:
-                    accuracy = batch_result['acc'] / total
+                    epoch_corrects += batch_result['acc']
+                    accuracy = epoch_corrects / total
                     results['acc'] = f'{accuracy:.2e}'
 
                 if 'lrs' in self._metrics:
