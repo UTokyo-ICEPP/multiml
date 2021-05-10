@@ -104,7 +104,7 @@ class RandomSearchAgent(SequentialAgent):
         """ Finalize grid scan agent.
         """
         if self._result is None:
-            metrics = [result.metric_value for result in self._history]
+            metrics = [result['metric_value'] for result in self._history]
 
             if self._metric_type == 'max':
                 index = metrics.index(max(metrics))

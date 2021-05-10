@@ -1,15 +1,9 @@
 """ SequentialAgent module.
-
-Attributes:
-    resulttuple (namedtuple): namedtuple contains lists of results.
 """
 from collections import namedtuple
 
 from multiml import logger
 from multiml.agent.basic import BaseAgent
-
-resulttuple = namedtuple(
-    'resulttuple', ('task_ids', 'subtask_ids', 'subtask_hps', 'metric_value'))
 
 
 class SequentialAgent(BaseAgent):
@@ -98,9 +92,12 @@ class SequentialAgent(BaseAgent):
     def execute_pipeline(self, subtasktuples, counter):
         """ Execute pipeline.
         """
-        result_task_ids = []
-        result_subtask_ids = []
-        result_subtask_hps = []
+        result = {
+            'task_ids': [],
+            'subtask_ids': [],
+            'subtask_hps': [],
+            'metric_value': None
+        }
 
         for subtasktuple in subtasktuples:
             task_id = subtasktuple.task_id
@@ -113,22 +110,24 @@ class SequentialAgent(BaseAgent):
             subtask_env.set_hps(subtask_hps)
             self._execute_subtask(subtasktuple)
 
-            result_task_ids.append(task_id)
-            result_subtask_ids.append(subtask_id)
-            result_subtask_hps.append(subtask_hps)
+            result['task_ids'].append(task_id)
+            result['subtask_ids'].append(subtask_id)
+            result['subtask_hps'].append(subtask_hps)
 
         self._metric.storegate = self._storegate
-        metric = self._metric.calculate()
+        result['metric_value'] = self._metric.calculate()
 
-        return resulttuple(result_task_ids, result_subtask_ids,
-                           result_subtask_hps, metric)
+        return result
 
     def execute_differentiable(self, subtasktuples, counter):
         """ Execute connection model.
         """
-        result_task_ids = []
-        result_subtask_ids = []
-        result_subtask_hps = []
+        result = {
+            'task_ids': [],
+            'subtask_ids': [],
+            'subtask_hps': [],
+            'metric_value': None
+        }
 
         if self._diff_pretrain:
             for subtasktuple in subtasktuples:
@@ -142,9 +141,9 @@ class SequentialAgent(BaseAgent):
                 subtask_env.set_hps(subtask_hps)
                 self._execute_subtask(subtasktuple)
 
-                result_task_ids.append(task_id)
-                result_subtask_ids.append(subtask_id)
-                result_subtask_hps.append(subtask_hps)
+                result['task_ids'].append(task_id)
+                result['subtask_ids'].append(subtask_id)
+                result['subtask_hps'].append(subtask_hps)
 
         subtasks = [v.env for v in subtasktuples]
 
@@ -179,9 +178,12 @@ class SequentialAgent(BaseAgent):
         self._metric.storegate = self._storegate
         metric = self._metric.calculate()
 
-        return resulttuple(result_task_ids + [task_id],
-                           result_subtask_ids + [subtask_id],
-                           result_subtask_hps + [hps], metric)
+        result['task_ids'].append(task_id)
+        result['subtask_ids'].append(subtask_id)
+        result['subtask_hps'].append(hps)
+        result['metric_value'] = metric
+
+        return result
 
     def _execute_subtask(self, subtask):
         """ Execute subtask.
@@ -199,9 +201,9 @@ class SequentialAgent(BaseAgent):
         ]
         data = []
 
-        for task_id, subtask_id, subtask_hp in zip(result.task_ids,
-                                                   result.subtask_ids,
-                                                   result.subtask_hps):
+        for task_id, subtask_id, subtask_hp in zip(result['task_ids'],
+                                                   result['subtask_ids'],
+                                                   result['subtask_hps']):
             if subtask_hp is None or len(subtask_hp) == 0:
                 data.append([task_id, subtask_id, 'no hyperparameters'])
             else:
@@ -214,7 +216,7 @@ class SequentialAgent(BaseAgent):
         metric_data = []
         for index, idata in enumerate(data):
             if index == 0:
-                metric_data.append(idata + [f'{result.metric_value}'])
+                metric_data.append(idata + [f'{result["metric_value"]}'])
             else:
                 metric_data.append(idata + [''])
 

@@ -1,7 +1,6 @@
 from abc import abstractmethod
 
 from multiml import logger
-from multiml.agent.basic.sequential import resulttuple
 
 from ..basic import RandomSearchAgent
 
@@ -62,7 +61,11 @@ class ConnectionRandomSearchAgent(RandomSearchAgent):
 
         self._metric.storegate = self._storegate
         metric = self._metric.calculate()
-        self.result = resulttuple(task_ids, subtask_ids, subtask_hps, metric)
+
+        self.result = dict(task_ids=task_ids,
+                           subtask_ids=subtask_ids,
+                           subtask_hps=subtask_hps,
+                           metric_value=metric)
 
     def _build_connected_models(self,
                                 subtasks,

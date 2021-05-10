@@ -2,7 +2,6 @@ import os
 import json
 
 from multiml import logger
-from multiml.agent.basic.sequential import resulttuple
 
 from ..basic import GridSearchAgent
 from . import ConnectionRandomSearchAgent
@@ -112,9 +111,13 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
 
             self._metric.storegate = self._storegate
             metric = self._metric.calculate()
-            self._history.append(
-                resulttuple(result_task_ids, result_subtask_ids,
-                            result_subtask_hps, metric))
+
+            result = dict(task_ids=result_task_ids,
+                          subtask_ids=result_subtask_ids,
+                          subtask_hps=result_subtask_hps,
+                          metric_value=metric)
+
+            self._history.append(result)
             self._history_agent.append({"job_id": counter})
 
     @logger.logging
@@ -123,7 +126,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
         """
         super().finalize()
 
-        metrics = [result.metric_value for result in self._history]
+        metrics = [result['metric_value'] for result in self._history]
         if self._metric_type == 'max':
             index = metrics.index(max(metrics))
         elif self._metric_type == 'min':
@@ -136,7 +139,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
         """ Returns the best combination as a result of agent execution
 
         Returns:
-            resulttuple: best result
+            dict: best result
             dict: auxiliary value of the best result
         """
         return self._result, self._best_result_config
