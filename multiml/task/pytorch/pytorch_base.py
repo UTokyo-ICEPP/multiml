@@ -241,9 +241,6 @@ class PytorchBaseTask(MLBaseTask):
                                               num_workers=self._num_workers,
                                               shuffle=True)
 
-            kwargs['input_index'] = train_dataset.input_slice
-            kwargs['true_index'] = train_dataset.true_slice
-
         if valid_data is not None:
             valid_dataset = self.get_tensor_dataset(valid_data)
             dataloaders['valid'] = DataLoader(valid_dataset,
@@ -251,32 +248,19 @@ class PytorchBaseTask(MLBaseTask):
                                               num_workers=self._num_workers,
                                               shuffle=True)
 
-            kwargs['input_index'] = valid_dataset.input_slice
-            kwargs['true_index'] = valid_dataset.true_slice
-
         if dataloaders['train'] is None:
-            #train_data = self.get_input_true_data('train')
-            #train_dataset = self.get_tensor_dataset(train_data)
             train_dataset = self.get_storegate_dataset('train')
             dataloaders['train'] = DataLoader(train_dataset,
                                               batch_size=self._batch_size,
                                               num_workers=self._num_workers,
                                               shuffle=True)
 
-            kwargs['input_index'] = train_dataset.input_slice
-            kwargs['true_index'] = train_dataset.true_slice
-
         if dataloaders['valid'] is None:
-            #valid_data = self.get_input_true_data('valid')
-            #valid_dataset = self.get_tensor_dataset(valid_data)
             valid_dataset = self.get_storegate_dataset('valid')
             dataloaders['valid'] = DataLoader(valid_dataset,
                                               batch_size=self._batch_size,
                                               num_workers=self._num_workers,
                                               shuffle=True)
-
-            kwargs['input_index'] = valid_dataset.input_slice
-            kwargs['true_index'] = valid_dataset.true_slice
 
         early_stopping = util.EarlyStopping(patience=self._max_patience)
         self._scaler = torch.cuda.amp.GradScaler(enabled=self._is_gpu)
@@ -479,7 +463,6 @@ class PytorchBaseTask(MLBaseTask):
                                     batch_size=self._batch_size,
                                     num_workers=self._num_workers,
                                     shuffle=False)
-            input_index = dataset.input_slice
 
         if dataloader is None:
             data = self.get_input_true_data(phase)
@@ -488,7 +471,6 @@ class PytorchBaseTask(MLBaseTask):
                                     batch_size=self._batch_size,
                                     num_workers=self._num_workers,
                                     shuffle=False)
-            input_index = dataset.input_slice
 
         results = []
 
@@ -558,12 +540,6 @@ class PytorchBaseTask(MLBaseTask):
 
         raise ValueError(
             f'data type {type(data)} is not supported. cannot add to device')
-
-    def get_inputs(self):
-        if isinstance(self.input_var_names, list):
-            return [len(self.input_var_names)]
-        else:
-            return [1]
 
     ##########################################################################
     # Internal methods

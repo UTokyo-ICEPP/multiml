@@ -6,9 +6,6 @@ class NumpyDataset(tdata.Dataset):
     """
     def __init__(self, inputs, targets):
 
-        self._input_slice = 0
-        self._true_slice = -1
-
         self._inputs = inputs
         self._targets = targets
         self._size = self.get_size(inputs)
@@ -17,24 +14,10 @@ class NumpyDataset(tdata.Dataset):
         return self._size
 
     def __getitem__(self, index):
-        results = []
+        data = self.get_data(self._inputs, index)
+        target = self.get_data(self._targets, index)
 
-        results.append(self.get_data(self._inputs, index))
-        results.append(self.get_data(self._targets, index))
-
-        return results
-
-    @property
-    def input_slice(self):
-        return self._input_slice
-
-    @property
-    def true_slice(self):
-        return self._true_slice
-
-    @property
-    def data_slice(self):
-        return self._input_slice, self._true_slice
+        return data, target
 
     def get_size(self, inputs):
         if isinstance(inputs, list):

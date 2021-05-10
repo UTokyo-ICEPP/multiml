@@ -17,9 +17,6 @@ class StoreGateDataset(tdata.Dataset):
         self._true_var_names = true_var_names
         self._size = len(storegate[phase])
 
-        self._input_slice = 0
-        self._true_slice = -1
-
     def __len__(self):
         return self._size
 
@@ -32,15 +29,3 @@ class StoreGateDataset(tdata.Dataset):
                                           index=index)
 
         return data, target
-
-    @property
-    def input_slice(self):
-        return self._input_slice
-
-    @property
-    def true_slice(self):
-        return self._true_slice
-
-    @property
-    def data_slice(self):
-        return self._input_slice, self._true_slice
