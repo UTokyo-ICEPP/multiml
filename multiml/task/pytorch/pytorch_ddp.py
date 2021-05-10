@@ -43,9 +43,3 @@ class PytorchDDPTask(PytorchBaseTask):
         os.environ['MASTER_ADDR'] = 'localhost'
         os.environ['MASTER_PORT'] = '12355'
         dist.init_process_group("nccl", rank=rank, world_size=world_size)
-
-    def save_model(self):
-        """ Save current pytorch model.
-        """
-        path = self.get_model_path()
-        torch.save(self._model_fit.module.state_dict(), path)

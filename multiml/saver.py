@@ -441,7 +441,7 @@ class Saver:
         if model is not None:
             if model_path is None:
                 model_path = f'{self._save_dir}/{key}'
-
+            logger.info(f'pytorch model saved path = {model_path}')
             import torch
             torch.save(model.state_dict(), model_path)
             kwargs['model_path'] = model_path
