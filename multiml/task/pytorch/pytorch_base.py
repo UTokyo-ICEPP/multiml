@@ -346,7 +346,16 @@ class PytorchBaseTask(MLBaseTask):
             self._pass_training = False
 
         epoch_loss, epoch_corrects, total = 0.0, 0, 0
+
+        if self.ml.multi_loss:
+            epoch_subloss = [0.0] * len(self.true_var_names)
+            epoch_epoch_corrects = [0] * len(self.true_var_names)
+
         results = {}
+        if 'lr' in self._metrics:
+            lr = [f'{p["lr"]:.2e}' for p in self.ml.optimizer.param_groups]
+            results['lr'] = f'{lr}'
+
         pbar_args = dict(total=len(dataloader),
                          unit='batch',
                          ncols=130,
@@ -368,17 +377,24 @@ class PytorchBaseTask(MLBaseTask):
                 running_loss = epoch_loss / total
                 results['loss'] = f'{running_loss:.2e}'
 
-                if 'acc' in self._metrics:
-                    epoch_corrects += batch_result['acc']
-                    accuracy = epoch_corrects / total
-                    results['acc'] = f'{accuracy:.2e}'
+                if 'subloss' in self._metrics:
+                    results['subloss'] = []
+                    for index, subloss in enumerate(batch_result['subloss']):
+                        epoch_subloss[index] += subloss * inputs_size
+                        running_subloss = epoch_subloss[index] / total
+                        results['subloss'].append(f'{running_subloss:.2e}')
 
-                if 'lr' in self._metrics:
-                    lr = [
-                        f'{param["lr"]:.2e}'
-                        for param in self.ml.optimizer.param_groups
-                    ]
-                    results['lr'] = f'{lr}'
+                if 'acc' in self._metrics:
+                    if self.ml.multi_loss:
+                        results['acc'] = []
+                        for index, acc in enumerate(batch_result['acc']):
+                            epoch_corrects[index] += acc
+                            accuracy = epoch_corrects[index] / total
+                            results['acc'].append(f'{accuracy:.2e}')
+                    else:
+                        epoch_corrects += batch_result['acc']
+                        accuracy = epoch_corrects / total
+                        results['acc'] = f'{accuracy:.2e}'
 
                 pbar.set_postfix(results)
                 pbar.update(1)
@@ -409,17 +425,27 @@ class PytorchBaseTask(MLBaseTask):
                 if self._pred_index is not None:
                     outputs = self._select_pred_data(outputs)
 
-                loss = self._step_loss(outputs, labels)
+                loss, subloss = self._step_loss(outputs, labels)
 
             if phase == 'train':
                 self._step_optimizer(loss)
 
             result['loss'] = loss.item()
 
+            if 'subloss' in self._metrics:
+                result['subloss'] = [l.item() for l in subloss]
+
             if 'acc' in self._metrics:
-                _, preds = torch.max(outputs, 1)
-                corrects = torch.sum(preds == labels.data)
-                result['acc'] = corrects.item()
+                if self.ml.multi_loss:
+                    result['acc'] = []
+                    for output, label in zip(outputs, labels):
+                        _, preds = torch.max(output, 1)
+                        corrects = torch.sum(preds == label.data)
+                        result['acc'].append(corrects.item())
+                else:
+                    _, preds = torch.max(outputs, 1)
+                    corrects = torch.sum(preds == labels.data)
+                    result['acc'] = corrects.item()
 
         return result
 
@@ -559,15 +585,19 @@ class PytorchBaseTask(MLBaseTask):
 
     def _step_loss(self, outputs, labels):
         loss = 0.0
+        subloss = []
 
         if self.ml.multi_loss:
             for loss_fn, loss_w, output, label in zip(self.ml.loss,
                                                       self.ml.loss_weights,
                                                       outputs, labels):
                 if loss_w:
+
                     if self._view_as_outputs:
                         output = output.view_as(label)
-                    loss += loss_fn(output, label) * loss_w
+                    loss_tmp = loss_fn(output, label) * loss_w
+                    loss += loss_tmp
+                    subloss.append(loss_tmp)
         else:
             if self._view_as_outputs:
                 outputs = outputs.view_as(labels)
@@ -576,7 +606,7 @@ class PytorchBaseTask(MLBaseTask):
             elif self.ml.loss_weights != 0.0:
                 loss += self.ml.loss(outputs, labels) * self.ml.loss_weights
 
-        return loss
+        return loss, subloss
 
     def _step_optimizer(self, loss):
         if self._is_gpu and self._amp:

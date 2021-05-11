@@ -60,6 +60,9 @@ class ModelConnectionTask(MLBaseTask):
         """
         super().__init__(**kwargs)
 
+        if len(subtasks) <= 1:
+            raise ValueError('Please provide at least two subtasks.')
+
         self._subtasks = subtasks
         self._use_multi_loss = use_multi_loss
         self._variable_mapping = variable_mapping
