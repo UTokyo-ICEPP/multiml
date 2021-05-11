@@ -349,7 +349,7 @@ class PytorchBaseTask(MLBaseTask):
 
         if self.ml.multi_loss:
             epoch_subloss = [0.0] * len(self.true_var_names)
-            epoch_epoch_corrects = [0] * len(self.true_var_names)
+            epoch_corrects = [0] * len(self.true_var_names)
 
         results = {}
         if 'lr' in self._metrics:
@@ -358,7 +358,7 @@ class PytorchBaseTask(MLBaseTask):
 
         pbar_args = dict(total=len(dataloader),
                          unit='batch',
-                         ncols=130,
+                         ncols=150,
                          disable=disable_tqdm)
         pbar_desc = f'Epoch [{epoch}/{self._num_epochs}] ({phase.ljust(5)})'
 
