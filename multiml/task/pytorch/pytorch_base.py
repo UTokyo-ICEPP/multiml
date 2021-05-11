@@ -373,9 +373,12 @@ class PytorchBaseTask(MLBaseTask):
                     accuracy = epoch_corrects / total
                     results['acc'] = f'{accuracy:.2e}'
 
-                if 'lrs' in self._metrics:
-                    lrs = [f"{float(lr):.2e}" for lr in batch_result['lrs']]
-                    results['lrs'] = f'{lrs}'
+                if 'lr' in self._metrics:
+                    lr = [
+                        f'{param["lr"]:.2e}'
+                        for param in self.ml.optimizer.param_groups
+                    ]
+                    results['lr'] = f'{lr}'
 
                 pbar.set_postfix(results)
                 pbar.update(1)
@@ -417,10 +420,6 @@ class PytorchBaseTask(MLBaseTask):
                 _, preds = torch.max(outputs, 1)
                 corrects = torch.sum(preds == labels.data)
                 result['acc'] = corrects.item()
-
-            if 'lrs' in self._metrics:
-                lrs = [param['lr'] for param in self.ml.optimizer.param_groups]
-                result['lrs'] = lrs
 
         return result
 
