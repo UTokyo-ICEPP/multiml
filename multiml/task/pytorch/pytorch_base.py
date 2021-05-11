@@ -550,11 +550,8 @@ class PytorchBaseTask(MLBaseTask):
         else:
             forward_args = {}
 
-        if isinstance(inputs, list):
-            if self._unpack_inputs:
-                outputs = self.ml.model(*inputs, **forward_args)
-            else:
-                outputs = self.ml.model(inputs, **forward_args)
+        if self.ml.multi_inputs and self._unpack_inputs:
+            outputs = self.ml.model(*inputs, **forward_args)
         else:
             outputs = self.ml.model(inputs, **forward_args)
 
@@ -563,7 +560,7 @@ class PytorchBaseTask(MLBaseTask):
     def _step_loss(self, outputs, labels):
         loss = 0.0
 
-        if isinstance(outputs, list):
+        if self.ml.multi_loss:
             for loss_fn, loss_w, output, label in zip(self.ml.loss,
                                                       self.ml.loss_weights,
                                                       outputs, labels):

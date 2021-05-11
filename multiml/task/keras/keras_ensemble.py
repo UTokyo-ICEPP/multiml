@@ -31,7 +31,6 @@ class EnsembleTask(KerasBaseTask):
         self._individual_loss_weights = individual_loss_weights
 
         self._input_var_names = self._proxy_model._input_var_names
-        self._true_var_names = self._proxy_model._true_var_names
 
         if self._output_var_names is None:
             output_var_names = self._proxy_model.output_var_names
@@ -45,6 +44,14 @@ class EnsembleTask(KerasBaseTask):
 
             else:
                 self._output_var_names = output_var_names
+
+        if self._true_var_names is None:
+            true_var_names = self._proxy_model.true_var_names
+            if self._individual_loss:
+                self._true_var_names = [true_var_names]
+                self._true_var_names += [true_var_names] * len(subtasks)
+            else:
+                self._true_var_names = true_var_names
 
         if self._optimizer is None:
             self._optimizer = self._proxy_model._optimizer

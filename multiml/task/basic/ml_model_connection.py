@@ -89,7 +89,6 @@ class ModelConnectionTask(MLBaseTask):
         for subtask in self._subtasks:
             subtask.compile()
 
-        self.compile_index()
         super().compile()
 
     def compile_loss(self):
@@ -160,45 +159,23 @@ class ModelConnectionTask(MLBaseTask):
                     self.ml.loss.append(None)
                     self.ml.loss_weights.append(0.0)
 
-    def compile_index(self):
+    def compile_var_names(self):
         """ Compile subtask dependencies and I/O variables.
         """
         self.set_ordered_subtasks()
         self.set_output_var_index()
         self.set_input_var_index()
 
-    def get_input_true_data(self, phase=None):
-        """ Returns input and true data retrieved from storegate.
-
-        The list of input data contains data for each *variable*, thus the
-        length is equal to the length of ``input_var_names``. The list of
-        true data contains data for each *subtask*, thus the length is equal to
-        the length of ``subtasks``.
-
-        Returns:
-            (list, list): list of input data, and list of true data.
-
-        """
-        input_ret = []
-        true_ret = []
-
-        for var_name in self.input_var_names:
-            input_data = self.storegate.get_data(var_names=var_name,
-                                                 phase=phase)
-            input_ret.append(input_data)
-
+        self.true_var_names = []
         for subtask in self._subtasks:
             true_var_names = subtask.true_var_names
-            true_data = self.storegate.get_data(var_names=true_var_names,
-                                                phase=phase)
 
-            # TODO: special treatment for ensemble tasks
-            if isinstance(subtask.ml.loss, list):
-                true_ret += [true_data] * len(subtask.ml.loss)
+            if isinstance(true_var_names, list):
+                self.true_var_names += true_var_names
             else:
-                true_ret.append(true_data)
+                self.true_var_names.append(true_var_names)
 
-        return input_ret, true_ret
+        super().compile_var_names()
 
     def set_output_var_index(self):
         """ Set output_var_names and output_var_index.

@@ -337,9 +337,12 @@ class MLBaseTask(BaseTask):
             >>> self.compile_optimizer() # set self.ml.optimizer
             >>> self.compile_loss() # set self.ml.loss
         """
+        self.ml.clear()
+        self.compile_var_names()
+
         if self._model is None:
             self.build_model()
-        self.ml.clear()
+
         self.compile_loss()
         self.compile_model()
         self.compile_optimizer()
@@ -348,6 +351,24 @@ class MLBaseTask(BaseTask):
         """ Build model.
         """
         pass
+
+    def compile_var_names(self):
+        """ Compile var_names.
+        """
+        if isinstance(self.input_var_names, list):
+            self.ml.multi_inputs = True
+        else:
+            self.ml.multi_inputs = False
+
+        if isinstance(self.output_var_names, list):
+            self.ml.multi_outputs = True
+        else:
+            self.ml.multi_outputs = False
+
+        if isinstance(self.true_var_names, list):
+            self.ml.multi_loss = True
+        else:
+            self.ml.multi_loss = False
 
     def compile_model(self):
         """ Compile model.
