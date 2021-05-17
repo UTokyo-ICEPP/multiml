@@ -1,3 +1,5 @@
+from multiml import logger
+
 class MLEnv:
     """ Data class to store compiled ML objects.
     """
@@ -113,3 +115,11 @@ class MLEnv:
         """ Set multi_loss.
         """
         self._multi_loss = multi_loss
+
+    def show_info(self):
+        """ Print information.
+        """
+        logger.debug(f'model = {self._model.__class__.__name__}') 
+        logger.debug(f'optimizer = {self._optimizer.__class__.__name__}')
+        logger.debug(f'loss = {self._loss}') 
+        logger.debug(f'loss_weights = {self._loss_weights}') 

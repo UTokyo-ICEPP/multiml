@@ -347,6 +347,8 @@ class MLBaseTask(BaseTask):
         self.compile_model()
         self.compile_optimizer()
 
+        self.show_info()
+
     def build_model(self):
         """ Build model.
         """
@@ -501,3 +503,14 @@ class MLBaseTask(BaseTask):
             raise ValueError(f'Not valid pred_var_names: {pred_var_names}.')
 
         return pred_index
+
+    def show_info(self):
+        """ Print information.
+        """
+        logger.header2(f'{self.name} information', level=logger.debug)
+        logger.debug(f'input_var_names = {self.input_var_names}')
+        logger.debug(f'output_var_names = {self.output_var_names}')
+        logger.debug(f'pred_var_names = {self.pred_var_names}')
+        logger.debug(f'true_var_names = {self.true_var_names}')
+        self.ml.show_info()
+        logger.header2('')
