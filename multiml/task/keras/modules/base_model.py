@@ -57,8 +57,10 @@ class BaseModel(Model):
         if self._pred_index is not None:
             y_pred = self.select_pred_data(y_pred)
 
-        self.compiled_loss(
-          y, y_pred, sample_weight, regularization_losses=self.losses)
+        self.compiled_loss(y,
+                           y_pred,
+                           sample_weight,
+                           regularization_losses=self.losses)
 
         self.compiled_metrics.update_state(y, y_pred, sample_weight)
         return {m.name: m.result() for m in self.metrics}
