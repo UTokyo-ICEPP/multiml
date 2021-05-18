@@ -47,6 +47,22 @@ class BaseModel(Model):
                 return_metrics[metric.name] = result
         return return_metrics
 
+    def test_step(self, data):
+        data = data_adapter.expand_1d(data)
+        x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+
+        y_pred = self(x, training=False)
+
+        # select pred_var_names
+        if self._pred_index is not None:
+            y_pred = self.select_pred_data(y_pred)
+
+        self.compiled_loss(
+          y, y_pred, sample_weight, regularization_losses=self.losses)
+
+        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        return {m.name: m.result() for m in self.metrics}
+
     def select_pred_data(self, y_pred):
         if len(self._pred_index) == 1:
             return y_pred[self._pred_index[0]]
