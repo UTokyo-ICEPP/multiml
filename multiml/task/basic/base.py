@@ -97,6 +97,18 @@ class BaseTask(Task):
         self._name = name
 
     @property
+    def job_id(self):
+        """ Return job_id of task.
+        """
+        return self._job_id
+
+    @job_id.setter
+    def job_id(self, job_id):
+        """ Set job_id of task.
+        """
+        self._job_id = job_id
+
+    @property
     def task_id(self):
         """ Return task_id of task.
         """

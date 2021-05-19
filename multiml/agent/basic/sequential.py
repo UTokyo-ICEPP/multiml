@@ -105,9 +105,9 @@ class SequentialAgent(BaseAgent):
             subtask_id = subtasktuple.subtask_id
             subtask_env = subtasktuple.env
             subtask_hps = subtasktuple.hps.copy()
-            subtask_hps['job_id'] = counter
 
             subtask_env.saver = self._saver
+            subtask_env.job_id = counter
             subtask_env.set_hps(subtask_hps)
             self._execute_subtask(subtasktuple)
 
@@ -139,6 +139,7 @@ class SequentialAgent(BaseAgent):
                 subtask_hps['job_id'] = counter
 
                 subtask_env.saver = self._saver
+                subtask_env.job_id = counter
                 subtask_env.set_hps(subtask_hps)
                 self._execute_subtask(subtasktuple)
 
