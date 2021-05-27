@@ -44,10 +44,10 @@ def test_storegate_zarr():
     assert storegate.get_data_ids() == [data_id]
 
     # change hybrid mode
+    storegate.to_memory(var_names=var_names23, phase='all')
+    storegate.delete_data(var_names=var_names23, phase='all')
     storegate.set_mode('numpy')
-
     storegate.to_storage(var_names=var_names23, phase='all')
-    storegate.to_memory(var_names=var_names23, phase='train')
 
     # update existing variables and data
     storegate.update_data(var_names=var_names23, data=data23_bind, phase=phase)
@@ -92,10 +92,11 @@ def test_storegate_zarr():
     # delete data 
     storegate.delete_data(var_names='var2', phase='train')
     del storegate['train'][['var0', 'var1']]
+    storegate.show_info()
     assert storegate.get_var_names(phase='train') == ['var3']
 
     # convert dtype
-    storegate.astype(var_names='var3', dtype=np.int)
+    storegate.astype(var_names='var3', dtype='i8')
     storegate.onehot(var_names='var3', num_classes=40)
     storegate.argmax(var_names='var3', axis=1)
     assert storegate['train']['var3'][0] == 30
