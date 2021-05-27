@@ -44,7 +44,8 @@ class HybridDatabase(Database):
         self._db[mode].add_data(data_id, var_name, idata, phase)
 
     def update_data(self, data_id, var_name, idata, phase, index):
-        self._db[self._mode].update_data(data_id, var_name, idata, phase, index)
+        self._db[self._mode].update_data(data_id, var_name, idata, phase,
+                                         index)
 
     def get_data(self, data_id, var_name, phase, index):
         return self._db[self._mode].get_data(data_id, var_name, phase, index)
