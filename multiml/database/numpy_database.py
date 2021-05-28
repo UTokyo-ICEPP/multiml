@@ -23,7 +23,7 @@ class NumpyDatabase(Database):
             self._db[data_id] = {'train': {}, 'valid': {}, 'test': {}}
             self._metadata[data_id] = {'train': {}, 'valid': {}, 'test': {}}
 
-    def add_data(self, data_id, var_name, idata, phase):
+    def add_data(self, data_id, var_name, idata, phase, mode=None):
         if var_name in self._db[data_id][phase].keys():
             tmp_data = self._db[data_id][phase][var_name]
             self._db[data_id][phase][var_name] = np.concatenate(
@@ -44,7 +44,7 @@ class NumpyDatabase(Database):
                 'total_events': len(idata)
             }
 
-    def update_data(self, data_id, var_name, idata, phase, index):
+    def update_data(self, data_id, var_name, idata, phase, index, mode=None):
         self._db[data_id][phase][var_name][get_slice(index)] = idata
 
     def get_data(self, data_id, var_name, phase, index):
@@ -55,7 +55,7 @@ class NumpyDatabase(Database):
             del self._db[data_id][phase][var_name]
             del self._metadata[data_id][phase][var_name]
 
-    def get_metadata(self, data_id, phase):
+    def get_metadata(self, data_id, phase, mode=None):
         if data_id not in self._metadata.keys():
             return {}
         return self._metadata[data_id][phase]
