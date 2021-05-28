@@ -701,8 +701,9 @@ class StoreGate:
 
         else:
             self._db.mode = mode
+            self.compile()
 
-    def to_memory(self, var_names, phase='train'):
+    def to_memory(self, var_names, phase='train', callback=None):
         """Move data from storage to memory.
 
         This method is valid for only hybrid backend. This should be effective
@@ -722,10 +723,21 @@ class StoreGate:
                 f'to_memory is valid when the current mode is zarr.')
 
         self.compile()
-        tmp_data = self.get_data(var_names, phase=phase, index=-1)
-        self.update_data(var_names, tmp_data, phase, mode='numpy')
 
-    def to_storage(self, var_names, phase='train'):
+        if phase == 'all':
+            phase = const.PHASES
+        else:
+            phase = [phase]
+
+        for iphase in phase:
+            tmp_data = self.get_data(var_names, phase=iphase, index=-1)
+
+            if callback is not None:
+                tmp_data = callback(tmp_data)
+
+            self.update_data(var_names, tmp_data, iphase, mode='numpy')
+
+    def to_storage(self, var_names, phase='train', callback=None):
         """Move data from storage to memory.
 
         This method is valid for only hybrid backend. This is useful if data
@@ -745,8 +757,19 @@ class StoreGate:
                 f'to_storage is valid when the current mode is numpy.')
 
         self.compile()
-        tmp_data = self.get_data(var_names, phase=phase, index=-1)
-        self.update_data(var_names, tmp_data, phase, mode='zarr')
+
+        if phase == 'all':
+            phase = const.PHASES
+        else:
+            phase = [phase]
+
+        for iphase in phase:
+            tmp_data = self.get_data(var_names, phase=iphase, index=-1)
+
+            if callback is not None:
+                tmp_data = callback(tmp_data)
+
+            self.update_data(var_names, tmp_data, iphase, mode='zarr')
 
     def compile(self, reset=False, show_info=False):
         """Check if registered samples are valid.
@@ -761,11 +784,6 @@ class StoreGate:
             show_info (bool): show information after compile.
         """
         self._check_valid_data_id()
-
-        if self._is_compiled() and not reset:  # already complied
-            if show_info:
-                self.show_info()
-            return
 
         total_events = []
         phases = []
