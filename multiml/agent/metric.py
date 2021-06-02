@@ -262,7 +262,7 @@ class AUCMetric(BaseMetric):
         y_true, y_pred = self.get_true_pred_data()
 
         if len(y_pred.shape) != 1:
-            y_pred = y_pred[:,1]
+            y_pred = y_pred[:, 1]
 
         if any(np.isnan(y_pred)):
             logger.warn(

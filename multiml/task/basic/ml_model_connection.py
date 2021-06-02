@@ -354,7 +354,6 @@ class ModelConnectionTask(MLBaseTask):
 
             self._loss_weights = new_loss_weights
 
-
     def _apply_variable_mapping(self, input_vars):
         """ Convert variable name by given mapping.
         """
