@@ -45,6 +45,7 @@ class ModelConnectionTask(MLBaseTask):
                  subtasks,
                  use_multi_loss=False,
                  variable_mapping=None,
+                 auto_ordering=True,
                  **kwargs):
         """ Constructor of ModelConnectionTask.
 
@@ -56,6 +57,8 @@ class ModelConnectionTask(MLBaseTask):
             variable_mapping (list(str, str)): Input variables are replaced
                 following this list. Used for the case that the input variables
                 change from pre-training to main-training (with model connecting).
+            auto_ordering (bool): If True, given subtasks are ordered by
+                input_var_names and output_var_names automatically.
             **kwargs: Arbitrary keyword arguments passed to ``MLBaseTask``.
         """
         super().__init__(**kwargs)
@@ -66,6 +69,7 @@ class ModelConnectionTask(MLBaseTask):
         self._subtasks = subtasks
         self._use_multi_loss = use_multi_loss
         self._variable_mapping = variable_mapping
+        self._auto_ordering = auto_ordering
 
         self._cache_var_names = None
         self._input_var_index = None
@@ -165,7 +169,8 @@ class ModelConnectionTask(MLBaseTask):
     def compile_var_names(self):
         """ Compile subtask dependencies and I/O variables.
         """
-        self.set_ordered_subtasks()
+        if self._auto_ordering:
+            self.set_ordered_subtasks()
         self.set_output_var_index()
         self.set_input_var_index()
 
@@ -341,6 +346,14 @@ class ModelConnectionTask(MLBaseTask):
             new_subtasks.append(self._subtasks[i_subtask])
 
         self._subtasks = new_subtasks
+
+        if isinstance(self._loss_weights, list):
+            new_loss_weights = []
+            for i_subtask in nx.topological_sort(dag):
+                new_loss_weights.append(self._loss_weights[i_subtask])
+
+            self._loss_weights = new_loss_weights
+
 
     def _apply_variable_mapping(self, input_vars):
         """ Convert variable name by given mapping.
