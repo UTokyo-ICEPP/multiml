@@ -48,13 +48,14 @@ def test_keras_util():
     get_optimizer('adam', dict(learning_rate=0.001))
     get_optimizer('sgd', dict(learning_rate=None))
     get_optimizer('sgd', dict(learning_rate=0.1))
+    get_optimizer('nadam', dict(learning_rate=0.01))
     from tensorflow.keras import optimizers
     get_optimizer(optimizers.Adam())
 
     with pytest.raises(ValueError):
         get_optimizer(None)
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError):
         get_optimizer('dummyoptimizer')
 
 
