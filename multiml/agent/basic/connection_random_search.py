@@ -80,6 +80,7 @@ class ConnectionRandomSearchAgent(RandomSearchAgent):
             subtasks=subtasks,
             **self._connectiontask_args,
         )
+
         subtask.task_id = task_id
         subtask.subtask_id = subtask_id
 

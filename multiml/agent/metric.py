@@ -133,10 +133,13 @@ class BaseMetric(Metric):
 
         y_pred = self._storegate.get_data(phase=self._phase,
                                           var_names=self._pred_var_name)
-
+        
+        
+        
         if 'active' in self._storegate.get_var_names():
             metadata = self._storegate.get_data(phase=self._phase,
                                                 var_names='active')
+
 
             y_true = y_true[metadata == True]
             y_pred = y_pred[metadata == True]

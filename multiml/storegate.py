@@ -361,6 +361,7 @@ class StoreGate:
             >>> # update data of train phase
             >>> storegate.update_data(var_names='var0', data=[1], phase='train', index=1)
         """
+
         # recursive operation
         if isinstance(var_names, list):
             for var_name, idata in zip(var_names, data):
@@ -371,6 +372,7 @@ class StoreGate:
 
         var_names, data = self._view_to_list(var_names, data)
         self._check_valid_phase(phase)
+        
 
         for var_name, idata in zip(var_names, data):
             idata = self._convert_to_np(idata)
@@ -476,14 +478,12 @@ class StoreGate:
                     self._db.get_data(self._data_id, var_name, iphase, index))
 
             results.append(phase_results)
-
+                
         if (not is_single_var) and is_single_index:
             np_results = np.array(results[0])
-
         elif is_single_var and (not is_single_index):
             np_results = np.concatenate(results, 1)
             np_results = np_results[0]
-
         else:
             np_results = np.concatenate(results, 1)
             shape = list(range(len(np_results.shape)))

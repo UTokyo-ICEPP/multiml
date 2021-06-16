@@ -90,9 +90,13 @@ class ModelConnectionTask(MLBaseTask):
         """ Compile subtasks and this task.
         """
         for subtask in self._subtasks:
+            print(f'before subtask.compile() {subtask._name}')
             subtask.compile()
-
+        
+        
         super().compile()
+        for subtask in self._subtasks:
+            print(f'after subtask.compile() {subtask._name}')
 
     def compile_loss(self):
         """ Compile loss.
@@ -106,11 +110,14 @@ class ModelConnectionTask(MLBaseTask):
           * If ``use_multi_loss`` is True and ``loss_weights`` is None,
             ``loss_weights`` is retrieved from each subtask.
         """
+        for subtask in self._subtasks:
+            print(f'before compile_loss() subtask.compile() {subtask._name}')
+
         self.ml.loss = []
         self.ml.loss_weights = []
 
         n_subtasks = len(self._subtasks)
-
+        
         # Define loss weights for each task
         if self._loss_weights is None or self._use_multi_loss is False:
             task_weights = [1.0 for _ in range(n_subtasks)]
@@ -121,12 +128,12 @@ class ModelConnectionTask(MLBaseTask):
                 self._loss_weights[subtask.task_id]
                 for subtask in self._subtasks
             ]
-
+        
         # Collect loss and weights for the loss from each subtask
         for index in range(n_subtasks):
             subtask = self._subtasks[index]
             task_weight = task_weights[index]
-
+            
             if type(subtask.ml.loss) is list or type(
                     subtask.ml.loss_weights) is list:
                 if type(subtask.ml.loss) != type(subtask.ml.loss_weights):
@@ -161,11 +168,19 @@ class ModelConnectionTask(MLBaseTask):
                 else:
                     self.ml.loss.append(None)
                     self.ml.loss_weights.append(0.0)
+                    
+        for subtask in self._subtasks:
+            print(f'after compile_loss() subtask.compile() {subtask._name}')
 
     def compile_var_names(self):
         """ Compile subtask dependencies and I/O variables.
         """
+        for subtask in self._subtasks:
+            print(f'before set_ordered_subtasks() subtask.compile() {subtask._name}')
+
         self.set_ordered_subtasks()
+        for subtask in self._subtasks:
+            print(f'after set_ordered_subtasks() subtask.compile() {subtask._name}')
         self.set_output_var_index()
         self.set_input_var_index()
 
@@ -288,23 +303,29 @@ class ModelConnectionTask(MLBaseTask):
                 else:
                     yield v
 
+        for subtask in self._subtasks:
+            print(f'before set_orderd subtask {subtask._name}')
+
         # dag built with subtasks and input/output names
         dag_sub = nx.DiGraph()
         for i_subtask, subtask in enumerate(self._subtasks):
             # Add subtask name
+            print(i_subtask, subtask.job_id)
             dag_sub.add_node(i_subtask)
-
+            
             # Add variable name
             input_var_names = subtask.input_var_names
             if isinstance(input_var_names, str):
                 input_var_names = [input_var_names]
 
             input_var_names = self._apply_variable_mapping(input_var_names)
-
+            
             for var in _flatten(input_var_names):
                 if not dag_sub.has_node('var_' + var):
+                    print(f'input  add_node {var}')
                     dag_sub.add_node('var_' + var)
                 dag_sub.add_edge('var_' + var, i_subtask)
+                print(f'input  add_edge {var}, {i_subtask}')
 
             output_var_names = subtask.output_var_names
             if isinstance(output_var_names, str):
@@ -313,14 +334,19 @@ class ModelConnectionTask(MLBaseTask):
             for var in _flatten(output_var_names):
                 if not dag_sub.has_node('var_' + var):
                     dag_sub.add_node('var_' + var)
+                    print(f'output add_node {var}')
                 dag_sub.add_edge(i_subtask, 'var_' + var)
-
+                print(f'output add_edge {var}, {i_subtask}')
+                
         # dag built with subtasks
         dag = nx.DiGraph()
         for i_subtask, subtask in enumerate(self._subtasks):
             dag.add_node(i_subtask)
-
+            print(f'middle1 set_orderd subtask {subtask._name}')
+        
+        
         for node in nx.topological_sort(dag_sub):
+            print(f'node is {node}')
             if isinstance(node, int):
                 predecessors = set([
                     u for v in dag_sub.predecessors(node)
@@ -335,9 +361,10 @@ class ModelConnectionTask(MLBaseTask):
                 ])
                 for v in successors:
                     dag.add_edge(node, v)
-
+        
         new_subtasks = []
         for i_subtask in nx.topological_sort(dag):
+            print(f'i_subtask is {i_subtask}')
             new_subtasks.append(self._subtasks[i_subtask])
 
         self._subtasks = new_subtasks
