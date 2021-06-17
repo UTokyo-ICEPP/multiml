@@ -38,7 +38,7 @@ class SequentialAgent(BaseAgent):
         """
         if diff_task_args is None:
             diff_task_args = {}
-        
+
         super().__init__(**kwargs)
         self._result = None
         self._differentiable = differentiable
@@ -186,12 +186,12 @@ class SequentialAgent(BaseAgent):
 
         return result
 
-    def _execute_subtask(self, subtask, is_skip = False):
+    def _execute_subtask(self, subtask, is_skip=False):
         """ Execute subtask.
         """
-        
+
         subtask.env.storegate = self._storegate
-        subtask.env.saver = self._saver        
+        subtask.env.saver = self._saver
         subtask.env.execute()
         subtask.env.finalize()
 

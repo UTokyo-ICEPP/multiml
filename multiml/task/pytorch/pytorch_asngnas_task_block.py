@@ -24,22 +24,19 @@ class PytorchASNGNASBlockTask(PytorchBaseTask):
         self._input_var_names = self._proxy_model._input_var_names
         self._output_var_names = self._proxy_model._output_var_names
         self._true_var_names = self._proxy_model._true_var_names
-        
+
         self._loss = self._proxy_model._loss
         self._optimizer = self._proxy_model._optimizer
         self._num_epochs = self._proxy_model._num_epochs
         self._batch_size = self._proxy_model._batch_size
         self.subtask_ids = [s.subtask_id for s in self._subtasks]
-        
-    
+
     def build_model(self):
         from .modules import ASNGTaskBlockModel
-        
+
         self._model = ASNGTaskBlockModel(
-            name = self._name,
-            models=[v._model for v in self._subtasks]
-            )
-                
+            name=self._name, models=[v._model for v in self._subtasks])
+
     def get_input_true_data(self, phase):
         return self._proxy_model.get_input_true_data(phase)
 

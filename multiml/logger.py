@@ -21,26 +21,28 @@ DISABLED = 50
 
 MIN_LEVEL = 20
 
+
 def convert(level):
     """ convert str to int
     
     """
     ret = INFO
-    if level.upper() == 'DEBUG' : 
+    if level.upper() == 'DEBUG':
         ret = DEBUG
-    elif level.upper() == 'INFO' : 
+    elif level.upper() == 'INFO':
         ret = INFO
-    elif level.upper() == 'WARN' : 
+    elif level.upper() == 'WARN':
         ret = WARN
-    elif level.upper() == 'ERROR' : 
+    elif level.upper() == 'ERROR':
         ret = ERROR
-    elif level.upper() == 'DISABLED' : 
+    elif level.upper() == 'DISABLED':
         ret = DISABLED
-    else : 
+    else:
         print(f'Your choice({level}) is not valid, set to INFO')
         ret = INFO
     return ret
-        
+
+
 def set_level(level):
     """ Set log level.
 
@@ -48,9 +50,9 @@ def set_level(level):
         level (int): ``DEBUG``=10, ``INFO``=20, ``WARN``=30, ``ERROR``=40,
             ``DISABLED``=50.
     """
-    if type(level) == str: 
+    if type(level) == str:
         level = convert(level)
-    
+
     global MIN_LEVEL
     MIN_LEVEL = level
 

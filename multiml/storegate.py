@@ -372,7 +372,6 @@ class StoreGate:
 
         var_names, data = self._view_to_list(var_names, data)
         self._check_valid_phase(phase)
-        
 
         for var_name, idata in zip(var_names, data):
             idata = self._convert_to_np(idata)
@@ -478,7 +477,7 @@ class StoreGate:
                     self._db.get_data(self._data_id, var_name, iphase, index))
 
             results.append(phase_results)
-                
+
         if (not is_single_var) and is_single_index:
             np_results = np.array(results[0])
         elif is_single_var and (not is_single_index):

@@ -115,13 +115,10 @@ class MLBaseTask(BaseTask):
         self._save_weights = save_weights
         self._metrics = metrics
         self._num_epochs = num_epochs
-        
-        
+
         self._verbose = verbose
         self._batch_size = batch_size
         self._task_type = 'ml'
-        
-
 
     def __repr__(self):
         result = f'{self.__class__.__name__}(task_type={self._task_type}, '\
@@ -188,14 +185,14 @@ class MLBaseTask(BaseTask):
     def execute(self):
         """ Execute a task.
         """
-        
+
         self.compile()
-        
+
         result = None
 
         if const.TRAIN in self.phases:
             result = self.fit()
-        
+
         if self._save_weights:
             self.dump_model(dict(result=result))
 
@@ -342,16 +339,12 @@ class MLBaseTask(BaseTask):
             >>> self.compile_optimizer() # set self.ml.optimizer
             >>> self.compile_loss() # set self.ml.loss
         """
-        
-        
+
         self.ml.clear()
         self.compile_var_names()
-        
-        
-        
+
         if self._model is None:
             self.build_model()
-            
 
         self.compile_loss()
         self.compile_model()
