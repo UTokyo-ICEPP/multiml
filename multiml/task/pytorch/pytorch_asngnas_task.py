@@ -10,20 +10,18 @@ from tqdm import tqdm
 
 
 class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
-    def __init__(self, **kwargs):
+
+    def __init__(self, lam, delta_init_factor, **kwargs):
         """
 
         Args:
             subtasks (list): list of task instances.
             **kwargs: Arbitrary keyword arguments.
         """
-        print('PytorchASNGNASTask.__init__')
         super().__init__(**kwargs)
         # self._subtasks = subtasks
         
         # TODO : get task information instead of submodels[0]
-        for k in self._subtasks : 
-            print(f'k is {k._task_id}')
         self._proxy_model = self._subtasks[0]
         # self._task_id = self._subtasks[0].task_id
         self._task_id = 'ASNG-NAS'
@@ -36,42 +34,47 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         self._loss_weights = self._proxy_model.ml._loss_weights
         self._optimizer = self._proxy_model._optimizer
         self._num_epochs = self._proxy_model._num_epochs
-        self._batch_size = self._proxy_model._batch_size
-        for m in self._subtasks : 
-            print(f'm is {m._task_id}')
+        # self._batch_size = self._proxy_model._batch_size
+        self.task_ids = [ subtask.task_id for subtask in self._subtasks ]
+        self.subtask_ids = [ subtask.subtask_ids for subtask in self._subtasks ]
         
-        
+        self.lam = lam
+        self.delta_init_factor = delta_init_factor
+        print(self._batch_size)
+    
     def build_model(self):
-        print('PytorchASNGNASTask.build_model')
         from multiml.task.pytorch.modules import ASNGModel
-        
-        for subtask in self._subtasks : 
-            print(f'subtask._name is {subtask._name}')
-
         models = [subtask.ml.model for subtask in self._subtasks ]
-        self._model = ASNGModel(models,
+        
+        
+        self._model = ASNGModel(self.lam, 
+                                self.delta_init_factor, 
+                                models, 
                                 input_var_index=self._input_var_index,
-                                output_var_index=self._output_var_index
+                                output_var_index=self._output_var_index,
                                 )
-                                
-        
-            
+    
     def set_most_likely(self):
-        self.c_cat, self.c_int = self.asng.most_likely_value() # best 
+        self.ml.model.set_most_likely()
+    
+    def best_model(self):
+        c_cat, c_int = self.ml.model.get_most_likely()
         
+        best_task_ids = []
+        best_subtask_ids = []
+        for idx, best_idx in enumerate(c_cat.argmax(axis = 1)):
+            best_task_ids.append(self.task_ids[idx])
+            best_subtask_ids.append(self.subtask_ids[idx][best_idx])
+            
+        return best_task_ids, best_subtask_ids
+    
     def get_most_likely(self):
-        return self.c_cat, self._cint 
+        return self.ml.model.get_most_likely()
     
     def get_thetas(self):
-        return self.asng.get_thetas()
+        return self.ml.model.asng.get_thetas()
     
-    def get_best_combination(self):
-        cat_idx = self.c_cat.argmax(axis = 1)
-        for i, idx in enumerate(cat_idx) : 
-            self.ml.model._subtasks[i]
-            
-            
-        
+    
     def fit(self,
             train_data=None,
             valid_data=None,
@@ -104,6 +107,8 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         
 
         dataloaders = self.prepare_dataloaders( train_data, valid_data, dataloaders )
+        test_dataloader = self.prepare_test_dataloader( )
+        
         early_stopping = util.EarlyStopping(patience=self._max_patience)
         self._scaler = torch.cuda.amp.GradScaler(enabled=self._is_gpu)
 
@@ -116,7 +121,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         if self.ml.loss is None:
             raise AttributeError('loss is not defined')
 
-        history = {'train': [], 'valid': []}
+        history = {'train': [], 'valid': [], 'test':[]}
         losses = np.zeros(self.asng().get_lambda() )
         
         if 'lr' in self._metrics:
@@ -134,24 +139,28 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         
         results_train = training_results( self._metrics, self.ml.multi_loss, len(self.true_var_names) )
         results_valid = training_results( self._metrics, self.ml.multi_loss, len(self.true_var_names) )
+        results_test  = training_results( self._metrics, self.ml.multi_loss, len(self.true_var_names) )
         
-        logger.info(f'dataset(train/valid) length is {len(dataloaders["train"])}/{len(dataloaders["valid"])}')
+        logger.info(f'dataset(train/valid/test) len is {len(dataloaders["train"])}/{len(dataloaders["valid"])}/{len(test_dataloader)}')
+        
+        dummy = 0.0
         
         for epoch in range(1, self._num_epochs + 1):
             if sampler is not None:
                 sampler.set_epoch(epoch)
-
             
-            pbar_args = dict(total = min(len(dataloaders['train']), len(dataloaders['valid']) ),
+            
+            pbar_args = dict(total = min(len(dataloaders['train']), len(dataloaders['valid']) ) + len(test_dataloader),
                             unit=' batch',
-                            ncols=150,
+                            ncols=250,
                             bar_format="{desc}: {percentage:3.0f}%| {n_fmt: >4}/{total_fmt: >4} [{rate_fmt: >16}{postfix}]",
                             disable=disable_tqdm)
-            pbar_desc = f'Epoch [{epoch: >4}/{self._num_epochs}] ASNG-NAS'
-
+            pbar_desc = f'Epoch[{epoch: >4}/{self._num_epochs}] ASNG'
+            
+            # training 
             with tqdm(**pbar_args) as pbar:
                 pbar.set_description(pbar_desc)
-            
+                
                 for train_data, valid_data in zip( dataloaders['train'], dataloaders['valid']) : 
                     ### train
                     self.ml.model.train()
@@ -168,14 +177,35 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     loss_train = results_train.get_running_loss()
                     loss_valid = results_valid.get_running_loss()
                     
-                    pbar.set_postfix( tloss = f'{loss_train:.3e}', vloss = f'{loss_valid:.3e}')
+                    theta_cats,theta_ints = self.ml.model.get_thetas()
+                    theta_cat0 = '/'.join(f'{v:.2f}' for v in theta_cats[0])
+                    theta_cat1 = '/'.join(f'{v:.2f}' for v in theta_cats[1])
+                    
+                    pbar.set_postfix( loss = f'{loss_train:.2e}/{loss_valid:.2e}/{dummy:.2e}', c0=theta_cat0, c1=theta_cat1)
+                    #pbar.set_postfix( train = f'{loss_train:.2e}', valid = f'{loss_valid:.2e}', test = f'{dummy:.2e}')
                     pbar.update(1)
                 
+                # test 
+                for test_data in test_dataloader : 
+                    
+                    ### validation -> theta update
+                    self.ml.model.eval()
+                    loss_test, batch_result = self._step_train(False, test_data[input_index], test_data[true_index], rank )
+                    results_test.update_results( batch_result, util.inputs_size(test_data[input_index]))
+                    
+                    loss_test = results_test.get_running_loss()
+                    
+                    pbar.set_postfix( loss = f'{loss_train:.2e}/{loss_valid:.2e}/{loss_test:.2e}', c0=theta_cat0, c1=theta_cat1)
+                    # pbar.set_postfix( train = f'{loss_train:.2e}', valid = f'{loss_valid:.2e}', test = f'{loss_test:.2e}')
+                    pbar.update(1)
+            
             history['train'].append(results_train.get_results())
             history['valid'].append(results_valid.get_results())
+            history['test'].append(results_test.get_results())
             
             if self._early_stopping:
-                if early_stopping( results_valid.get_running_loss(), self.ml.model):
+                if early_stopping( results_test.get_running_loss(), self.ml.model):
+                    logger.info(f'early stopping... at epoch = {epoch}')
                     break
 
             if self._scheduler is not None:
@@ -196,7 +226,6 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         labels = self.add_device(labels_data, rank)
         
         self.ml.optimizer.zero_grad()
-        
         
         result = {}
         with torch.set_grad_enabled( is_train ) : 
@@ -234,6 +263,11 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                         result['acc'].append(corrects.item())
                     results['acc'] = np.mean(results['acc'])
         return loss, result
+
+    def _predict(self, dataloader, input_index, true_index, argmax ) : 
+        self.ml.model.set_most_likely()
+        outputs = super()._predict(dataloader, input_index, true_index, argmax)
+        return outputs
     
     def _step_optimizer(self, losses):
         loss = 0
@@ -258,17 +292,18 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         # result['metric_value'] = metric
 
 
-    def get_input_true_data(self, phase):
-        return self._proxy_model.get_input_true_data(phase)
+    # def get_input_true_data(self, phase):
+    #     return self._proxy_model.get_input_true_data(phase)
 
-    def get_storegate_dataset(self, phase):
-        return self._proxy_model.get_storegate_dataset(phase)
+    # def get_storegate_dataset(self, phase):
+    #     return self._proxy_model.get_storegate_dataset(phase)
+    
+    # def get_inputs(self):
+    #     return self._proxy_model.get_inputs()
+
 
     def get_submodel_names(self):
         return [v.subtask_id for v in self._subtasks]
-
-    def get_inputs(self):
-        return self._proxy_model.get_inputs()
 
     def get_submodel(self, i_models):
         return self._subtasks[i_models]

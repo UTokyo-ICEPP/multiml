@@ -6,75 +6,76 @@ from multiml.task.basic.modules import ConnectionModel
 import numpy as np
 
 class ASNGModel(ConnectionModel, Module):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, lam, delta_init_factor, *args, **kwargs):
         """
         Args:
             *args: Variable length argument list
             **kwargs: Arbitrary keyword arguments
         """
         super().__init__(*args, **kwargs)
-
+        
         self._sub_models = ModuleList([])
         
         categories = []
         
         for subtask in self._models:
-            print(subtask._name)
             self._sub_models.append(subtask)
             categories += [subtask.n_subtask()]
-            
-        from multiml.task.pytorch.modules import AdaptiveSNG
-        self.asng = AdaptiveSNG( np.array(categories) )
         
+        categories = np.array( categories )
+        from multiml.task.pytorch.modules import AdaptiveSNG
+        
+        n = np.sum(categories - 1) + 0 # 0 is integer part
+        
+        self.asng = AdaptiveSNG( categories, lam = lam, delta_init = 1.0/(n**delta_init_factor), delta_max = np.inf )
+        self.is_fix = False
+        
+    def set_most_likely(self):
+        self.c_cat, self.c_int = self.asng.most_likely_value()
+        self.is_fix = True
+        
+        
+    def get_most_likely(self):
+        return self.c_cat, self.c_int 
+    
     def update_theta(self, losses, range_restriction=True) : 
+
         self.asng.update_theta(self.c_cats, self.c_ints, losses, range_restriction )
         
-    def best_models(self):
-        self.c_cat, self.c_int = self.asng.get_most_likely()
-        cat_idx = self.c_cat.argmax( axis = 1 )
         
-        best_task_ids = []        
-        best_subtask_ids = []
-        for idx, model in zip(cat_idx, self._models) : 
-            subtask_id = model._subtasks[idx].subtask_id
-            subtask_id = model._subtasks[idx].task_id
-            best_task_ids.append( task_id )
-            best_subtask_ids.append( subtask_id )
-            
-        return best_task_ids, best_subtask_ids
+    def get_thetas(self):
+        return self.asng.get_thetas()
+        
+    def best_models(self):
+        return self.best_task_ids, self.best_subtask_ids 
     
     def forward(self, inputs):
-        c_cats, c_ints = self.asng.sampling()
         outputs = []
-        print('-')
-        print(len(self._sub_models))
-        print(len(inputs))
-        print(self._input_var_index)
         
-        for c_cat, c_int in zip( c_cats, c_ints ) : 
-            o = self._forward( inputs, c_cat, c_int )
-            outputs.append(o)
+        if self.is_fix :
+            outputs = self._forward( inputs, self.c_cat, self.c_int )
+        else :
+            self.c_cats, self.c_ints = self.asng.sampling()
+            # print(f'forward')
+            # print(f'c_cats is --> {self.c_cats.argmax(axis = 2)[0]}, {self.c_cats.argmax(axis = 2)[1]}')
+            for c_cat, c_int in zip( self.c_cats, self.c_ints ) : 
+                o = self._forward( inputs, c_cat, c_int )
+                outputs.append(o)
+        
         return outputs
     
     def _forward(self, inputs, c_cat, c_int):
         outputs = []
         caches = [None] * self._num_outputs
         
-        
-        
         for index, sub_model in enumerate(self._sub_models):
-            sub_model.set_prob(c_cat, c_int)
-            print(sub_model._name)
-            print(self._input_var_index[index])
+            sub_model.set_prob(c_cat[index], None ) # FIXME : c_int is not implemented
+            
             # Create input tensor
             input_indexes = self._input_var_index[index]
             tensor_inputs = [None] * len(input_indexes)
             
-            print(len(tensor_inputs), len(inputs))
-            
-            
             for ii, input_index in enumerate(input_indexes):
-                print(ii, input_index)
                 if input_index >= 0:  # inputs
                     tensor_inputs[ii] = inputs[input_index]
                 else:  # caches

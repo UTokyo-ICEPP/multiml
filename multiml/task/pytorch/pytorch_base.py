@@ -210,7 +210,8 @@ class PytorchBaseTask(MLBaseTask):
     def prepare_dataloaders(self, 
                             train_data=None,
                             valid_data=None,
-                            dataloaders=None):
+                            dataloaders=None
+                            ):
         """ prepare dataloaders from input, if all inputs are None, then from storegate_dataset
         """
         if dataloaders is None:
@@ -228,7 +229,6 @@ class PytorchBaseTask(MLBaseTask):
         if dataloaders['valid'] is None:
             valid_dataset = self.get_storegate_dataset('valid')
             
-        
         if type(self._batch_size) == int: 
             batch_size_train = self._batch_size
             batch_size_valid = self._batch_size
@@ -257,6 +257,32 @@ class PytorchBaseTask(MLBaseTask):
                                         shuffle=True)
 
         return dataloaders
+
+
+    def prepare_test_dataloader(self, 
+                data=None,
+                dataloader=None,
+                phase=None):
+
+        if data is not None:
+            dataset = self.get_tensor_dataset(data)
+        if dataloader is None:
+            data = self.get_input_true_data(phase)
+            dataset = self.get_tensor_dataset(data)
+        
+        if type(self._batch_size) == int: 
+            batch_size_test = self._batch_size
+        elif type(self._batch_size) == dict : # assuming equal length
+            if 'equal_length' in self._batch_size['type']:
+                batch_size_test = self._batch_size['test']
+        else :
+            raise ValueError(f' batch_size is not known!! {self._batch_size}')
+
+        dataloader = DataLoader(dataset,
+                                batch_size=batch_size_test,
+                                num_workers=self._num_workers,
+                                shuffle=False)
+        return dataloader
 
     def fit(self,
             train_data=None,
@@ -509,28 +535,8 @@ class PytorchBaseTask(MLBaseTask):
             self._pass_training = True
         else:
             self._pass_training = False
-
-        if data is not None:
-            dataset = self.get_tensor_dataset(data)
-        if dataloader is None:
-            data = self.get_input_true_data(phase)
-            dataset = self.get_tensor_dataset(data)
         
-        if type(self._batch_size) == int: 
-            batch_size_test = self._batch_size
-        elif type(self._batch_size) == dict : # assuming equal length
-            if 'equal_length' in self._batch_size['type']:
-                batch_length = self._batch_size['length']
-                length_test = len(dataset)/batch_length if len(dataset)/batch_length > 1.0 else 1
-                batch_size_test = int(np.floor( length_test ))
-                                
-        else :
-            raise ValueError(f' batch_size is not known!! {self._batch_size}')
-
-        dataloader = DataLoader(dataset,
-                                batch_size=batch_size_test,
-                                num_workers=self._num_workers,
-                                shuffle=False)
+        dataloader = self.prepare_test_dataloader(data, dataloader, phase)
         
         true_index = 1 if input_index == 0 else 0 # FIXME : hard code
         results, loss = self._predict(dataloader, input_index, true_index, argmax )
@@ -569,26 +575,8 @@ class PytorchBaseTask(MLBaseTask):
             self._pass_training = True
         else:
             self._pass_training = False
-
-        if data is not None:
-            dataset = self.get_tensor_dataset(data)
-        if dataloader is None:
-            data = self.get_input_true_data(phase)
-            dataset = self.get_tensor_dataset(data)
         
-        if type(self._batch_size) == int: 
-            batch_size_test = self._batch_size
-        elif type(self._batch_size) == dict : # assuming equal length
-            if 'equal_length' in self._batch_size['type']:
-                batch_size_test = self._batch_size['test']
-            
-        else :
-            raise ValueError(f' batch_size is not known!! {self._batch_size}')
-
-        dataloader = DataLoader(dataset,
-                                batch_size=batch_size_test,
-                                num_workers=self._num_workers,
-                                shuffle=False)
+        dataloader = self.prepare_test_dataloader(data, dataloader, phase)
         true_index = 1 if input_index == 0 else 0 # FIXME : hard code
         
         results, loss = self._predict(dataloader, input_index, true_index, argmax )
@@ -605,7 +593,7 @@ class PytorchBaseTask(MLBaseTask):
                 
                 with torch.cuda.amp.autocast(self._is_gpu and self._amp):
                     outputs = self._step_model(inputs, False)
-                    
+
                     # metric part
                     if isinstance(outputs, Tensor):
                         pred_results.append(outputs.cpu().numpy())

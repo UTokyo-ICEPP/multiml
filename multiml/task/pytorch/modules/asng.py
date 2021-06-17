@@ -40,7 +40,6 @@ class AdaptiveSNG:
             self.cat_d_valid = len(self.cat[self.cat > 1])
             if init_theta is not None:
                 self.theta_cat = init_theta[0]
-                
         else : 
             self.cat_n = 0
             self.theta_cat = None
@@ -126,21 +125,26 @@ class AdaptiveSNG:
 
     def update_theta(self, c_cat, c_int, losses, range_restriction=True):
         self.delta = self.delta_init / self.Delta
-
+        
+        # print(f'loss is {[l.item() for l in losses]}')
         aru, idx = self.utility(losses)
+        
         if np.all(aru == 0):
             # If all the points have the same f-value,
             # nothing happens for theta and breaks.
             # In this case, we skip the rest of the code.
+            # print(f'skip........')
             return
         
-        fnorm = 0.0
+        fnorm_cat = 0.0
+        fnorm_ord = 0.0
         hstack = []
-        
+        # print(self.theta_cat)
         if self.theta_cat is not None: 
             # NG for categorical distribution
             ng_cat = np.mean(aru[:, np.newaxis, np.newaxis] * (c_cat[idx] - self.theta_cat), axis=0)
-
+            # print(f'ng_cat is ')
+            # print(f'{ng_cat}')
             # sqrt(F) * NG for categorical distribution
             sl = []
             for i, K in enumerate(self.cat):
@@ -151,7 +155,6 @@ class AdaptiveSNG:
                 sl += list(s_i)
             sl = np.array(sl)
             fnorm_cat = np.sum(sl ** 2)
-            fnorm += fnorm_cat
             hstack.append( sl )
         
         if self.theta_int is not None: 
@@ -190,13 +193,13 @@ class AdaptiveSNG:
             fdpara[0, :] /= np.sqrt(eigval[0, :])
             fdpara[1, :] /= np.sqrt(eigval[1, :])
             fdpara = eigvec1 * fdpara[0] + eigvec2 * fdpara[1]
-            fnorm_ord = np.sum(fdpara ** 2)            
-            fnorm += fnorm_ord
+            fnorm_ord = np.sum(fdpara ** 2) 
             hstack.append( np.ravel(fdpara) )
             
-        fnorm = np.sqrt(fnorm)
+        fnorm = np.sqrt(fnorm_cat + fnorm_ord)
         self.eps = self.delta / (fnorm + 1e-9)
-
+        # print(self.eps * ng_cat)
+        # print(self.theta_cat)
         # update
         if self.theta_cat is not None : 
             self.theta_cat += self.eps * ng_cat
@@ -209,12 +212,11 @@ class AdaptiveSNG:
             self.theta_int = None
         
         beta = self.delta / (self.n_theta ** 0.5)
+        self.s = (1 - beta) * self.s + np.sqrt(beta * (2 - beta)) * np.hstack( tuple(hstack) ) / fnorm
         self.gamma = (1 - beta)**2 * self.gamma + beta*(2 - beta)
-        
-        self.s = (1 - beta) * self.s + np.sqrt(beta * (2 - beta)) * np.hstack( hstack ) / fnorm
-        
         self.Delta *= np.exp(beta * (self.gamma - np.sum(self.s**2) / self.alpha))
         self.Delta = min(self.Delta, self.delta_max)
+        # print(f'eps = delta / fnorm  is {self.eps} = {self.delta} / {fnorm} ({self.Delta}, {beta})')
         
         if self.theta_cat is not None : 
             # range restriction
@@ -233,7 +235,8 @@ class AdaptiveSNG:
             self.theta_int[0] = np.clip(self.theta_int[0], self.int_min, self.int_max)
             self.theta_int[1] = np.clip(self.theta_int[1], self.theta_int[0]**2 + self.int_std_min**2,
                                         self.theta_int[0]**2 + self.int_std_max**2)
-    
+        # print(self.theta_cat)
+        
     def utility(self, losses, rho=0.25, negative=True):
         """
         Ranking Based Utility Transformation

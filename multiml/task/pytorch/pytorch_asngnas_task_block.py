@@ -18,25 +18,19 @@ class PytorchASNGNASBlockTask(PytorchBaseTask):
         # TODO: get task information instead of submodels[0]
         self._proxy_model = self._subtasks[0]
 
-        self._task_id = 'ASNG-NAS-TaskBlock-' + self._subtasks[0].task_id
-        self._name = 'ASNG-NAS-TaskBlock-' + self._subtasks[0].task_id
+        self._task_id = self._subtasks[0].task_id
+        self._name = self._subtasks[0].task_id
         self._job_id = job_id
         self._input_var_names = self._proxy_model._input_var_names
         self._output_var_names = self._proxy_model._output_var_names
         self._true_var_names = self._proxy_model._true_var_names
         
-        print(f'self._name is {self._name}')
-        print(f'self._input_var_names is {self._input_var_names}')
-        print(f'self._output_var_names is {self._output_var_names}')
-        
-        
-
-
-
         self._loss = self._proxy_model._loss
         self._optimizer = self._proxy_model._optimizer
         self._num_epochs = self._proxy_model._num_epochs
         self._batch_size = self._proxy_model._batch_size
+        self.subtask_ids = [s.subtask_id for s in self._subtasks]
+        
     
     def build_model(self):
         from .modules import ASNGTaskBlockModel
