@@ -137,12 +137,10 @@ def get_optimizer(optimizer, optimizer_args=None):
     if optimizer is None:
         raise ValueError("optimizer is None. Please use a valid optimizer")
 
-    elif not isinstance(optimizer, str):
-        return optimizer
-    elif optimizer == "sgd" or optimizer == "SGD":
-        return optimizers.SGD(**optimizer_args)
-    elif optimizer == "adam" or optimizer == "ADAM":
-        return optimizers.Adam(**optimizer_args)
-
+    elif isinstance(optimizer, str):
+        return optimizers.get({
+            'class_name': optimizer,
+            'config': optimizer_args
+        })
     else:
-        raise NotImplementedError(f"{optimizer} is not defined")
+        return optimizer

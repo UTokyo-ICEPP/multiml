@@ -36,7 +36,7 @@ class ZarrDatabase(Database):
             db_data_id.create_group('valid')
             db_data_id.create_group('test')
 
-    def add_data(self, data_id, var_name, idata, phase):
+    def add_data(self, data_id, var_name, idata, phase, mode=None):
         db = self._db[data_id][phase]
 
         if var_name in db.array_keys():
@@ -47,7 +47,7 @@ class ZarrDatabase(Database):
             chunks = (self._chunk, ) + (None, ) * (len(shape) - 1)
             db.array(var_name, idata, chunks=chunks)
 
-    def update_data(self, data_id, var_name, idata, phase, index):
+    def update_data(self, data_id, var_name, idata, phase, index, mode=None):
         self._db[data_id][phase][var_name][get_slice(index)] = idata
 
     def get_data(self, data_id, var_name, phase, index):
@@ -57,7 +57,7 @@ class ZarrDatabase(Database):
         if var_name in self._db[data_id][phase].array_keys():
             del self._db[data_id][phase][var_name]
 
-    def get_metadata(self, data_id, phase):
+    def get_metadata(self, data_id, phase, mode=None):
         results = {}
         if data_id not in list(self._db.group_keys()):
             return results

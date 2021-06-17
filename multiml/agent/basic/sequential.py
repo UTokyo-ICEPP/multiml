@@ -147,6 +147,7 @@ class SequentialAgent(BaseAgent):
                 result['subtask_hps'].append(subtask_hps)
 
         subtasks = [v.env for v in subtasktuples]
+        self._diff_task_args['auto_ordering'] = False
 
         if self._differentiable == 'keras':
             from multiml.task.keras import ModelConnectionTask

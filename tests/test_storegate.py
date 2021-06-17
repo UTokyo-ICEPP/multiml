@@ -44,9 +44,12 @@ def test_storegate_zarr():
     assert storegate.get_data_ids() == [data_id]
 
     # change hybrid mode
+    storegate.compile()
+    storegate.show_info()
     storegate.to_memory(var_names=var_names23, phase='all')
     storegate.delete_data(var_names=var_names23, phase='all')
     storegate.set_mode('numpy')
+    storegate.show_info()
     storegate.to_storage(var_names=var_names23, phase='all')
 
     # update existing variables and data
