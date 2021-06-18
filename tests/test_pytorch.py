@@ -14,7 +14,7 @@ class MyPytorchModel(nn.Module):
         super(MyPytorchModel, self).__init__()
         self.fc1 = nn.Linear(2, 2)
 
-    def forward(self, x, training):
+    def forward(self, x):
         x = F.relu(self.fc1(x))
         return x
 

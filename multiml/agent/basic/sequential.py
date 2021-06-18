@@ -187,9 +187,10 @@ class SequentialAgent(BaseAgent):
 
         return result
 
-    def _execute_subtask(self, subtask):
+    def _execute_subtask(self, subtask, is_skip=False):
         """ Execute subtask.
         """
+
         subtask.env.storegate = self._storegate
         subtask.env.saver = self._saver
         subtask.env.execute()

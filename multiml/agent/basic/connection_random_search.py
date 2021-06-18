@@ -28,7 +28,6 @@ class ConnectionRandomSearchAgent(RandomSearchAgent):
         self._freeze_model_weights = freeze_model_weights
         self._do_pretraining = do_pretraining
         self._connectiontask_name = connectiontask_name
-
         self._connectiontask_args = connectiontask_args
 
     @logger.logging
@@ -80,6 +79,7 @@ class ConnectionRandomSearchAgent(RandomSearchAgent):
             subtasks=subtasks,
             **self._connectiontask_args,
         )
+
         subtask.task_id = task_id
         subtask.subtask_id = subtask_id
 

@@ -171,6 +171,7 @@ class ModelConnectionTask(MLBaseTask):
         """
         if self._auto_ordering:
             self.set_ordered_subtasks()
+
         self.set_output_var_index()
         self.set_input_var_index()
 

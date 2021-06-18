@@ -72,7 +72,7 @@ class MLBaseTask(BaseTask):
                 weights to given path.
             metrics (list): metrics of evaluation.
             num_epochs (int): number of epochs.
-            batch_size (int): size of mini batch.
+            batch_size (int or dict): size of mini batch, you can set different batch_size for test, train, valid.
             verbose (int): verbose option for fitting step. If None, it's set
                 based on logger.MIN_LEVEL
         """
@@ -115,9 +115,9 @@ class MLBaseTask(BaseTask):
         self._save_weights = save_weights
         self._metrics = metrics
         self._num_epochs = num_epochs
-        self._batch_size = batch_size
-        self._verbose = verbose
 
+        self._verbose = verbose
+        self._batch_size = batch_size
         self._task_type = 'ml'
 
     def __repr__(self):
@@ -185,9 +185,11 @@ class MLBaseTask(BaseTask):
     def execute(self):
         """ Execute a task.
         """
+
         self.compile()
 
         result = None
+
         if const.TRAIN in self.phases:
             result = self.fit()
 
@@ -337,6 +339,7 @@ class MLBaseTask(BaseTask):
             >>> self.compile_optimizer() # set self.ml.optimizer
             >>> self.compile_loss() # set self.ml.loss
         """
+
         self.ml.clear()
         self.compile_var_names()
 
@@ -347,7 +350,7 @@ class MLBaseTask(BaseTask):
         self.compile_model()
         self.compile_optimizer()
 
-        self.show_info()
+        # self.show_info()
 
     def build_model(self):
         """ Build model.
