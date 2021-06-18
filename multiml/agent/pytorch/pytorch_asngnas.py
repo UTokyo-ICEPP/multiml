@@ -81,7 +81,6 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
                 job_id=f'ASNG-NAS-Block-{task_id}',
                 saver=self._saver,
                 load_weights=self._connectiontask_args['load_weights'],
-                unpack_inputs=False,
             )
 
             parents = []
@@ -130,7 +129,6 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
             gpu_ids=None,
             amp=False,  # expert option
             benchmark=False,  # expert option
-            unpack_inputs=self._connectiontask_args["unpack_inputs"],
             view_as_outputs=False,  # expert option
             verbose=self._verbose,
             num_epochs=self._num_epochs,
