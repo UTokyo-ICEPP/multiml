@@ -52,7 +52,6 @@ class PytorchBaseTask(MLBaseTask):
             gpu_ids=None,
             amp=False,  # expert option
             benchmark=False,  # expert option
-            unpack_inputs=False,  # expert option
             view_as_outputs=False,  # expert option
             **kwargs):
         """ Initialize the pytorch base task.
@@ -64,8 +63,6 @@ class PytorchBaseTask(MLBaseTask):
                 mode is enabled if ``gpu_ids`` is given.
             amp (bool): *(expert option)* enable amp mode.
             benchmark (bool): *(expert option)* enable cudnn.benchmark mode.
-            unpack_inputs (bool): *(expert option)* uppack inputs when being
-                passed to model, e.g. model(*inputs).
             view_as_outputs (bool): *(expert option)* view_as outputs when being
                 passed to loss, e.g. loss(output.view_as(label), label).
         """
@@ -88,7 +85,6 @@ class PytorchBaseTask(MLBaseTask):
         self._gpu_ids = gpu_ids
         self._amp = amp
         self._benchmark = benchmark
-        self._unpack_inputs = unpack_inputs
         self._view_as_outputs = view_as_outputs
 
         self._pred_index = None
@@ -338,13 +334,7 @@ class PytorchBaseTask(MLBaseTask):
 
         return history
 
-    def train_model(self,
-                    epoch,
-                    phase,
-                    dataloader,
-                    rank=None,
-                    input_index=0,
-                    true_index=1):
+    def train_model(self, epoch, phase, dataloader, rank=None):
         """ Process model for given epoch and phase.
 
         ``ml.model``, ``ml.optimizer`` and ``ml.loss`` need to be set before
@@ -355,8 +345,6 @@ class PytorchBaseTask(MLBaseTask):
             phase (str): *train* mode or *valid* mode.
             dataloader (obj): dataloader instance.
             rank (int): rank for distributed data parallel.
-            input_index (int): index of input variables for dataloader outputs.
-            true_index (int): index of true variable for dataloader outputs.
 
         Returns:
             dict: dict of result.
@@ -404,10 +392,8 @@ class PytorchBaseTask(MLBaseTask):
             pbar.set_description(pbar_desc)
             for data in dataloader:
 
-                inputs = self.add_device(data[input_index], rank)
-                labels = self.add_device(data[true_index], rank)
-                batch_result = self.step_train(inputs, labels, phase)
-                inputs_size = util.inputs_size(inputs)
+                batch_result = self.step_train(data, phase, rank)
+                inputs_size = batch_result['batch_size']
                 total += inputs_size
                 epoch_loss += batch_result['loss'] * inputs_size
                 running_loss = epoch_loss / total
@@ -441,18 +427,21 @@ class PytorchBaseTask(MLBaseTask):
         results['running_loss'] = running_loss
         return results
 
-    def step_train(self, inputs, labels, phase):
+    def step_train(self, data, phase, rank):
         """ Process batch data and update weights.
 
         Args:
-            inputs (obj): input tensor data.
-            labels (obj): true tensor data.
+            data (obj): inputs and labels data.
             phase (str): *train* mode or *valid* mode.
 
         Returns:
             dict: dict of result.
         """
-        result = {}
+        inputs, labels = data
+        inputs = self.add_device(inputs, rank)
+        labels = self.add_device(labels, rank)
+
+        result = {'batch_size': util.inputs_size(inputs)}
         self.ml.optimizer.zero_grad()
 
         with torch.set_grad_enabled(phase == 'train'):
@@ -490,8 +479,8 @@ class PytorchBaseTask(MLBaseTask):
                 data=None,
                 dataloader=None,
                 phase=None,
-                input_index=0,
-                argmax=None):
+                argmax=None,
+                loss=False):
         """ Predict model.
 
         This method predicts and returns results. Data need to be provided by
@@ -503,8 +492,8 @@ class PytorchBaseTask(MLBaseTask):
             dataloader (obj): dataloader instance.
             phase (str): 'all' or 'train' or 'valid' or 'test' to specify 
                 dataloaders.
-            input_index (int): index of input variables for dataloader outputs.
             argmax (int): apply ``np.argmax`` to resuls.
+            loss (bool): retuns loss results.
 
         Returns:
             ndarray or list: results of prediction.
@@ -517,55 +506,30 @@ class PytorchBaseTask(MLBaseTask):
         if dataloader is None:
             dataloader = self.prepare_test_dataloader(data, phase)
 
-        true_index = 1 if input_index == 0 else 0  # FIXME : hard code
-        results, loss = self._predict(dataloader, input_index, true_index,
-                                      argmax)
-        return results
+        results, losses = self._predict(dataloader, argmax)
+
+        if loss:
+            return results, losses
+        else:
+            return results
 
     def predict_and_loss(self,
                          data=None,
                          dataloader=None,
                          phase=None,
-                         input_index=0,
                          argmax=None):
-        """ Predict model.
-
-        This method predicts and returns results. Data need to be provided by
-        ```data``` option, or setting property of ``dataloaders`` directory.
-
-        Args:
-            data (ndarray): If ``data`` is given, data are converted to 
-                ``TendorDataset`` and set to ``dataloaders['test']``.
-            dataloader (obj): dataloader instance.
-            phase (str): 'all' or 'train' or 'valid' or 'test' to specify 
-                dataloaders.
-            input_index (int): index of input variables for dataloader outputs.
-            argmax (int): apply ``np.argmax`` to resuls.
-
-        Returns:
-            ndarray or list: results of prediction.
+        """ Predict model with losses.
         """
-        if self.ml.model is None:
-            raise AttributeError('model is not defined')
+        return self.predict(model, dataloader, phase, argmax, True)
 
-        self.ml.model.eval()
-
-        if dataloader is None:
-            dataloader = self.prepare_test_dataloader(data, phase)
-        true_index = 1 if input_index == 0 else 0  # FIXME : hard code
-
-        results, loss = self._predict(dataloader, input_index, true_index,
-                                      argmax)
-        return results, loss
-
-    def _predict(self, dataloader, input_index, true_index, argmax):
+    def _predict(self, dataloader, argmax):
         pred_results = []
         loss_results = {'loss': 0., 'total': 0, 'subloss': None}
         with torch.no_grad():
 
-            for data in dataloader:
-                inputs = self.add_device(data[input_index], self._device)
-                labels = self.add_device(data[true_index], self._device)
+            for inputs, labels in dataloader:
+                inputs = self.add_device(inputs, self._device)
+                labels = self.add_device(labels, self._device)
 
                 with torch.cuda.amp.autocast(self._is_gpu and self._amp):
                     outputs = self._step_model(inputs)
@@ -663,12 +627,7 @@ class PytorchBaseTask(MLBaseTask):
     ##########################################################################
     def _step_model(self, inputs):
 
-        if self.ml.multi_inputs and self._unpack_inputs:
-            outputs = self.ml.model(*inputs)
-        else:
-            outputs = self.ml.model(inputs)
-
-        return outputs
+        return self.ml.model(inputs)
 
     def _step_loss(self, outputs, labels):
         loss = 0.0

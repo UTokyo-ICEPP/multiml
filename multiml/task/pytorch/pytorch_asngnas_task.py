@@ -77,8 +77,6 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
             dataloaders=None,
             valid_step=1,
             sampler=None,
-            input_index=0,
-            true_index=1,
             rank=None,
             **kwargs):
         """ Train model over epoch.
@@ -168,24 +166,20 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     ### train
                     self.ml.model.train()
                     loss_train, batch_result = self._step_train(
-                        True, train_data[input_index], train_data[true_index],
-                        rank)
+                        True, train_data, rank)
                     self._step_optimizer(loss_train)
                     results_train.update_results(
-                        batch_result,
-                        util.inputs_size(train_data[input_index]))
+                        batch_result, util.inputs_size(inputs_train))
 
                     ### validation -> theta update
                     self.ml.model.eval()
                     loss_valid, batch_result = self._step_train(
-                        False, valid_data[input_index], valid_data[true_index],
-                        rank)
+                        False, valid_data, rank)
                     self.ml.model.update_theta(
                         np.array(loss_valid),
                         range_restriction=True)  # FIXME :
                     results_valid.update_results(
-                        batch_result,
-                        util.inputs_size(valid_data[input_index]))
+                        batch_result, util.inputs_size(inputs_valid))
 
                     loss_train = results_train.get_running_loss()
                     loss_valid = results_valid.get_running_loss()
@@ -207,10 +201,9 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     ### validation -> theta update
                     self.ml.model.eval()
                     loss_test, batch_result = self._step_train(
-                        False, test_data[input_index], test_data[true_index],
-                        rank)
-                    results_test.update_results(
-                        batch_result, util.inputs_size(test_data[input_index]))
+                        False, test_data, rank)
+                    results_test.update_results(batch_result,
+                                                util.inputs_size(inputs_test))
 
                     loss_test = results_test.get_running_loss()
 
@@ -241,11 +234,12 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
 
         return history
 
-    def _step_train(self, is_train, inputs_data, labels_data, rank):
+    def _step_train(self, is_train, data, rank):
         if rank is None:
             rank = self._device
 
         self.ml.model.train()
+        inputs_data, labels_data = data
         inputs = self.add_device(inputs_data, rank)
         labels = self.add_device(labels_data, rank)
 
@@ -290,9 +284,9 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     results['acc'] = np.mean(results['acc'])
         return loss, result
 
-    def _predict(self, dataloader, input_index, true_index, argmax):
+    def _predict(self, dataloader, argmax):
         self.ml.model.set_most_likely()
-        outputs = super()._predict(dataloader, input_index, true_index, argmax)
+        outputs = super()._predict(dataloader, argmax)
         return outputs
 
     def _step_optimizer(self, losses):
