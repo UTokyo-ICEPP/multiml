@@ -92,7 +92,6 @@ class PytorchBaseTask(MLBaseTask):
         self._view_as_outputs = view_as_outputs
 
         self._pred_index = None
-        self._pass_training = False
         self._early_stopping = False
         self._scheduler = None
         self._scaler = None
@@ -206,25 +205,17 @@ class PytorchBaseTask(MLBaseTask):
 
         super().dump_model(args_dump_ml)
 
-    def prepare_dataloaders(self,
-                            train_data=None,
-                            valid_data=None,
-                            dataloaders=None):
+    def prepare_dataloaders(self, train_data=None, valid_data=None):
         """ prepare dataloaders from input, if all inputs are None, then from storegate_dataset
         """
-        if dataloaders is None:
-            dataloaders = dict(train=None, valid=None)
-
         if train_data is not None:
             train_dataset = self.get_tensor_dataset(train_data)
+        else:
+            train_dataset = self.get_storegate_dataset('train')
 
         if valid_data is not None:
             valid_dataset = self.get_tensor_dataset(valid_data)
-
-        if dataloaders['train'] is None:
-            train_dataset = self.get_storegate_dataset('train')
-
-        if dataloaders['valid'] is None:
+        else:
             valid_dataset = self.get_storegate_dataset('valid')
 
         if type(self._batch_size) == int:
@@ -249,6 +240,7 @@ class PytorchBaseTask(MLBaseTask):
         else:
             raise ValueError(f' batch_size is not known!! {self._batch_size}')
 
+        dataloaders = {}
         dataloaders['train'] = DataLoader(train_dataset,
                                           batch_size=batch_size_train,
                                           num_workers=self._num_workers,
@@ -260,11 +252,11 @@ class PytorchBaseTask(MLBaseTask):
 
         return dataloaders
 
-    def prepare_test_dataloader(self, data=None, dataloader=None, phase=None):
+    def prepare_test_dataloader(self, data=None, phase=None):
 
         if data is not None:
             dataset = self.get_tensor_dataset(data)
-        if dataloader is None:
+        else:
             data = self.get_input_true_data(phase)
             dataset = self.get_tensor_dataset(data)
 
@@ -308,8 +300,9 @@ class PytorchBaseTask(MLBaseTask):
         Returns:
             list: history data of train and valid.
         """
-        dataloaders = self.prepare_dataloaders(train_data, valid_data,
-                                               dataloaders)
+        if dataloaders is None:
+            dataloaders = self.prepare_dataloaders(train_data, valid_data)
+
         early_stopping = util.EarlyStopping(patience=self._max_patience)
         self._scaler = torch.cuda.amp.GradScaler(enabled=self._is_gpu)
 
@@ -387,12 +380,6 @@ class PytorchBaseTask(MLBaseTask):
         elif self._verbose == 1:
             disable_tqdm = False
 
-        sig = inspect.signature(self.ml.model.forward)
-        if 'training' in sig.parameters:
-            self._pass_training = True
-        else:
-            self._pass_training = False
-
         epoch_loss, epoch_corrects, total = 0.0, 0, 0
 
         if self.ml.multi_loss:
@@ -422,7 +409,7 @@ class PytorchBaseTask(MLBaseTask):
                 batch_result = self.step_train(inputs, labels, phase)
                 inputs_size = util.inputs_size(inputs)
                 total += inputs_size
-                epoch_loss = batch_result['loss'] * inputs_size
+                epoch_loss += batch_result['loss'] * inputs_size
                 running_loss = epoch_loss / total
                 results['loss'] = f'{running_loss:.2e}'
 
@@ -470,7 +457,7 @@ class PytorchBaseTask(MLBaseTask):
 
         with torch.set_grad_enabled(phase == 'train'):
             with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                outputs = self._step_model(inputs, True)
+                outputs = self._step_model(inputs)
                 if self._pred_index is not None:
                     outputs = self._select_pred_data(outputs)
 
@@ -527,13 +514,8 @@ class PytorchBaseTask(MLBaseTask):
 
         self.ml.model.eval()
 
-        sig = inspect.signature(self.ml.model.forward)
-        if 'training' in sig.parameters:
-            self._pass_training = True
-        else:
-            self._pass_training = False
-
-        dataloader = self.prepare_test_dataloader(data, dataloader, phase)
+        if dataloader is None:
+            dataloader = self.prepare_test_dataloader(data, phase)
 
         true_index = 1 if input_index == 0 else 0  # FIXME : hard code
         results, loss = self._predict(dataloader, input_index, true_index,
@@ -568,13 +550,8 @@ class PytorchBaseTask(MLBaseTask):
 
         self.ml.model.eval()
 
-        sig = inspect.signature(self.ml.model.forward)
-        if 'training' in sig.parameters:
-            self._pass_training = True
-        else:
-            self._pass_training = False
-
-        dataloader = self.prepare_test_dataloader(data, dataloader, phase)
+        if dataloader is None:
+            dataloader = self.prepare_test_dataloader(data, phase)
         true_index = 1 if input_index == 0 else 0  # FIXME : hard code
 
         results, loss = self._predict(dataloader, input_index, true_index,
@@ -591,7 +568,7 @@ class PytorchBaseTask(MLBaseTask):
                 labels = self.add_device(data[true_index], self._device)
 
                 with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                    outputs = self._step_model(inputs, False)
+                    outputs = self._step_model(inputs)
 
                     # metric part
                     if isinstance(outputs, Tensor):
@@ -684,17 +661,12 @@ class PytorchBaseTask(MLBaseTask):
     ##########################################################################
     # Internal methods
     ##########################################################################
-    def _step_model(self, inputs, training):
-
-        if self._pass_training:
-            forward_args = dict(training)
-        else:
-            forward_args = {}
+    def _step_model(self, inputs):
 
         if self.ml.multi_inputs and self._unpack_inputs:
-            outputs = self.ml.model(*inputs, **forward_args)
+            outputs = self.ml.model(*inputs)
         else:
-            outputs = self.ml.model(inputs, **forward_args)
+            outputs = self.ml.model(inputs)
 
         return outputs
 
