@@ -1,7 +1,6 @@
 """ PytorchBaseTask module.
 """
 import copy
-import inspect
 
 import numpy as np
 from tqdm import tqdm
@@ -15,6 +14,7 @@ from multiml.task.basic import MLBaseTask
 from multiml.task.pytorch import modules
 from multiml.task.pytorch.datasets import StoreGateDataset, NumpyDataset
 from multiml.task.pytorch import pytorch_util as util
+from multiml.task.pytorch import pytorch_metrics as metrics
 
 
 class PytorchBaseTask(MLBaseTask):
@@ -246,11 +246,11 @@ class PytorchBaseTask(MLBaseTask):
             dataloaders=None,
             valid_step=1,
             sampler=None,
-            **kwargs):
+            rank=None):
         """ Train model over epoch.
 
         This methods train and valid model over epochs by calling
-        ``train_model()`` method. train and valid need to be provided by
+        ``step_epoch()`` method. train and valid need to be provided by
         ``train_data`` and ``valid_data`` options, or ``dataloaders`` option.
 
         Args:
@@ -261,7 +261,7 @@ class PytorchBaseTask(MLBaseTask):
             dataloaders (dict): dict of dataloaders, dict(train=xxx, valid=yyy).
             valid_step (int): step to process validation.
             sampler (obf): sampler to execute ``set_epoch()``.
-            kwargs (dict): arbitrary args passed to ``train_model()``.
+            rank (int): rank for distributed data parallel.
 
         Returns:
             list: history data of train and valid.
@@ -282,19 +282,19 @@ class PytorchBaseTask(MLBaseTask):
 
             # train
             self.ml.model.train()
-            result = self.train_model(epoch, 'train', dataloaders['train'],
-                                      **kwargs)
+            result = self.step_epoch(epoch, 'train', dataloaders['train'],
+                                     rank)
             history['train'].append(result)
 
             # valid
             if (const.VALID in self.phases) and (epoch % valid_step == 0):
                 self.ml.model.eval()
-                result = self.train_model(epoch, 'valid', dataloaders['valid'],
-                                          **kwargs)
+                result = self.step_epoch(epoch, 'valid', dataloaders['valid'],
+                                         rank)
                 history['valid'].append(result)
 
                 if self._early_stopping:
-                    if early_stopping(result['running_loss'], self.ml.model):
+                    if early_stopping(result['loss'], self.ml.model):
                         break
 
             if self._scheduler is not None:
@@ -306,7 +306,7 @@ class PytorchBaseTask(MLBaseTask):
 
         return history
 
-    def train_model(self, epoch, phase, dataloader, rank=None):
+    def step_epoch(self, epoch, phase, dataloader, rank=None):
         """ Process model for given epoch and phase.
 
         ``ml.model``, ``ml.optimizer`` and ``ml.loss`` need to be set before
@@ -340,16 +340,7 @@ class PytorchBaseTask(MLBaseTask):
         elif self._verbose == 1:
             disable_tqdm = False
 
-        epoch_loss, epoch_corrects, total = 0.0, 0, 0
-
-        if self.ml.multi_loss:
-            epoch_subloss = [0.0] * len(self.true_var_names)
-            epoch_corrects = [0] * len(self.true_var_names)
-
-        results = {}
-        if 'lr' in self._metrics:
-            lr = [f'{p["lr"]:.2e}' for p in self.ml.optimizer.param_groups]
-            results['lr'] = f'{lr}'
+        epoch_metric = metrics.EpochMetric(self.true_var_names, self.ml)
 
         pbar_args = dict(
             total=len(dataloader),
@@ -360,51 +351,34 @@ class PytorchBaseTask(MLBaseTask):
             disable=disable_tqdm)
         pbar_desc = f'Epoch [{epoch: >4}/{self._num_epochs}] {phase.ljust(5)}'
 
+        results = {}
         with tqdm(**pbar_args) as pbar:
             pbar.set_description(pbar_desc)
             for data in dataloader:
 
-                batch_result = self.step_train(data, phase, rank)
-                inputs_size = batch_result['batch_size']
-                total += inputs_size
-                epoch_loss += batch_result['loss'] * inputs_size
-                running_loss = epoch_loss / total
-                results['loss'] = f'{running_loss:.2e}'
+                batch_result = self.step_batch(data, phase, rank)
+                epoch_metric.total += batch_result['batch_size']
 
-                if 'subloss' in self._metrics:
-                    results['subloss'] = []
-                    for index, subloss in enumerate(batch_result['subloss']):
-                        epoch_subloss[index] += subloss * inputs_size
-                        running_subloss = epoch_subloss[index] / total
-                        results['subloss'].append(f'{running_subloss:.2e}')
+                for metric in self._metrics:
+                    metric_fn = getattr(epoch_metric, metric,
+                                        epoch_metric.dummy)
+                    results[metric] = metric_fn(batch_result)
 
-                if 'acc' in self._metrics:
-                    if self.ml.multi_loss:
-                        results['acc'] = []
-                        for index, acc in enumerate(batch_result['acc']):
-                            epoch_corrects[index] += acc
-                            accuracy = epoch_corrects[index] / total
-                            results['acc'].append(f'{accuracy:.2e}')
-                    else:
-                        epoch_corrects += batch_result['acc']
-                        accuracy = epoch_corrects / total
-                        results['acc'] = f'{accuracy:.2e}'
-
-                pbar.set_postfix(results)
+                pbar.set_postfix(metrics.get_pbar_metric(results))
                 pbar.update(1)
 
         if self._verbose == 2:
             logger.info(f'{pbar_desc} {results}')
 
-        results['running_loss'] = running_loss
         return results
 
-    def step_train(self, data, phase, rank):
+    def step_batch(self, data, phase, rank):
         """ Process batch data and update weights.
 
         Args:
             data (obj): inputs and labels data.
-            phase (str): *train* mode or *valid* mode.
+            phase (str): *train* mode or *valid* mode or *test* mode.
+            rank (int): rank for distributed data parallel.
 
         Returns:
             dict: dict of result.
@@ -418,34 +392,62 @@ class PytorchBaseTask(MLBaseTask):
 
         with torch.set_grad_enabled(phase == 'train'):
             with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                outputs = self._step_model(inputs)
+                outputs = self.step_model(inputs)
                 if self._pred_index is not None:
                     outputs = self._select_pred_data(outputs)
 
-                loss, subloss = self._step_loss(outputs, labels)
+                loss_result = self.step_loss(outputs, labels)
 
             if phase == 'train':
-                self._step_optimizer(loss)
+                self.step_optimizer(loss_result['loss'])
 
-            result['loss'] = loss.item()
+            elif phase == 'test':
+                result['pred'] = outputs
 
-            if 'subloss' in self._metrics:
-                result['subloss'] = [l.item() for l in subloss]
-
-            if 'acc' in self._metrics:
-                if self.ml.multi_loss:
-                    result['acc'] = []
-
-                    for output, label in zip(outputs, labels):
-                        _, preds = torch.max(output, 1)
-                        corrects = torch.sum(preds == label.data)
-                        result['acc'].append(corrects.item())
-                else:
-                    _, preds = torch.max(outputs, 1)
-                    corrects = torch.sum(preds == labels.data)
-                    result['acc'] = corrects.item()
+            batch_metric = metrics.BatchMetric()
+            for metric in self._metrics:
+                metric_fn = getattr(batch_metric, metric, batch_metric.dummy)
+                result[metric] = metric_fn(outputs, labels, loss_result)
 
         return result
+
+    def step_model(self, inputs):
+
+        return self.ml.model(inputs)
+
+    def step_loss(self, outputs, labels):
+        loss_result = {'loss': 0, 'subloss': []}
+
+        if self.ml.multi_loss:
+            for loss_fn, loss_w, output, label in zip(self.ml.loss,
+                                                      self.ml.loss_weights,
+                                                      outputs, labels):
+                if loss_w:
+                    if self._view_as_outputs:
+                        output = output.view_as(label)
+                    loss_tmp = loss_fn(output, label) * loss_w
+                    loss_result['loss'] += loss_tmp
+                    loss_result['subloss'].append(loss_tmp)
+
+        else:
+            if self._view_as_outputs:
+                outputs = outputs.view_as(labels)
+            if self.ml.loss_weights is None:
+                loss_result['loss'] += self.ml.loss(outputs, labels)
+            elif self.ml.loss_weights != 0.0:
+                loss_result['loss'] += self.ml.loss(
+                    outputs, labels) * self.ml.loss_weights
+
+        return loss_result
+
+    def step_optimizer(self, loss):
+        if self._is_gpu and self._amp:
+            self._scaler.scale(loss).backward()
+            self._scaler.step(self.ml.optimizer)
+            self._scaler.update()
+        else:
+            loss.backward()
+            self.ml.optimizer.step()
 
     def predict(self,
                 data=None,
@@ -496,46 +498,34 @@ class PytorchBaseTask(MLBaseTask):
 
     def _predict(self, dataloader, argmax):
         pred_results = []
-        loss_results = {'loss': 0., 'total': 0, 'subloss': None}
+        results = {}
+        epoch_metric = metrics.EpochMetric(self.true_var_names, self.ml)
+
         with torch.no_grad():
 
-            for inputs, labels in dataloader:
-                inputs = self.add_device(inputs, self._device)
-                labels = self.add_device(labels, self._device)
+            for data in dataloader:
 
-                with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                    outputs = self._step_model(inputs)
+                batch_result = self.step_batch(data, 'test', self._device)
+                epoch_metric.total += batch_result['batch_size']
 
-                    # metric part
-                    if isinstance(outputs, Tensor):
-                        pred_results.append(outputs.cpu().numpy())
+                for metric in self._metrics:
+                    metric_fn = getattr(epoch_metric, metric,
+                                        epoch_metric.dummy)
+                    results[metric] = metric_fn(batch_result)
+
+                # metric part
+                outputs = batch_result['pred']
+                if isinstance(outputs, Tensor):
+                    pred_results.append(outputs.cpu().numpy())
+                else:
+                    if pred_results:
+                        for index, output_obj in enumerate(outputs):
+                            output_obj = output_obj.cpu().numpy()
+                            pred_results[index].append(output_obj)
                     else:
-                        if pred_results:
-                            for index, output_obj in enumerate(outputs):
-                                output_obj = output_obj.cpu().numpy()
-                                pred_results[index].append(output_obj)
-                        else:
-                            for output_obj in outputs:
-                                output_obj = output_obj.cpu().numpy()
-                                pred_results.append([output_obj])
-
-                    # loss part
-                    loss, subloss = self._step_loss(outputs, labels)
-                    inputs_size = util.inputs_size(inputs)
-                    loss_results['loss'] += loss.item() * inputs_size
-                    loss_results['total'] += inputs_size
-
-                    if 'subloss' in self._metrics:
-                        if loss_results['subloss'] is None:
-                            loss_results['subloss'] = []
-
-                            for idx, sloss in enumerate(subloss):
-                                loss_results['subloss'].append(sloss.item() *
-                                                               inputs_size)
-                        else:
-                            for idx, sloss in enumerate(subloss):
-                                loss_results['subloss'][idx] += sloss.item(
-                                ) * inputs_size
+                        for output_obj in outputs:
+                            output_obj = output_obj.cpu().numpy()
+                            pred_results.append([output_obj])
 
         if isinstance(pred_results[0], list):
             pred_results = [
@@ -546,15 +536,7 @@ class PytorchBaseTask(MLBaseTask):
             if argmax:
                 pred_results = np.argmax(pred_results, axis=argmax)
 
-        loss_results['loss'] = loss_results['loss'] / float(
-            loss_results['total'])
-        if loss_results['subloss'] is not None:
-            loss_results['subloss'] = [
-                s / float(loss_results['total'])
-                for s in loss_results['subloss']
-            ]
-
-        return pred_results, loss_results
+        return pred_results, results
 
     def get_tensor_dataset(self, data):
         """ Returns dataset from given ndarray data. 
@@ -597,44 +579,6 @@ class PytorchBaseTask(MLBaseTask):
     ##########################################################################
     # Internal methods
     ##########################################################################
-    def _step_model(self, inputs):
-
-        return self.ml.model(inputs)
-
-    def _step_loss(self, outputs, labels):
-        loss = 0.0
-        subloss = []
-
-        if self.ml.multi_loss:
-            for loss_fn, loss_w, output, label in zip(self.ml.loss,
-                                                      self.ml.loss_weights,
-                                                      outputs, labels):
-                if loss_w:
-                    if self._view_as_outputs:
-                        output = output.view_as(label)
-                    loss_tmp = loss_fn(output, label) * loss_w
-                    loss += loss_tmp
-                    subloss.append(loss_tmp)
-
-        else:
-            if self._view_as_outputs:
-                outputs = outputs.view_as(labels)
-            if self.ml.loss_weights is None:
-                loss += self.ml.loss(outputs, labels)
-            elif self.ml.loss_weights != 0.0:
-                loss += self.ml.loss(outputs, labels) * self.ml.loss_weights
-
-        return loss, subloss
-
-    def _step_optimizer(self, loss):
-        if self._is_gpu and self._amp:
-            self._scaler.scale(loss).backward()
-            self._scaler.step(self.ml.optimizer)
-            self._scaler.update()
-        else:
-            loss.backward()
-            self.ml.optimizer.step()
-
     def _select_pred_data(self, y_pred):
         if len(self._pred_index) == 1:
             return y_pred[self._pred_index[0]]

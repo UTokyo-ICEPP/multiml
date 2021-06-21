@@ -54,7 +54,7 @@ def test_mypytorchtask():
                          optimizer='SGD',
                          optimizer_args=dict(lr=0.1),
                          loss='CrossEntropyLoss',
-                         metrics=['acc', 'lrs'])
+                         metrics=['loss', 'acc', 'lr'])
     task.set_hps({'num_epochs': 5})
 
     task.execute()

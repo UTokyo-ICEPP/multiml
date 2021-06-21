@@ -249,15 +249,15 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
 
         with torch.set_grad_enabled(is_train):
             with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                outputs = self._step_model(inputs)
+                outputs = self.step_model(inputs)
                 loss = []
                 subloss = []
                 for output in outputs:
                     if self._pred_index is not None:
                         output = self._select_pred_data(output)
-                    _loss, _subloss = self._step_loss(output, labels)
-                    loss.append(_loss)
-                    subloss.append(_subloss)
+                    loss_result = self.step_loss(output, labels)
+                    loss.append(loss_result['loss'])
+                    subloss.append(loss_result['subloss'])
 
                 result['loss'] = np.mean([l.item() for l in loss])
 
