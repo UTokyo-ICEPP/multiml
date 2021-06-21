@@ -170,8 +170,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     loss_train, batch_result = self._step_train(
                         True, train_data, rank)
                     self._step_optimizer(loss_train)
-                    results_train.update_results(
-                        batch_result, util.inputs_size(inputs_train))
+                    results_train.update_results(batch_result)
 
                     ### validation -> theta update
                     self.ml.model.eval()
@@ -180,8 +179,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     self.ml.model.update_theta(
                         np.array(loss_valid),
                         range_restriction=True)  # FIXME :
-                    results_valid.update_results(
-                        batch_result, util.inputs_size(inputs_valid))
+                    results_valid.update_results(batch_result)
 
                     loss_train = results_train.get_running_loss()
                     loss_valid = results_valid.get_running_loss()
@@ -204,8 +202,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     self.ml.model.eval()
                     loss_test, batch_result = self._step_train(
                         False, test_data, rank)
-                    results_test.update_results(batch_result,
-                                                util.inputs_size(inputs_test))
+                    results_test.update_results(batch_result)
 
                     loss_test = results_test.get_running_loss()
 
@@ -248,9 +245,11 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         self.ml.optimizer.zero_grad()
 
         result = {}
+        result['batch_size'] = util.inputs_size(inputs_data)
+
         with torch.set_grad_enabled(is_train):
             with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                outputs = self._step_model(inputs, False)
+                outputs = self._step_model(inputs)
                 loss = []
                 subloss = []
                 for output in outputs:
@@ -351,11 +350,11 @@ class training_results:
         rl = self.running_loss.item()
         return rl
 
-    def update_results(self, batch_result, input_size):
+    def update_results(self, batch_result):
         self.results = {}
 
-        self.total += input_size
-        self.epoch_loss = batch_result['loss'] * input_size
+        self.total += batch_result['batch_size']
+        self.epoch_loss = batch_result['loss'] * batch_result['batch_size']
         self.running_loss = self.epoch_loss / self.total
         self.results['loss'] = f'{self.running_loss:.2e}'
 

@@ -205,11 +205,12 @@ class PytorchBaseTask(MLBaseTask):
         """ Prepare dataloader from inputs, if inputs are None, then from
             storegate_dataset with given phase.
         """
-        if (data is None) and (phase is None):
-            raise ValueError(f'Please provide phase for storegate_dataset')
-
         if data is None:
-            dataset = self.get_storegate_dataset('valid')
+            if phase is None:
+                data = self.get_input_true_data(phase)
+                dataset = self.get_tensor_dataset(data)
+            else:
+                dataset = self.get_storegate_dataset(phase)
         else:
             dataset = self.get_tensor_dataset(data)
 
@@ -266,7 +267,7 @@ class PytorchBaseTask(MLBaseTask):
             list: history data of train and valid.
         """
         if dataloaders is None:
-            datalaoders = dict(
+            dataloaders = dict(
                 train=self.prepare_dataloader(train_data, 'train'),
                 valid=self.prepare_dataloader(valid_data, 'valid'))
 
@@ -491,7 +492,7 @@ class PytorchBaseTask(MLBaseTask):
                          argmax=None):
         """ Predict model with losses.
         """
-        return self.predict(model, dataloader, phase, argmax, True)
+        return self.predict(data, dataloader, phase, argmax, True)
 
     def _predict(self, dataloader, argmax):
         pred_results = []
