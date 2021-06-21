@@ -267,8 +267,8 @@ class PytorchBaseTask(MLBaseTask):
         """
         if dataloaders is None:
             datalaoders = dict(
-                train=self.prepare_dataloaders(train_data, 'train'),
-                valid=self.prepare_dataloaders(valid_data, 'valid'))
+                train=self.prepare_dataloader(train_data, 'train'),
+                valid=self.prepare_dataloader(valid_data, 'valid'))
 
         early_stopping = util.EarlyStopping(patience=self._max_patience)
         self._scaler = torch.cuda.amp.GradScaler(enabled=self._is_gpu)

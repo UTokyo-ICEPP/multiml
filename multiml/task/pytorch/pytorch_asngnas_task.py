@@ -99,9 +99,11 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
             list: history data of train and valid.
         """
 
-        dataloaders = self.prepare_dataloaders(train_data, valid_data,
-                                               dataloaders)
-        test_dataloader = self.prepare_test_dataloader()
+        dataloaders = dict(train=self.prepare_dataloader(train_data, 'train'),
+                           valid=self.prepare_dataloader(valid_data, 'valid'))
+
+        test_data = self.get_input_true_data(phase=None)
+        test_dataloader = self.prepare_dataloader(test_data, phase='test')
 
         early_stopping = util.EarlyStopping(patience=self._max_patience)
         self._scaler = torch.cuda.amp.GradScaler(enabled=self._is_gpu)
