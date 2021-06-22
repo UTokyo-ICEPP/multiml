@@ -3,10 +3,28 @@ import numpy as np
 import torch
 from torch import Tensor
 
+def dummy(*args, **kwargs):
+    return None
 
 class BatchMetric:
     """ Utility class to manage batch metrics.
     """
+    def __init__(self, metrics, enable=True):
+        self.metrics = metrics
+        self.enable = enable
+
+    def __call__(self, outputs, labels, loss):
+        result = {}
+ 
+        if not self.enable:
+            return result       
+
+        for metric in self.metrics:
+            metric_fn = getattr(self, metric, dummy)
+            result[metric] = metric_fn(outputs, labels, loss)
+
+        return result
+
     @staticmethod
     def loss(outputs, labels, loss):
         return loss['loss'].item()
@@ -33,7 +51,9 @@ class BatchMetric:
 class EpochMetric:
     """ Utility class to manage epoch metrics.
     """
-    def __init__(self, true_var_names, ml):
+    def __init__(self, metrics, enable, true_var_names, ml):
+        self.metrics = metrics
+        self.enable = enable
         self.ml = ml
         self.total = 0
         self.preds = []
@@ -44,6 +64,19 @@ class EpochMetric:
             num_subtasks = len(true_var_names)
             self.epoch_subloss = [0.0] * num_subtasks
             self.epoch_corrects = [0] * num_subtasks
+   
+    def __call__(self, batch_result):
+        result = {}
+        if not self.enable:
+            return result 
+
+        self.total += batch_result['batch_size']
+
+        for metric in self.metrics:
+            metric_fn = getattr(self, metric, dummy)
+            result[metric] = metric_fn(batch_result)
+
+        return result
 
     def loss(self, batch_result):
         self.epoch_loss += batch_result['loss'] * batch_result['batch_size']
@@ -97,16 +130,13 @@ class EpochMetric:
 
         return results
 
-
-def dummy(*args, **kwargs):
-    return None
-
-
 def get_pbar_metric(epoch_result):
     result = {}
     for key, value in epoch_result.items():
         if isinstance(value, list):
             result[key] = [f'{v:.2e}' for v in value]
-        else:
+        elif isinstance(value, float):
             result[key] = f'{value:.2e}'
+        else:
+            result[key] = value
     return result

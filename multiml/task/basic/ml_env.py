@@ -124,3 +124,20 @@ class MLEnv:
         logger.debug(f'optimizer = {self._optimizer.__class__.__name__}')
         logger.debug(f'loss = {self._loss}')
         logger.debug(f'loss_weights = {self._loss_weights}')
+
+    def validate(self, phase):
+        """ Validate environment for given phase.
+        """
+        if phase in ('train', 'valid'):
+            if self.model is None:
+                raise AttributeError('model is not defined')
+
+            if self.optimizer is None:
+                raise AttributeError('optimizer is not defined')
+
+            if self.loss is None:
+                raise AttributeError('loss is not defined')
+
+        elif phase == 'test':
+            if self.model is None:
+                raise AttributeError('model is not defined')

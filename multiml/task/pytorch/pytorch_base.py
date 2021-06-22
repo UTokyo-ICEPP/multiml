@@ -236,14 +236,7 @@ class PytorchBaseTask(MLBaseTask):
         Returns:
             list: history data of train and valid.
         """
-        if self.ml.model is None:
-            raise AttributeError('model is not defined')
-
-        if self.ml.optimizer is None:
-            raise AttributeError('optimizer is not defined')
-
-        if self.ml.loss is None:
-            raise AttributeError('loss is not defined')
+        self.ml.validate('train')
 
         if dataloaders is None:
             dataloaders = dict(
@@ -270,9 +263,8 @@ class PytorchBaseTask(MLBaseTask):
                 result = self.step_epoch(epoch, 'valid', dataloaders['valid'])
                 history['valid'].append(result)
 
-                if self._early_stopping:
-                    if early_stopping(result['loss'], self.ml.model):
-                        break
+                if early_stopping(result['loss'], self.ml.model):
+                    break
 
             if self._scheduler is not None:
                 self._scheduler.step()
@@ -300,9 +292,7 @@ class PytorchBaseTask(MLBaseTask):
         Returns:
             ndarray or list: results of prediction.
         """
-        if self.ml.model is None:
-            raise AttributeError('model is not defined')
-
+        self.ml.validate('test')
         self.ml.model.eval()
 
         if dataloader is None:
@@ -331,7 +321,8 @@ class PytorchBaseTask(MLBaseTask):
             dict: dict of result.
         """
         disable_tqdm = self._disable_tqdm()
-        epoch_metric = metrics.EpochMetric(self.true_var_names, self.ml)
+        epoch_metric = metrics.EpochMetric(self._metrics, label, 
+                                           self.true_var_names, self.ml)
 
         pbar_args = dict(
             total=len(dataloader),
@@ -348,13 +339,7 @@ class PytorchBaseTask(MLBaseTask):
 
             for data in dataloader:
                 batch_result = self.step_batch(data, phase, label)
-                epoch_metric.total += batch_result['batch_size']
-
-                if label:
-                    for metric in self._metrics:
-                        metric_fn = getattr(epoch_metric, metric,
-                                            metrics.dummy)
-                        results[metric] = metric_fn(batch_result)
+                results.update(epoch_metric(batch_result))
 
                 if phase == 'test':
                     epoch_metric.pred(batch_result)
@@ -386,8 +371,6 @@ class PytorchBaseTask(MLBaseTask):
         labels = self.add_device(labels, self._device)
 
         result = {'batch_size': util.inputs_size(inputs)}
-        self.ml.optimizer.zero_grad()
-
         with torch.set_grad_enabled(phase == 'train'):
             with torch.cuda.amp.autocast(self._is_gpu and self._amp):
                 outputs = self.step_model(inputs)
@@ -396,6 +379,8 @@ class PytorchBaseTask(MLBaseTask):
 
                 if label:
                     loss_result = self.step_loss(outputs, labels)
+                else:
+                    loss_result = None
 
             if phase == 'train':
                 self.step_optimizer(loss_result['loss'])
@@ -403,11 +388,8 @@ class PytorchBaseTask(MLBaseTask):
             elif phase == 'test':
                 result['pred'] = outputs
 
-            if label:
-                batch_metric = metrics.BatchMetric()
-                for metric in self._metrics:
-                    metric_fn = getattr(batch_metric, metric, metrics.dummy)
-                    result[metric] = metric_fn(outputs, labels, loss_result)
+            batch_metric = metrics.BatchMetric(self._metrics, label)
+            result.update(batch_metric(outputs, labels, loss_result))
 
         return result
 
@@ -457,8 +439,9 @@ class PytorchBaseTask(MLBaseTask):
         """ Process optimizer. 
 
         Args:
-            loss (obf): loss value. Used only amp mode.
+            loss (obf): loss value.
         """
+        self.ml.optimizer.zero_grad()
         if self._is_gpu and self._amp:
             self._scaler.scale(loss).backward()
             self._scaler.step(self.ml.optimizer)
