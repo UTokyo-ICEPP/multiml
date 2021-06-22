@@ -5,6 +5,8 @@ from torch import Tensor
 
 
 class BatchMetric:
+    """ Utility class to manage batch metrics.
+    """
     @staticmethod
     def loss(outputs, labels, loss):
         return loss['loss'].item()
@@ -29,6 +31,8 @@ class BatchMetric:
 
 
 class EpochMetric:
+    """ Utility class to manage epoch metrics.
+    """
     def __init__(self, true_var_names, ml):
         self.ml = ml
         self.total = 0

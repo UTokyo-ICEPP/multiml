@@ -199,8 +199,17 @@ class PytorchBaseTask(MLBaseTask):
         super().dump_model(args_dump_ml)
 
     def prepare_dataloader(self, data=None, phase=None):
-        """ Prepare dataloader from inputs, if inputs are None, then from
-            storegate_dataset with given phase.
+        """ Prepare dataloader.
+
+        If inputs are given, tensor_dataset() is called. If inputs are None,
+        storegate_dataset with given phase is called.
+
+        Args:
+            data (ndarray): data passed to tensor_dataset().
+            phase (str): phase passed to storegate_dataset().
+
+        Returns:
+            DataLoader: Pytorch dataloader instance.
         """
         if data is None:
             if phase is None:
@@ -211,29 +220,10 @@ class PytorchBaseTask(MLBaseTask):
         else:
             dataset = self.get_tensor_dataset(data)
 
-        if isinstance(self._batch_size, int):
-            batch_size = self._batch_size
-
-        elif isinstance(self._batch_size, dict):
-            if 'equal_length' in self._batch_size['type']:
-                batch_length = len(dataset) / self._batch_size['length']
-                batch_length = batch_length if batch_length > 1.0 else 1
-                batch_size = int(np.floor(batch_length))
-
-                logger.info(
-                    f'phase={phase}, dataset={len(dataset)}, length={batch_length}, batch_size={batch_size}'
-                )
-
-            else:
-                batch_size = self._batch_size[phase]
-
-        else:
-            raise ValueError(f'batch_size is not known!! {self._batch_size}')
-
-        shuffle = True if (phase == 'train') or (phase == 'valid') else False
+        shuffle = True if phase in ('train', 'valid') else False
 
         return DataLoader(dataset,
-                          batch_size=batch_size,
+                          batch_size=self._get_batch_size(phase, len(dataset)),
                           num_workers=self._num_workers,
                           shuffle=shuffle)
 
@@ -546,3 +536,28 @@ class PytorchBaseTask(MLBaseTask):
         elif self._verbose == 1:
             disable_tqdm = False
         return disable_tqdm
+
+    def _get_batch_size(self, phase=None, num_dataset=None):
+        if isinstance(self._batch_size, int):
+            return self._batch_size
+
+        if not isinstance(self._batch_size, dict):
+            raise ValueError(f'batch_size is not known!! {self._batch_size}')
+
+        if phase in self._batch_size:
+            return self._batch_size[phase]
+
+        if 'equal_length' not in self._batch_size['type']:
+            raise ValueError(f'batch_size is not known!! {self._batch_size}')
+
+        batch_length = num_dataset / self._batch_size['length']
+        batch_length = batch_length if batch_length > 1.0 else 1
+        batch_size = int(np.floor(batch_length))
+
+        log = f'phase={phase}, '
+        log += f'dataset={num_dataset}, '
+        log += f'length={batch_length}, '
+        log += f'batch_size={batch_size}' 
+        logger.info(log)
+
+        return batch_size
