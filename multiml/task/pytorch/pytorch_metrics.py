@@ -108,5 +108,5 @@ def get_pbar_metric(epoch_result):
         if isinstance(value, list):
             result[key] = [f'{v:.2e}' for v in value]
         else:
-            result[key] = value
+            result[key] = f'{value:.2e}'
     return result

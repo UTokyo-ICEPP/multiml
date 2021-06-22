@@ -45,14 +45,7 @@ class PytorchBaseTask(MLBaseTask):
         >>> task.execute()
         >>> task.finalize()
     """
-    def __init__(
-            self,
-            device='cpu',
-            gpu_ids=None,
-            amp=False,  # expert option
-            benchmark=False,  # expert option
-            view_as_outputs=False,  # expert option
-            **kwargs):
+    def __init__(self, device='cpu', gpu_ids=None, amp=False, **kwargs):
         """ Initialize the pytorch base task.
 
         Args:
@@ -60,9 +53,6 @@ class PytorchBaseTask(MLBaseTask):
             gpu_ids (list): GPU identifiers, e.g. [0, 1, 2]. ``data_parallel``
                 mode is enabled if ``gpu_ids`` is given.
             amp (bool): *(expert option)* enable amp mode.
-            benchmark (bool): *(expert option)* enable cudnn.benchmark mode.
-            view_as_outputs (bool): *(expert option)* view_as outputs when being
-                passed to loss, e.g. loss(output.view_as(label), label).
         """
         super().__init__(**kwargs)
 
@@ -81,8 +71,6 @@ class PytorchBaseTask(MLBaseTask):
 
         self._gpu_ids = gpu_ids
         self._amp = amp
-        self._benchmark = benchmark
-        self._view_as_outputs = view_as_outputs
 
         self._pred_index = None
         self._early_stopping = False
@@ -94,9 +82,6 @@ class PytorchBaseTask(MLBaseTask):
 
         if self._max_patience is not None:
             self._early_stopping = True
-
-        if self._benchmark:
-            torch.backends.cudnn.benchmark = True
 
     def compile_model(self):
         """ Compile pytorch model.
@@ -455,15 +440,11 @@ class PytorchBaseTask(MLBaseTask):
                                                       self.ml.loss_weights,
                                                       outputs, labels):
                 if loss_w:
-                    if self._view_as_outputs:
-                        output = output.view_as(label)
                     loss_tmp = loss_fn(output, label) * loss_w
                     loss_result['loss'] += loss_tmp
                     loss_result['subloss'].append(loss_tmp)
 
         else:
-            if self._view_as_outputs:
-                outputs = outputs.view_as(labels)
             if self.ml.loss_weights is None:
                 loss_result['loss'] += self.ml.loss(outputs, labels)
             elif self.ml.loss_weights != 0.0:

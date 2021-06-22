@@ -128,8 +128,6 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
             device=self._connectiontask_args['device'],
             gpu_ids=None,
             amp=False,  # expert option
-            benchmark=False,  # expert option
-            view_as_outputs=False,  # expert option
             verbose=self._verbose,
             num_epochs=self._num_epochs,
             optimizer=self._connectiontask_args['optimizer'],
