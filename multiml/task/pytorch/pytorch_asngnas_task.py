@@ -285,9 +285,9 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     results['acc'] = np.mean(results['acc'])
         return loss, result
 
-    def _predict(self, dataloader, argmax):
+    def step_epoch(self, epoch, phase, dataloader, label):
         self.ml.model.set_most_likely()
-        outputs = super()._predict(dataloader, argmax)
+        outputs = super().step_epoch(epoch, phase, dataloader, label)
         return outputs
 
     def _step_optimizer(self, losses):

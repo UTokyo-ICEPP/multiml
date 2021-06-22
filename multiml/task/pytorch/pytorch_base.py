@@ -48,7 +48,6 @@ class PytorchBaseTask(MLBaseTask):
     def __init__(
             self,
             device='cpu',
-            num_workers=0,
             gpu_ids=None,
             amp=False,  # expert option
             benchmark=False,  # expert option
@@ -58,7 +57,6 @@ class PytorchBaseTask(MLBaseTask):
 
         Args:
             device (str or obj): pytorch device, e.g. 'cpu', 'cuda'.
-            num_workers (int): number of workers for dataloaders.
             gpu_ids (list): GPU identifiers, e.g. [0, 1, 2]. ``data_parallel``
                 mode is enabled if ``gpu_ids`` is given.
             amp (bool): *(expert option)* enable amp mode.
@@ -81,7 +79,6 @@ class PytorchBaseTask(MLBaseTask):
 
         logger.info(f'{self._name}: PyTorch device: {self._device}')
 
-        self._num_workers = num_workers
         self._gpu_ids = gpu_ids
         self._amp = amp
         self._benchmark = benchmark
@@ -245,8 +242,7 @@ class PytorchBaseTask(MLBaseTask):
             valid_data=None,
             dataloaders=None,
             valid_step=1,
-            sampler=None,
-            rank=None):
+            sampler=None):
         """ Train model over epoch.
 
         This methods train and valid model over epochs by calling
@@ -261,11 +257,19 @@ class PytorchBaseTask(MLBaseTask):
             dataloaders (dict): dict of dataloaders, dict(train=xxx, valid=yyy).
             valid_step (int): step to process validation.
             sampler (obf): sampler to execute ``set_epoch()``.
-            rank (int): rank for distributed data parallel.
 
         Returns:
             list: history data of train and valid.
         """
+        if self.ml.model is None:
+            raise AttributeError('model is not defined')
+
+        if self.ml.optimizer is None:
+            raise AttributeError('optimizer is not defined')
+
+        if self.ml.loss is None:
+            raise AttributeError('loss is not defined')
+
         if dataloaders is None:
             dataloaders = dict(
                 train=self.prepare_dataloader(train_data, 'train'),
@@ -282,15 +286,13 @@ class PytorchBaseTask(MLBaseTask):
 
             # train
             self.ml.model.train()
-            result = self.step_epoch(epoch, 'train', dataloaders['train'],
-                                     rank)
+            result = self.step_epoch(epoch, 'train', dataloaders['train'])
             history['train'].append(result)
 
             # valid
             if (const.VALID in self.phases) and (epoch % valid_step == 0):
                 self.ml.model.eval()
-                result = self.step_epoch(epoch, 'valid', dataloaders['valid'],
-                                         rank)
+                result = self.step_epoch(epoch, 'valid', dataloaders['valid'])
                 history['valid'].append(result)
 
                 if self._early_stopping:
@@ -306,7 +308,39 @@ class PytorchBaseTask(MLBaseTask):
 
         return history
 
-    def step_epoch(self, epoch, phase, dataloader, rank=None):
+    def predict(self, data=None, dataloader=None, phase=None, label=False):
+        """ Predict model.
+
+        This method predicts and returns results. Data need to be provided by
+        ```data``` option, or setting property of ``dataloaders`` directory.
+
+        Args:
+            data (ndarray): If ``data`` is given, data are converted to 
+                ``TendorDataset`` and set to ``dataloaders['test']``.
+            dataloader (obj): dataloader instance.
+            phase (str): 'all' or 'train' or 'valid' or 'test' to specify 
+                dataloaders.
+            label (bool): If True, returns metric results based on labels.
+
+        Returns:
+            ndarray or list: results of prediction.
+        """
+        if self.ml.model is None:
+            raise AttributeError('model is not defined')
+
+        self.ml.model.eval()
+
+        if dataloader is None:
+            dataloader = self.prepare_dataloader(data, phase)
+
+        results = self.step_epoch(0, 'test', dataloader, label)
+
+        if label:
+            return results
+        else:
+            return results['pred']
+
+    def step_epoch(self, epoch, phase, dataloader, label=True):
         """ Process model for given epoch and phase.
 
         ``ml.model``, ``ml.optimizer`` and ``ml.loss`` need to be set before
@@ -316,30 +350,12 @@ class PytorchBaseTask(MLBaseTask):
             epoch (int): epoch numer.
             phase (str): *train* mode or *valid* mode.
             dataloader (obj): dataloader instance.
-            rank (int): rank for distributed data parallel.
+            label (bool): If True, returns metric results based on labels.
 
         Returns:
             dict: dict of result.
         """
-        if self.ml.model is None:
-            raise AttributeError('model is not defined')
-
-        if self.ml.optimizer is None:
-            raise AttributeError('optimizer is not defined')
-
-        if self.ml.loss is None:
-            raise AttributeError('loss is not defined')
-
-        if rank is None:
-            rank = self._device
-
-        disable_tqdm = True
-        if self._verbose is None:
-            if logger.MIN_LEVEL <= logger.DEBUG:
-                disable_tqdm = False
-        elif self._verbose == 1:
-            disable_tqdm = False
-
+        disable_tqdm = self._disable_tqdm()
         epoch_metric = metrics.EpochMetric(self.true_var_names, self.ml)
 
         pbar_args = dict(
@@ -354,38 +370,45 @@ class PytorchBaseTask(MLBaseTask):
         results = {}
         with tqdm(**pbar_args) as pbar:
             pbar.set_description(pbar_desc)
-            for data in dataloader:
 
-                batch_result = self.step_batch(data, phase, rank)
+            for data in dataloader:
+                batch_result = self.step_batch(data, phase, label)
                 epoch_metric.total += batch_result['batch_size']
 
-                for metric in self._metrics:
-                    metric_fn = getattr(epoch_metric, metric,
-                                        epoch_metric.dummy)
-                    results[metric] = metric_fn(batch_result)
+                if label:
+                    for metric in self._metrics:
+                        metric_fn = getattr(epoch_metric, metric,
+                                            metrics.dummy)
+                        results[metric] = metric_fn(batch_result)
+
+                if phase == 'test':
+                    epoch_metric.pred(batch_result)
 
                 pbar.set_postfix(metrics.get_pbar_metric(results))
                 pbar.update(1)
 
         if self._verbose == 2:
-            logger.info(f'{pbar_desc} {results}')
+            logger.info(f'{pbar_desc} {metrics.get_pbar_metric(results)}')
+
+        if phase == 'test':
+            results['pred'] = epoch_metric.all_preds()
 
         return results
 
-    def step_batch(self, data, phase, rank):
+    def step_batch(self, data, phase, label=True):
         """ Process batch data and update weights.
 
         Args:
             data (obj): inputs and labels data.
             phase (str): *train* mode or *valid* mode or *test* mode.
-            rank (int): rank for distributed data parallel.
+            label (bool): If True, returns metric results based on labels.
 
         Returns:
             dict: dict of result.
         """
-        inputs, labels = data
-        inputs = self.add_device(inputs, rank)
-        labels = self.add_device(labels, rank)
+        inputs, labels = data  #FIXME: data without labels
+        inputs = self.add_device(inputs, self._device)
+        labels = self.add_device(labels, self._device)
 
         result = {'batch_size': util.inputs_size(inputs)}
         self.ml.optimizer.zero_grad()
@@ -396,7 +419,8 @@ class PytorchBaseTask(MLBaseTask):
                 if self._pred_index is not None:
                     outputs = self._select_pred_data(outputs)
 
-                loss_result = self.step_loss(outputs, labels)
+                if label:
+                    loss_result = self.step_loss(outputs, labels)
 
             if phase == 'train':
                 self.step_optimizer(loss_result['loss'])
@@ -404,18 +428,36 @@ class PytorchBaseTask(MLBaseTask):
             elif phase == 'test':
                 result['pred'] = outputs
 
-            batch_metric = metrics.BatchMetric()
-            for metric in self._metrics:
-                metric_fn = getattr(batch_metric, metric, batch_metric.dummy)
-                result[metric] = metric_fn(outputs, labels, loss_result)
+            if label:
+                batch_metric = metrics.BatchMetric()
+                for metric in self._metrics:
+                    metric_fn = getattr(batch_metric, metric, metrics.dummy)
+                    result[metric] = metric_fn(outputs, labels, loss_result)
 
         return result
 
     def step_model(self, inputs):
+        """ Process model.
+
+        Args:
+            inputs (Tensor or list): inputs data passed to model.
+
+        Returns:
+            Tensor or list: outputs of model.
+        """
 
         return self.ml.model(inputs)
 
     def step_loss(self, outputs, labels):
+        """ Process loss function. 
+
+        Args:
+            outputs (Tensor or list): predicted data by model.
+            labels (Tensor or list): true data.
+
+        Returns:
+            dict: result of loss and subloss.
+        """
         loss_result = {'loss': 0, 'subloss': []}
 
         if self.ml.multi_loss:
@@ -441,6 +483,11 @@ class PytorchBaseTask(MLBaseTask):
         return loss_result
 
     def step_optimizer(self, loss):
+        """ Process optimizer. 
+
+        Args:
+            loss (obf): loss value. Used only amp mode.
+        """
         if self._is_gpu and self._amp:
             self._scaler.scale(loss).backward()
             self._scaler.step(self.ml.optimizer)
@@ -449,106 +496,12 @@ class PytorchBaseTask(MLBaseTask):
             loss.backward()
             self.ml.optimizer.step()
 
-    def predict(self,
-                data=None,
-                dataloader=None,
-                phase=None,
-                argmax=None,
-                loss=False):
-        """ Predict model.
-
-        This method predicts and returns results. Data need to be provided by
-        ```data``` option, or setting property of ``dataloaders`` directory.
-
-        Args:
-            data (ndarray): If ``data`` is given, data are converted to 
-                ``TendorDataset`` and set to ``dataloaders['test']``.
-            dataloader (obj): dataloader instance.
-            phase (str): 'all' or 'train' or 'valid' or 'test' to specify 
-                dataloaders.
-            argmax (int): apply ``np.argmax`` to resuls.
-            loss (bool): retuns loss results.
-
-        Returns:
-            ndarray or list: results of prediction.
-        """
-        if self.ml.model is None:
-            raise AttributeError('model is not defined')
-
-        self.ml.model.eval()
-
-        if dataloader is None:
-            dataloader = self.prepare_dataloader(data, phase)
-
-        results, losses = self._predict(dataloader, argmax)
-
-        if loss:
-            return results, losses
-        else:
-            return results
-
-    def predict_and_loss(self,
-                         data=None,
-                         dataloader=None,
-                         phase=None,
-                         argmax=None):
-        """ Predict model with losses.
-        """
-        return self.predict(data, dataloader, phase, argmax, True)
-
-    def _predict(self, dataloader, argmax):
-        pred_results = []
-        results = {}
-        epoch_metric = metrics.EpochMetric(self.true_var_names, self.ml)
-
-        with torch.no_grad():
-
-            for data in dataloader:
-
-                batch_result = self.step_batch(data, 'test', self._device)
-                epoch_metric.total += batch_result['batch_size']
-
-                for metric in self._metrics:
-                    metric_fn = getattr(epoch_metric, metric,
-                                        epoch_metric.dummy)
-                    results[metric] = metric_fn(batch_result)
-
-                # metric part
-                outputs = batch_result['pred']
-                if isinstance(outputs, Tensor):
-                    pred_results.append(outputs.cpu().numpy())
-                else:
-                    if pred_results:
-                        for index, output_obj in enumerate(outputs):
-                            output_obj = output_obj.cpu().numpy()
-                            pred_results[index].append(output_obj)
-                    else:
-                        for output_obj in outputs:
-                            output_obj = output_obj.cpu().numpy()
-                            pred_results.append([output_obj])
-
-        if isinstance(pred_results[0], list):
-            pred_results = [
-                np.concatenate(result, 0) for result in pred_results
-            ]
-        else:
-            pred_results = np.concatenate(pred_results, 0)
-            if argmax:
-                pred_results = np.argmax(pred_results, axis=argmax)
-
-        return pred_results, results
-
     def get_tensor_dataset(self, data):
         """ Returns dataset from given ndarray data. 
         """
         inputs, targets = data
 
-        inputs = self.add_device(inputs, 'cpu')
-        targets = self.add_device(targets, 'cpu')
-
-        dataset = NumpyDataset(inputs, targets)
-
-        return dataset
+        return NumpyDataset(inputs, targets)
 
     def get_storegate_dataset(self, phase):
         """ Returns storegate dataset. 
@@ -584,3 +537,12 @@ class PytorchBaseTask(MLBaseTask):
             return y_pred[self._pred_index[0]]
         else:
             return [y_pred[index] for index in self._pred_index]
+
+    def _disable_tqdm(self):
+        disable_tqdm = True
+        if self._verbose is None:
+            if logger.MIN_LEVEL <= logger.DEBUG:
+                disable_tqdm = False
+        elif self._verbose == 1:
+            disable_tqdm = False
+        return disable_tqdm

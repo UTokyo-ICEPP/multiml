@@ -192,9 +192,9 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         results_json = {'agent': 'ASNG-NAS', 'tasks': {}}
 
         # best_combination_task.env._unpack_inputs = True
-        pred, loss = best_combination_task.env.predict_and_loss()
+        pred_result = best_combination_task.env.predict(label=True)
         best_combination_task.env._storegate.update_data(
-            data=pred,
+            data=pred_result['pred'],
             var_names=best_combination_task.env._output_var_names,
             phase='auto')
         self._metric._storegate = best_combination_task.env._storegate
@@ -205,8 +205,8 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
                            metric=test_metric)
         self._saver.add(f"results.ASNG-NAS-Final", test_result)
 
-        results_json['loss_test'] = loss['loss']
-        results_json['subloss_test'] = loss['subloss']
+        results_json['loss_test'] = pred_result['loss']
+        results_json['subloss_test'] = pred_result['subloss']
         results_json['metric_test'] = test_metric
 
         for task_idx, task_id in enumerate(task_ids):

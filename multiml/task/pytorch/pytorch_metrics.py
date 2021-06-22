@@ -1,11 +1,10 @@
+import numpy as np
+
 import torch
+from torch import Tensor
 
 
 class BatchMetric:
-    @staticmethod
-    def dummy(outputs, labels, loss):
-        return None
-
     @staticmethod
     def loss(outputs, labels, loss):
         return loss['loss'].item()
@@ -33,6 +32,7 @@ class EpochMetric:
     def __init__(self, true_var_names, ml):
         self.ml = ml
         self.total = 0
+        self.preds = []
         self.epoch_loss = 0.0
         self.epoch_corrects = 0.0
 
@@ -40,9 +40,6 @@ class EpochMetric:
             num_subtasks = len(true_var_names)
             self.epoch_subloss = [0.0] * num_subtasks
             self.epoch_corrects = [0] * num_subtasks
-
-    def dummy(self, batch_result):
-        return None
 
     def loss(self, batch_result):
         self.epoch_loss += batch_result['loss'] * batch_result['batch_size']
@@ -73,6 +70,32 @@ class EpochMetric:
 
     def lr(self, batch_result):
         return [p['lr'] for p in self.ml.optimizer.param_groups]
+
+    def pred(self, batch_result):
+        outputs = batch_result['pred']
+        if isinstance(outputs, Tensor):
+            self.preds.append(outputs.cpu().numpy())
+        else:
+            if self.preds:
+                for index, output_obj in enumerate(outputs):
+                    output_obj = output_obj.cpu().numpy()
+                    self.preds[index].append(output_obj)
+            else:
+                for output_obj in outputs:
+                    output_obj = output_obj.cpu().numpy()
+                    self.preds.append([output_obj])
+
+    def all_preds(self):
+        if isinstance(self.preds[0], list):
+            results = [np.concatenate(result, 0) for result in self.preds]
+        else:
+            results = np.concatenate(self.preds, 0)
+
+        return results
+
+
+def dummy(*args, **kwargs):
+    return None
 
 
 def get_pbar_metric(epoch_result):
