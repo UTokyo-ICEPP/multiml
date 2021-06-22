@@ -72,9 +72,11 @@ class PytorchBaseTask(MLBaseTask):
         self._gpu_ids = gpu_ids
         self._amp = amp
 
+        self._pbar_args = const.PBAR_ARGS
         self._pred_index = None
         self._early_stopping = False
         self._scheduler = None
+        self._sampler = None
         self._scaler = None
 
         if self._metrics is None:
@@ -216,8 +218,7 @@ class PytorchBaseTask(MLBaseTask):
             train_data=None,
             valid_data=None,
             dataloaders=None,
-            valid_step=1,
-            sampler=None):
+            valid_step=1):
         """ Train model over epoch.
 
         This methods train and valid model over epochs by calling
@@ -231,7 +232,6 @@ class PytorchBaseTask(MLBaseTask):
                 to ``TendorDataset`` and set to ``dataloaders['valid']``.
             dataloaders (dict): dict of dataloaders, dict(train=xxx, valid=yyy).
             valid_step (int): step to process validation.
-            sampler (obf): sampler to execute ``set_epoch()``.
 
         Returns:
             list: history data of train and valid.
@@ -249,8 +249,8 @@ class PytorchBaseTask(MLBaseTask):
         history = {'train': [], 'valid': []}
 
         for epoch in range(1, self._num_epochs + 1):
-            if sampler is not None:
-                sampler.set_epoch(epoch)
+            if self._sampler is not None:
+                self._sampler.set_epoch(epoch)
 
             # train
             self.ml.model.train()
@@ -320,17 +320,10 @@ class PytorchBaseTask(MLBaseTask):
         Returns:
             dict: dict of result.
         """
-        disable_tqdm = self._disable_tqdm()
         epoch_metric = metrics.EpochMetric(self._metrics, label,
                                            self.true_var_names, self.ml)
-
-        pbar_args = dict(
-            total=len(dataloader),
-            unit=' batch',
-            ncols=150,
-            bar_format=
-            "{desc}: {percentage:3.0f}%| {n_fmt: >4}/{total_fmt: >4} [{rate_fmt: >16}{postfix}]",
-            disable=disable_tqdm)
+        pbar_args = dict(total=len(dataloader), disable=self._disable_tqdm())
+        pbar_args.update(self._pbar_args)
         pbar_desc = f'Epoch [{epoch: >4}/{self._num_epochs}] {phase.ljust(5)}'
 
         results = {}
@@ -344,11 +337,12 @@ class PytorchBaseTask(MLBaseTask):
                 if phase == 'test':
                     epoch_metric.pred(batch_result)
 
-                pbar.set_postfix(metrics.get_pbar_metric(results))
+                pbar_metrics = metrics.get_pbar_metric(results)
+                pbar.set_postfix(pbar_metrics)
                 pbar.update(1)
 
         if self._verbose == 2:
-            logger.info(f'{pbar_desc} {metrics.get_pbar_metric(results)}')
+            logger.info(f'{pbar_desc} {pbar_metrics}')
 
         if phase == 'test':
             results['pred'] = epoch_metric.all_preds()
@@ -374,8 +368,6 @@ class PytorchBaseTask(MLBaseTask):
         with torch.set_grad_enabled(phase == 'train'):
             with torch.cuda.amp.autocast(self._is_gpu and self._amp):
                 outputs = self.step_model(inputs)
-                if self._pred_index is not None:
-                    outputs = self._select_pred_data(outputs)
 
                 if label:
                     loss_result = self.step_loss(outputs, labels)
@@ -402,8 +394,12 @@ class PytorchBaseTask(MLBaseTask):
         Returns:
             Tensor or list: outputs of model.
         """
+        outputs = self.ml.model(inputs)
 
-        return self.ml.model(inputs)
+        if self._pred_index is not None:
+            outputs = self._select_pred_data(outputs)
+
+        return outputs
 
     def step_loss(self, outputs, labels):
         """ Process loss function. 
@@ -453,18 +449,15 @@ class PytorchBaseTask(MLBaseTask):
     def get_tensor_dataset(self, data):
         """ Returns dataset from given ndarray data. 
         """
-        inputs, targets = data
-
-        return NumpyDataset(inputs, targets)
+        return NumpyDataset(*data)
 
     def get_storegate_dataset(self, phase):
         """ Returns storegate dataset. 
         """
-        dataset = StoreGateDataset(self.storegate,
-                                   phase,
-                                   input_var_names=self.input_var_names,
-                                   true_var_names=self.true_var_names)
-        return dataset
+        return StoreGateDataset(self.storegate,
+                                phase,
+                                input_var_names=self.input_var_names,
+                                true_var_names=self.true_var_names)
 
     def add_device(self, data, device):
         """ Add data to device.
@@ -514,13 +507,12 @@ class PytorchBaseTask(MLBaseTask):
         if 'equal_length' not in self._batch_size['type']:
             raise ValueError(f'batch_size is not known!! {self._batch_size}')
 
-        batch_length = num_dataset / self._batch_size['length']
-        batch_length = batch_length if batch_length > 1.0 else 1
-        batch_size = int(np.floor(batch_length))
+        batch_size = num_dataset // self._batch_size['length']
+        batch_size = batch_size if batch_size > 1.0 else 1
 
         log = f'phase={phase}, '
         log += f'dataset={num_dataset}, '
-        log += f'length={batch_length}, '
+        log += f'length={self._batch_size["length"]}, '
         log += f'batch_size={batch_size}'
         logger.info(log)
 

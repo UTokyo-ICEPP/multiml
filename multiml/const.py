@@ -20,3 +20,6 @@ VALID = 'valid'
 TEST = 'test'
 PHASES = (TRAIN, VALID, TEST)
 INVALID = -9999.
+
+PBAR_FORMAT = '{desc}: {percentage:3.0f}%| {n_fmt: >4}/{total_fmt: >4} [{rate_fmt: >16}{postfix}]'
+PBAR_ARGS = dict(unit=' batch', ncols=150, bar_format=PBAR_FORMAT)
