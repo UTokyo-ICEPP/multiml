@@ -557,7 +557,7 @@ class PytorchBaseTask(MLBaseTask):
         log = f'phase={phase}, '
         log += f'dataset={num_dataset}, '
         log += f'length={batch_length}, '
-        log += f'batch_size={batch_size}' 
+        log += f'batch_size={batch_size}'
         logger.info(log)
 
         return batch_size
