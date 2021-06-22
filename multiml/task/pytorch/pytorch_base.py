@@ -321,7 +321,7 @@ class PytorchBaseTask(MLBaseTask):
             dict: dict of result.
         """
         disable_tqdm = self._disable_tqdm()
-        epoch_metric = metrics.EpochMetric(self._metrics, label, 
+        epoch_metric = metrics.EpochMetric(self._metrics, label,
                                            self.true_var_names, self.ml)
 
         pbar_args = dict(

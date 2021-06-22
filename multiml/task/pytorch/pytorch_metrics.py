@@ -3,8 +3,10 @@ import numpy as np
 import torch
 from torch import Tensor
 
+
 def dummy(*args, **kwargs):
     return None
+
 
 class BatchMetric:
     """ Utility class to manage batch metrics.
@@ -15,9 +17,9 @@ class BatchMetric:
 
     def __call__(self, outputs, labels, loss):
         result = {}
- 
+
         if not self.enable:
-            return result       
+            return result
 
         for metric in self.metrics:
             metric_fn = getattr(self, metric, dummy)
@@ -64,11 +66,11 @@ class EpochMetric:
             num_subtasks = len(true_var_names)
             self.epoch_subloss = [0.0] * num_subtasks
             self.epoch_corrects = [0] * num_subtasks
-   
+
     def __call__(self, batch_result):
         result = {}
         if not self.enable:
-            return result 
+            return result
 
         self.total += batch_result['batch_size']
 
@@ -129,6 +131,7 @@ class EpochMetric:
             results = np.concatenate(self.preds, 0)
 
         return results
+
 
 def get_pbar_metric(epoch_result):
     result = {}
