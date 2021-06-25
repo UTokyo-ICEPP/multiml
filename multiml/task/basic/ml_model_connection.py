@@ -106,19 +106,22 @@ class ModelConnectionTask(MLBaseTask):
 
         # Define loss weights for each task
         if (self._loss_weights is None) or (self._loss_weights == 'last_loss'):
-            task_weights = [0.] * (n_subtasks -1) + [1.0]
+            task_weights = [0.] * (n_subtasks - 1) + [1.0]
 
-        elif self._loss_weights == 'flat_loss': 
+        elif self._loss_weights == 'flat_loss':
             task_weights = [1.0] * n_subtasks
 
         elif isinstance(self._loss_weights, list):
             task_weights = self._loss_weights
 
         elif isinstance(self._loss_weights, dict):
-            task_weights = [self._loss_weights[s.task_id] for s in self._subtasks]
+            task_weights = [
+                self._loss_weights[s.task_id] for s in self._subtasks
+            ]
 
         else:
-            raise ValueError(f'Unknown loss_weights: {self._loss_weights} is given')
+            raise ValueError(
+                f'Unknown loss_weights: {self._loss_weights} is given')
 
         # Collect loss and weights for the loss from each subtask
         for subtask, task_weight in zip(self._subtasks, task_weights):
