@@ -112,7 +112,6 @@ def test_agent_keras_connection_grid_scan():
             'batch_size': 1200,
             'save_weights': True,
             'phases': None,
-            'use_multi_loss': True,
             'loss_weights': [0.5, 0.5],
             'optimizer': 'adam',
             'optimizer_args': dict(learning_rate=1e-3),
