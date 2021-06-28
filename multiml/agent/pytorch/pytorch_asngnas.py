@@ -123,7 +123,6 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
             lam=self.lam,
             delta_init_factor=self.delta_init_factor,
             subtasks=asng_block_list,
-            auto_ordering=False,
             saver=self._saver,
             device=self._connectiontask_args['device'],
             gpu_ids=None,
