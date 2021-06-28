@@ -131,7 +131,7 @@ class ModelConnectionTask(MLBaseTask):
                     lws = 1.0
 
                 if isinstance(subtask.ml.loss, list):
-                    lws = subtask.ml.loss_weights
+                    self.ml.loss += subtask.ml.loss
                     self.ml.loss_weights += [lw * task_weight for lw in lws]
                 else:
                     self.ml.loss.append(subtask.ml.loss)
@@ -148,6 +148,7 @@ class ModelConnectionTask(MLBaseTask):
 
         if len(self.ml.loss) != len(self.ml.loss_weights):
             error_log = f'loss length is inconsistent: '
+            error_log += f'tasl_weights {task_weights}, '
             error_log += f'loss {self.ml.loss}, '
             error_log += f'loss_weights {self.ml.loss_weights}'
             raise ValueError(error_log)
