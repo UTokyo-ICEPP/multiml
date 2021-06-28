@@ -182,6 +182,9 @@ class MLBaseTask(BaseTask):
 
                 setattr(self, '_' + key, value)
 
+        if self._data_id is not None:
+            self.storegate.set_data_id(self._data_id)
+
         if self.saver is not None:
             self.saver[self.output_saver_key] = params
 
