@@ -12,7 +12,11 @@ from .utils import get_slice
 class ZarrDatabase(Database):
     """ Base class of Zarr database
     """
-    def __init__(self, output_dir=None, chunk=1000, mode='a'):
+    def __init__(self,
+                 output_dir=None,
+                 chunk=1000,
+                 compressor='default',
+                 mode='a'):
 
         if output_dir is None:
             output_dir = tempfile.mkdtemp()
@@ -22,6 +26,9 @@ class ZarrDatabase(Database):
         self._chunk = chunk
         self._mode = mode
         self._db = zarr.open(self._output_dir, mode=mode)
+
+        if compressor != 'default':
+            zarr.storage.default_compressor = compressor
 
     def __repr__(self):
         result = f'ZarrDatabase(output_dir={self._output_dir}, '\
