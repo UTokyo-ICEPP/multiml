@@ -27,7 +27,7 @@ class ZarrDatabase(Database):
         self._mode = mode
         self._db = zarr.open(self._output_dir, mode=mode)
 
-        if compressor is not 'default':
+        if compressor != 'default':
             zarr.storage.default_compressor = compressor
 
     def __repr__(self):
