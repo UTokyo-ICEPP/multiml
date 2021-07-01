@@ -114,7 +114,6 @@ class ModelConnectionTask(MLBaseTask):
         self.ml.loss_weights = []
 
         n_subtasks = len(self._subtasks)
-
         # Define loss weights for each task
         if self._loss_weights is None or self._use_multi_loss is False:
             task_weights = [1.0 for _ in range(n_subtasks)]
@@ -156,7 +155,6 @@ class ModelConnectionTask(MLBaseTask):
                 else:
                     self.ml.loss.append(subtask.ml.loss)
                     self.ml.loss_weights.append(loss_weights * task_weight)
-
             else:
                 # Dummy loss which is not used in backpropagation
                 if isinstance(subtask.ml.loss, list):

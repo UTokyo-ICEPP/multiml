@@ -18,6 +18,8 @@ class MLBaseTask(BaseTask):
                  model_args=None,
                  optimizer=None,
                  optimizer_args=None,
+                 scheduler=None,
+                 scheduler_args=None,
                  loss=None,
                  loss_args=None,
                  max_patience=None,
@@ -107,6 +109,8 @@ class MLBaseTask(BaseTask):
         self._model_args = model_args
         self._optimizer = optimizer
         self._optimizer_args = optimizer_args
+        self._scheduler = scheduler
+        self._scheduler_args = scheduler_args
         self._loss = loss
         self._loss_args = loss_args
         self._loss_weights = loss_weights
@@ -168,6 +172,9 @@ class MLBaseTask(BaseTask):
 
             elif key.startswith('optimizer__'):
                 self._optimizer_args[key.replace('optimizer__', '')] = value
+
+            elif key.startswith('optimizer__'):
+                self._scheduler_args[key.replace('scheduler__', '')] = value
 
             elif key.startswith('loss__'):
                 self._loss_args[key.replace('loss__', '')] = value

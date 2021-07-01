@@ -43,6 +43,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
                 subtask_hps = subtasktuple.hps.copy()
                 hps_hash = subtask_id + " : " + json.dumps(subtask_hps,
                                                            sort_keys=True)
+                logger.info(f'subtask is {subtask_id}')
 
                 if self._reuse_pretraining and (hps_hash in cache_model):
                     # Set hyperparameter

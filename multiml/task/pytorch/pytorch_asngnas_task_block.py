@@ -27,13 +27,15 @@ class PytorchASNGNASBlockTask(PytorchBaseTask):
 
         self._loss = self._proxy_model._loss
         self._optimizer = self._proxy_model._optimizer
+        self._optimizer_args = self._proxy_model._optimizer_args
         self._num_epochs = self._proxy_model._num_epochs
         self._batch_size = self._proxy_model._batch_size
-        self.subtask_ids = [s.subtask_id for s in self._subtasks]
+        self.subtask_ids = []
+        for subtask in self._subtasks:
+            self.subtask_ids.append(subtask.subtask_id)
 
     def build_model(self):
         from .modules import ASNGTaskBlockModel
-
         self._model = ASNGTaskBlockModel(
             name=self._name, models=[v._model for v in self._subtasks])
 

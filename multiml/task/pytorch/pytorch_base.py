@@ -151,6 +151,12 @@ class PytorchBaseTask(MLBaseTask):
         self.ml.optimizer = util.compile(self._optimizer, optimizer_args,
                                          optim)
 
+        if self._scheduler is not None:
+            scheduler_args = copy.copy(self._scheduler_args)
+            scheduler_args['optimizer'] = self.ml.optimizer
+            self.ml.scheduler = util.compile(self._scheduler, scheduler_args,
+                                             optim)
+
     def compile_loss(self):
         """ Compile pytorch loss.
 
@@ -386,6 +392,7 @@ class PytorchBaseTask(MLBaseTask):
                 disable_tqdm = False
         elif self._verbose == 1:
             disable_tqdm = False
+        disable_tqdm = False
 
         sig = inspect.signature(self.ml.model.forward)
         if 'training' in sig.parameters:
@@ -422,7 +429,7 @@ class PytorchBaseTask(MLBaseTask):
                 batch_result = self.step_train(inputs, labels, phase)
                 inputs_size = util.inputs_size(inputs)
                 total += inputs_size
-                epoch_loss = batch_result['loss'] * inputs_size
+                epoch_loss += batch_result['loss'] * inputs_size
                 running_loss = epoch_loss / total
                 results['loss'] = f'{running_loss:.2e}'
 
@@ -706,6 +713,7 @@ class PytorchBaseTask(MLBaseTask):
             for loss_fn, loss_w, output, label in zip(self.ml.loss,
                                                       self.ml.loss_weights,
                                                       outputs, labels):
+
                 if loss_w:
                     if self._view_as_outputs:
                         output = output.view_as(label)

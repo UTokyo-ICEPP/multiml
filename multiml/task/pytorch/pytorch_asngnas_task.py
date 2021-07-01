@@ -9,7 +9,11 @@ from tqdm import tqdm
 
 
 class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
-    def __init__(self, lam, delta_init_factor, **kwargs):
+    def __init__(
+            self,
+            # lam, delta_init_factor, alpha, range_restriction = True,  clipping_value = None,
+            asng_args,
+            **kwargs):
         """
 
         Args:
@@ -17,36 +21,26 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
             **kwargs: Arbitrary keyword arguments.
         """
         super().__init__(**kwargs)
-        # self._subtasks = subtasks
-
-        # TODO : get task information instead of submodels[0]
-        self._proxy_model = self._subtasks[0]
-        # self._task_id = self._subtasks[0].task_id
         self._task_id = 'ASNG-NAS'
-        self._input_var_names = self._proxy_model._input_var_names
-        self._output_var_names = self._proxy_model._output_var_names
-        self._true_var_names = self._proxy_model._true_var_names
-
-        self._loss = self._proxy_model.ml._loss
-        self._loss_weights = self._proxy_model.ml._loss_weights
-        self._optimizer = self._proxy_model._optimizer
-        self._num_epochs = self._proxy_model._num_epochs
-        # self._batch_size = self._proxy_model._batch_size
         self.task_ids = [subtask.task_id for subtask in self._subtasks]
         self.subtask_ids = [subtask.subtask_ids for subtask in self._subtasks]
 
-        self.lam = lam
-        self.delta_init_factor = delta_init_factor
-        print(self._batch_size)
+        self.lam = asng_args['lam']
+        self.delta_init_factor = asng_args['delta_init_factor']
+        self.alpha = asng_args['alpha']
+        self.range_restriction = asng_args['range_restriction']
+        self.clipping_value = asng_args['clipping_value']
 
     def build_model(self):
         from multiml.task.pytorch.modules import ASNGModel
         models = [subtask.ml.model for subtask in self._subtasks]
 
         self._model = ASNGModel(
-            self.lam,
-            self.delta_init_factor,
-            models,
+            lam=self.lam,
+            delta_init_factor=self.delta_init_factor,
+            alpha=self.alpha,
+            range_restriction=self.range_restriction,
+            models=models,
             input_var_index=self._input_var_index,
             output_var_index=self._output_var_index,
         )
@@ -59,6 +53,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
 
         best_task_ids = []
         best_subtask_ids = []
+
         for idx, best_idx in enumerate(c_cat.argmax(axis=1)):
             best_task_ids.append(self.task_ids[idx])
             best_subtask_ids.append(self.subtask_ids[idx][best_idx])
@@ -105,7 +100,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                                                dataloaders)
         test_dataloader = self.prepare_test_dataloader()
 
-        early_stopping = util.EarlyStopping(patience=self._max_patience)
+        early_stopping = util.ASNG_EarlyStopping(patience=self._max_patience)
         self._scaler = torch.cuda.amp.GradScaler(enabled=self._is_gpu)
 
         if self.ml.model is None:
@@ -116,6 +111,12 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
 
         if self.ml.loss is None:
             raise AttributeError('loss is not defined')
+
+        logger.info(f'self.ml.loss is           {self.ml.loss}')
+        logger.info(f'self.ml.loss_weights is   {self.ml.loss_weights}')
+        logger.info(f'self.ml.multi_loss   is   {self.ml.multi_loss}')
+        logger.info(f'self.ml.optimizer    is   {self.ml.optimizer}')
+        logger.info(f'self._metrics is  {self._metrics}')
 
         history = {'train': [], 'valid': [], 'test': []}
         losses = np.zeros(self.asng().get_lambda())
@@ -132,26 +133,29 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
             disable_tqdm = False
         disable_tqdm = False
 
-        results_train = training_results(self._metrics, self.ml.multi_loss,
-                                         len(self.true_var_names))
-        results_valid = training_results(self._metrics, self.ml.multi_loss,
-                                         len(self.true_var_names))
-        results_test = training_results(self._metrics, self.ml.multi_loss,
-                                        len(self.true_var_names))
-
         logger.info(
             f'dataset(train/valid/test) len is {len(dataloaders["train"])}/{len(dataloaders["valid"])}/{len(test_dataloader)}'
         )
 
         dummy = 0.0
 
+        self._n_burn_in = 5
+
         for epoch in range(1, self._num_epochs + 1):
+            results_train = training_results(self._metrics, self.ml.multi_loss,
+                                             len(self.true_var_names))
+            results_valid = training_results(self._metrics, self.ml.multi_loss,
+                                             len(self.true_var_names))
+            results_test = training_results(self._metrics, self.ml.multi_loss,
+                                            len(self.true_var_names))
+
             if sampler is not None:
                 sampler.set_epoch(epoch)
 
+            #pbar_args = dict(total=min(len(dataloaders['train']), len(dataloaders['valid'])) + len(test_dataloader) + 1,
             pbar_args = dict(
                 total=min(len(dataloaders['train']), len(
-                    dataloaders['valid'])) + len(test_dataloader),
+                    dataloaders['valid'])) + 1,
                 unit=' batch',
                 ncols=250,
                 bar_format=
@@ -166,78 +170,104 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                 for train_data, valid_data in zip(dataloaders['train'],
                                                   dataloaders['valid']):
                     ### train
+                    self.ml.model.set_fix(False)
                     self.ml.model.train()
-                    loss_train, batch_result = self._step_train(
+                    loss_train, train_result = self._step_train(
                         True, train_data[input_index], train_data[true_index],
                         rank)
                     self._step_optimizer(loss_train)
+                    del loss_train
                     results_train.update_results(
-                        batch_result,
+                        train_result,
                         util.inputs_size(train_data[input_index]))
 
                     ### validation -> theta update
                     self.ml.model.eval()
-                    loss_valid, batch_result = self._step_train(
-                        False, valid_data[input_index], valid_data[true_index],
-                        rank)
-                    self.ml.model.update_theta(
-                        np.array(loss_valid),
-                        range_restriction=True)  # FIXME :
-                    results_valid.update_results(
-                        batch_result,
-                        util.inputs_size(valid_data[input_index]))
+                    with torch.no_grad():
+                        loss_valid, valid_result = self._step_train(
+                            False, valid_data[input_index],
+                            valid_data[true_index], rank)
+                        self.ml.model.update_theta(np.array(loss_valid))
+                        del loss_valid
+                        results_valid.update_results(
+                            valid_result,
+                            util.inputs_size(valid_data[input_index]))
 
-                    loss_train = results_train.get_running_loss()
-                    loss_valid = results_valid.get_running_loss()
+                    loss_train_ = results_train.get_running_loss()
+                    loss_valid_ = results_valid.get_running_loss()
 
                     theta_cats, theta_ints = self.ml.model.get_thetas()
                     theta_cat0 = '/'.join(f'{v:.2f}' for v in theta_cats[0])
                     theta_cat1 = '/'.join(f'{v:.2f}' for v in theta_cats[1])
+                    subloss_train = '/'.join(
+                        f'{v:.2e}' for v in results_train.get_subloss())
+                    subloss_valid = '/'.join(
+                        f'{v:.2e}' for v in results_valid.get_subloss())
+                    # subloss_train = f'{train_result["loss"]:.2e}'
 
                     pbar.set_postfix(
-                        loss=f'{loss_train:.2e}/{loss_valid:.2e}/{dummy:.2e}',
+                        loss=
+                        f'{loss_train_:.2e}/{loss_valid_:.2e} {subloss_train}',
                         c0=theta_cat0,
                         c1=theta_cat1)
                     #pbar.set_postfix( train = f'{loss_train:.2e}', valid = f'{loss_valid:.2e}', test = f'{dummy:.2e}')
                     pbar.update(1)
 
                 # test
-                for test_data in test_dataloader:
+                # for test_data in test_dataloader:
 
-                    ### validation -> theta update
-                    self.ml.model.eval()
-                    loss_test, batch_result = self._step_train(
-                        False, test_data[input_index], test_data[true_index],
-                        rank)
-                    results_test.update_results(
-                        batch_result, util.inputs_size(test_data[input_index]))
+                #     ### validation -> theta update
+                #     self.ml.model.eval()
+                #     loss_test, batch_result = self._step_train(False, test_data[input_index], test_data[true_index], rank)
+                #     results_test.update_results(batch_result, util.inputs_size(test_data[input_index]))
 
-                    loss_test = results_test.get_running_loss()
+                #     loss_test = results_test.get_running_loss()
+
+                #     pbar.set_postfix(loss=f'{loss_train:.2e}/{loss_valid:.2e}/{loss_test:.2e}', c0=theta_cat0, c1=theta_cat1)
+                #     # pbar.set_postfix( train = f'{loss_train:.2e}', valid = f'{loss_valid:.2e}', test = f'{loss_test:.2e}')
+                #     pbar.update(1)
+
+                history['train'].append(results_train.get_results())
+                history['valid'].append(results_valid.get_results())
+                history['test'].append(results_valid.get_results())
+
+                if self._early_stopping:
+                    is_early_stopping = early_stopping(
+                        results_valid.get_running_loss(), self.ml.model)
+                    es_counter = early_stopping.counter
+
+                    is_asng_stopping = self.ml.model.asng.check_converge()
+                    asng_counter = self.ml.model.asng.converge_counter()
 
                     pbar.set_postfix(
                         loss=
-                        f'{loss_train:.2e}/{loss_valid:.2e}/{loss_test:.2e}',
+                        f'{loss_train_:.2e}/{loss_valid_:.2e} {subloss_train}',
                         c0=theta_cat0,
-                        c1=theta_cat1)
-                    # pbar.set_postfix( train = f'{loss_train:.2e}', valid = f'{loss_valid:.2e}', test = f'{loss_test:.2e}')
+                        c1=theta_cat1,
+                        pcnt=f'{es_counter:2d}/{asng_counter:2d}')
                     pbar.update(1)
 
-            history['train'].append(results_train.get_results())
-            history['valid'].append(results_valid.get_results())
-            history['test'].append(results_test.get_results())
+                    if is_early_stopping and is_asng_stopping:
 
-            if self._early_stopping:
-                if early_stopping(results_test.get_running_loss(),
-                                  self.ml.model):
-                    logger.info(f'early stopping... at epoch = {epoch}')
-                    break
+                        break
+                else:
+                    pbar.set_postfix(
+                        loss=
+                        f'{loss_train_:.2e}/{loss_valid_:.2e} {subloss_train}',
+                        c0=theta_cat0,
+                        c1=theta_cat1)
+                    pbar.update(1)
 
             if self._scheduler is not None:
-                self._scheduler.step()
+                self.ml.scheduler.step()
 
         if self._early_stopping:
+            logger.info(f'early stopping... at epoch = {epoch}')
             best_model = early_stopping.best_model.state_dict()
+            theta_cat, theta_int = early_stopping.get_thetas()
             self.ml.model.load_state_dict(copy.deepcopy(best_model))
+            self.ml.model.set_thetas(theta_cat, theta_int)
+            self.ml.model.set_most_likely()
 
         return history
 
@@ -245,7 +275,6 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         if rank is None:
             rank = self._device
 
-        self.ml.model.train()
         inputs = self.add_device(inputs_data, rank)
         labels = self.add_device(labels_data, rank)
 
@@ -296,16 +325,25 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         return outputs
 
     def _step_optimizer(self, losses):
-        loss = 0
+        loss = 0.
         for l in losses:
-            loss += l / len(losses)
+            loss += l / self.lam
 
         if self._is_gpu and self._amp:
             self._scaler.scale(loss).backward()
+            del loss
+            if self.clipping_value is not None:
+                self._scaler.unscale_(self.ml.optimizer)
+                torch.nn.utils.clip_grad_norm_(self.ml.model.parameters(),
+                                               self.clipping_value)
             self._scaler.step(self.ml.optimizer)
             self._scaler.update()
         else:
             loss.backward()
+            del loss
+            if self.clipping_value is not None:
+                torch.nn.utils.clip_grad_norm_(self.ml.model.parameters(),
+                                               self.clipping_value)
             self.ml.optimizer.step()
 
     def finalize(self):
@@ -316,15 +354,6 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         # result['subtask_ids'].append(subtask_id)
         # result['subtask_hps'].append(hps)
         # result['metric_value'] = metric
-
-    # def get_input_true_data(self, phase):
-    #     return self._proxy_model.get_input_true_data(phase)
-
-    # def get_storegate_dataset(self, phase):
-    #     return self._proxy_model.get_storegate_dataset(phase)
-
-    # def get_inputs(self):
-    #     return self._proxy_model.get_inputs()
 
     def get_submodel_names(self):
         return [v.subtask_id for v in self._subtasks]
@@ -346,29 +375,36 @@ class training_results:
         if self.is_multi_loss:
             self.epoch_subloss = [0.0] * len_true_var_names
             self.epoch_corrects = [0] * len_true_var_names
+            self.running_subloss = [0.0] * len_true_var_names
 
     def get_results(self):
         results = self.results
         return results
 
     def get_running_loss(self):
-        rl = self.running_loss.item()
+        rl = self.running_loss
+        return rl
+
+    def get_subloss(self):
+        rl = self.running_subloss
         return rl
 
     def update_results(self, batch_result, input_size):
         self.results = {}
 
         self.total += input_size
-        self.epoch_loss = batch_result['loss'] * input_size
+        self.epoch_loss += batch_result['loss'].item() * input_size
         self.running_loss = self.epoch_loss / self.total
         self.results['loss'] = f'{self.running_loss:.2e}'
 
         if 'subloss' in self._metrics:
             self.results['subloss'] = []
             for index, subloss in enumerate(batch_result['subloss']):
-                epoch_subloss[index] += subloss * inputs_size
-                running_subloss = self.epoch_subloss[index] / self.total
-                self.results['subloss'].append(f'{running_subloss:.2e}')
+                self.epoch_subloss[index] += subloss * input_size
+                self.running_subloss[
+                    index] = self.epoch_subloss[index] / self.total
+                self.results['subloss'].append(
+                    f'{self.running_subloss[index]:.2e}')
 
         if 'acc' in self._metrics:
             if self.is_multi_loss:

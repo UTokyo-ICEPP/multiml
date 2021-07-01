@@ -5,10 +5,15 @@ from .lstm import LSTMBlock
 from .mlp import MLPBlock
 from .asng_model import ASNGModel
 from .asng import AdaptiveSNG
+from .asng import AdaptiveSNG_cat
+from .asng import AdaptiveSNG_int
+
 from .asng_task_block_model import ASNGTaskBlockModel
 
 __all__ = [
-    'AdaptiveSNG'
+    'AdaptiveSNG',
+    'AdaptiveSNG_cat',
+    'AdaptiveSNG_int',
     'ASNGModel',
     'ChoiceBlockModel',
     'ConnectionModel',

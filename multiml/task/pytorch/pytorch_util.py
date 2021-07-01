@@ -40,9 +40,11 @@ class EarlyStopping:
         self.early_stop = False
         self.val_loss_min = float('inf')
         self.best_model = None
+        self.theta_cat = None
+        self.theta_int = None
+        logger.info(f'EarlyStopping with {self.patience}')
 
     def __call__(self, val_loss, model):
-
         score = -val_loss
 
         if self.best_score is None:
@@ -79,3 +81,27 @@ class EarlyStopping:
             save(model.state_dict(), save_path)
         self.val_loss_min = val_loss
         return deepcopy(model)
+
+
+class ASNG_EarlyStopping(EarlyStopping):
+    def save_checkpoint(self, val_loss, model):
+        """Saves model when validation loss decrease."""
+        from copy import deepcopy
+
+        from torch import save
+        logger.debug(
+            f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  '
+            + 'updating model ...')
+        if self.save:
+            from os.path import isdir, join
+            if isdir(self.path):
+                save_path = join(self.path, 'checkpoint.pt')
+            else:
+                save_path = self.path
+            save(model.state_dict(), save_path)
+        self.val_loss_min = val_loss
+        self.theta_cat, self.theta_int = model.get_thetas()
+        return deepcopy(model)
+
+    def get_thetas(self):
+        return self.theta_cat, self.theta_int
