@@ -175,7 +175,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     loss_train, batch_result = self._step_train(
                         True, train_data, rank)
                     self._step_optimizer(loss_train)
-                    
+
                     results_train.update_results(batch_result)
 
                     ### validation -> theta update
@@ -183,8 +183,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     with torch.no_grad():
                         loss_valid, batch_result = self._step_train(
                             False, valid_data, rank)
-                        self.ml.model.update_theta(
-                            np.array(loss_valid) )
+                        self.ml.model.update_theta(np.array(loss_valid))
                         results_valid.update_results(batch_result)
 
                     loss_train_ = results_train.get_running_loss()
@@ -391,7 +390,8 @@ class training_results:
         if 'subloss' in self._metrics:
             self.results['subloss'] = []
             for index, subloss in enumerate(batch_result['subloss']):
-                self.epoch_subloss[index] += subloss * batch_result['batch_size']
+                self.epoch_subloss[
+                    index] += subloss * batch_result['batch_size']
                 self.running_subloss[
                     index] = self.epoch_subloss[index] / self.total
                 self.results['subloss'].append(

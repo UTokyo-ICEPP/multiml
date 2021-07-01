@@ -60,6 +60,8 @@ class MLBaseTask(BaseTask):
             model_args (dict): args of model, e.g. dict(param0=0, param1=1).
             optimizer (str or obj): name of optimizer, or class object of optimizer
             optimizer_args (dict): args of optimizer.
+            scheduler (str or obj): name of scheduler, or class object of scheduler
+            scheduler_args (dict): args of scheduler.
             loss (str or obj): name of loss, or class object of loss
             loss_args (dict): args of loss.
             max_patience (int): max number of patience for early stopping.
@@ -91,6 +93,9 @@ class MLBaseTask(BaseTask):
 
         if optimizer_args is None:
             optimizer_args = {}
+
+        if scheduler_args is None:
+            scheduler_args = {}
 
         if loss_args is None:
             loss_args = {}

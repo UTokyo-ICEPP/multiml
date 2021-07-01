@@ -20,7 +20,13 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
                 'length': 500,
                 'test': 100
             },
-            asng_args = { 'lam': 2, 'delta': 0.0, 'alpha': 1.5, 'clipping_value': None, 'range_restriction':True},
+            asng_args={
+                'lam': 2,
+                'delta': 0.0,
+                'alpha': 1.5,
+                'clipping_value': None,
+                'range_restriction': True
+            },
             #lam=2, delta_init_factor=1, alpha = 1.5, clipping_value = None,
             optimizer=None,
             optimizer_args=None,
@@ -47,7 +53,7 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         self._optimizer_args = optimizer_args
         self._scheduler = scheduler
         self._scheduler_args = scheduler_args
-        
+
         # this variable will be set in _build_block funciton
         self._loss_weights = {}
 
@@ -56,9 +62,9 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         """ Execute
         Currently, only categorical ASNG NAS is implemented.
         """
-        
+
         asng_block_list, task_ids = self._build_disconnected_task_block_list()
-        
+
         asng_task = PytorchASNGNASTask(
             asng_args=self.asng_args,
             subtasks=asng_block_list,
@@ -127,7 +133,6 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         theta_cat, theta_int = asng_task.get_thetas()
         cat_idx = c_cat.argmax(axis=1)
 
-        
         pred_result = best_combination_task.env.predict(label=True)
         best_combination_task.env._storegate.update_data(
             data=pred_result['pred'],
@@ -228,7 +233,6 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
             task_ids.append(task_id)
 
         return asng_block_list, task_ids
-
 
     def _build_block_task(self, subtasks, task_id, is_pretraining):
 
