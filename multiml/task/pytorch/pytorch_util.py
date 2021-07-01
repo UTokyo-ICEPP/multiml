@@ -31,7 +31,7 @@ def inputs_size(inputs):
 
 
 class EarlyStopping:
-    def __init__(self, patience=7, save=False, path=None):
+    def __init__(self, patience=None, save=False, path=None):
         self.patience = patience
         self.save = save
         self.path = path
@@ -45,6 +45,8 @@ class EarlyStopping:
         logger.info(f'EarlyStopping with {self.patience}')
 
     def __call__(self, val_loss, model):
+        if self.patience is None:
+            return False
         score = -val_loss
 
         if self.best_score is None:

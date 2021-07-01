@@ -11,7 +11,11 @@ from multiml.database.numpy_database import NumpyDatabase
 class HybridDatabase(Database):
     """ Base class of Hybrid database
     """
-    def __init__(self, output_dir=None, chunk=1000, mode='a'):
+    def __init__(self,
+                 output_dir=None,
+                 chunk=1000,
+                 compressor='default',
+                 mode='a'):
 
         if output_dir is None:
             output_dir = tempfile.mkdtemp()
@@ -25,6 +29,7 @@ class HybridDatabase(Database):
         self._db['numpy'] = NumpyDatabase()
         self._db['zarr'] = ZarrDatabase(output_dir=output_dir,
                                         chunk=chunk,
+                                        compressor=compressor,
                                         mode=mode)
 
     def __repr__(self):

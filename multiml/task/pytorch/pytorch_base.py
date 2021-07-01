@@ -1,7 +1,6 @@
 """ PytorchBaseTask module.
 """
 import copy
-import inspect
 
 import numpy as np
 from tqdm import tqdm
@@ -15,6 +14,7 @@ from multiml.task.basic import MLBaseTask
 from multiml.task.pytorch import modules
 from multiml.task.pytorch.datasets import StoreGateDataset, NumpyDataset
 from multiml.task.pytorch import pytorch_util as util
+from multiml.task.pytorch import pytorch_metrics as metrics
 
 
 class PytorchBaseTask(MLBaseTask):
@@ -45,29 +45,14 @@ class PytorchBaseTask(MLBaseTask):
         >>> task.execute()
         >>> task.finalize()
     """
-    def __init__(
-            self,
-            device='cpu',
-            num_workers=0,
-            gpu_ids=None,
-            amp=False,  # expert option
-            benchmark=False,  # expert option
-            unpack_inputs=False,  # expert option
-            view_as_outputs=False,  # expert option
-            **kwargs):
+    def __init__(self, device='cpu', gpu_ids=None, amp=False, **kwargs):
         """ Initialize the pytorch base task.
 
         Args:
             device (str or obj): pytorch device, e.g. 'cpu', 'cuda'.
-            num_workers (int): number of workers for dataloaders.
             gpu_ids (list): GPU identifiers, e.g. [0, 1, 2]. ``data_parallel``
                 mode is enabled if ``gpu_ids`` is given.
             amp (bool): *(expert option)* enable amp mode.
-            benchmark (bool): *(expert option)* enable cudnn.benchmark mode.
-            unpack_inputs (bool): *(expert option)* uppack inputs when being
-                passed to model, e.g. model(*inputs).
-            view_as_outputs (bool): *(expert option)* view_as outputs when being
-                passed to loss, e.g. loss(output.view_as(label), label).
         """
         super().__init__(**kwargs)
 
@@ -84,17 +69,14 @@ class PytorchBaseTask(MLBaseTask):
 
         logger.info(f'{self._name}: PyTorch device: {self._device}')
 
-        self._num_workers = num_workers
         self._gpu_ids = gpu_ids
         self._amp = amp
-        self._benchmark = benchmark
-        self._unpack_inputs = unpack_inputs
-        self._view_as_outputs = view_as_outputs
 
+        self._pbar_args = const.PBAR_ARGS
         self._pred_index = None
-        self._pass_training = False
         self._early_stopping = False
         self._scheduler = None
+        self._sampler = None
         self._scaler = None
 
         if self._metrics is None:
@@ -102,9 +84,6 @@ class PytorchBaseTask(MLBaseTask):
 
         if self._max_patience is not None:
             self._early_stopping = True
-
-        if self._benchmark:
-            torch.backends.cudnn.benchmark = True
 
     def compile_model(self):
         """ Compile pytorch model.
@@ -212,93 +191,44 @@ class PytorchBaseTask(MLBaseTask):
 
         super().dump_model(args_dump_ml)
 
-    def prepare_dataloaders(self,
-                            train_data=None,
-                            valid_data=None,
-                            dataloaders=None):
-        """ prepare dataloaders from input, if all inputs are None, then from storegate_dataset
+    def prepare_dataloader(self, data=None, phase=None):
+        """ Prepare dataloader.
+
+        If inputs are given, tensor_dataset() is called. If inputs are None,
+        storegate_dataset with given phase is called.
+
+        Args:
+            data (ndarray): data passed to tensor_dataset().
+            phase (str): phase passed to storegate_dataset().
+
+        Returns:
+            DataLoader: Pytorch dataloader instance.
         """
-        if dataloaders is None:
-            dataloaders = dict(train=None, valid=None)
-
-        if train_data is not None:
-            train_dataset = self.get_tensor_dataset(train_data)
-
-        if valid_data is not None:
-            valid_dataset = self.get_tensor_dataset(valid_data)
-
-        if dataloaders['train'] is None:
-            train_dataset = self.get_storegate_dataset('train')
-
-        if dataloaders['valid'] is None:
-            valid_dataset = self.get_storegate_dataset('valid')
-
-        if type(self._batch_size) == int:
-            batch_size_train = self._batch_size
-            batch_size_valid = self._batch_size
-        elif type(self._batch_size) == dict:  # assuming equal length
-            if 'equal_length' in self._batch_size['type']:
-                batch_length = self._batch_size['length']
-
-                length_train = len(train_dataset) / batch_length if len(
-                    train_dataset) / batch_length > 1.0 else 1
-                length_valid = len(valid_dataset) / batch_length if len(
-                    valid_dataset) / batch_length > 1.0 else 1
-                batch_size_train = int(np.floor(length_train))
-                batch_size_valid = int(np.floor(length_valid))
-                logger.info(
-                    f'train_dataset = {len(train_dataset)}, length_train is {length_train}, batch_size_train is {batch_size_train}'
-                )
-                logger.info(
-                    f'valid_dataset = {len(valid_dataset)}, length_valid is {length_valid}, batch_size_valid is {batch_size_valid}'
-                )
+        if data is None:
+            if phase is None:
+                data = self.get_input_true_data(phase)
+                dataset = self.get_tensor_dataset(data)
+            else:
+                dataset = self.get_storegate_dataset(phase)
         else:
-            raise ValueError(f' batch_size is not known!! {self._batch_size}')
-
-        dataloaders['train'] = DataLoader(train_dataset,
-                                          batch_size=batch_size_train,
-                                          num_workers=self._num_workers,
-                                          shuffle=True)
-        dataloaders['valid'] = DataLoader(valid_dataset,
-                                          batch_size=batch_size_valid,
-                                          num_workers=self._num_workers,
-                                          shuffle=True)
-
-        return dataloaders
-
-    def prepare_test_dataloader(self, data=None, dataloader=None, phase=None):
-
-        if data is not None:
-            dataset = self.get_tensor_dataset(data)
-        if dataloader is None:
-            data = self.get_input_true_data(phase)
             dataset = self.get_tensor_dataset(data)
 
-        if type(self._batch_size) == int:
-            batch_size_test = self._batch_size
-        elif type(self._batch_size) == dict:  # assuming equal length
-            if 'equal_length' in self._batch_size['type']:
-                batch_size_test = self._batch_size['test']
-        else:
-            raise ValueError(f' batch_size is not known!! {self._batch_size}')
+        shuffle = True if phase in ('train', 'valid') else False
 
-        dataloader = DataLoader(dataset,
-                                batch_size=batch_size_test,
-                                num_workers=self._num_workers,
-                                shuffle=False)
-        return dataloader
+        return DataLoader(dataset,
+                          batch_size=self._get_batch_size(phase, len(dataset)),
+                          num_workers=self._num_workers,
+                          shuffle=shuffle)
 
     def fit(self,
             train_data=None,
             valid_data=None,
             dataloaders=None,
-            valid_step=1,
-            sampler=None,
-            **kwargs):
+            valid_step=1):
         """ Train model over epoch.
 
         This methods train and valid model over epochs by calling
-        ``train_model()`` method. train and valid need to be provided by
+        ``step_epoch()`` method. train and valid need to be provided by
         ``train_data`` and ``valid_data`` options, or ``dataloaders`` option.
 
         Args:
@@ -308,39 +238,39 @@ class PytorchBaseTask(MLBaseTask):
                 to ``TendorDataset`` and set to ``dataloaders['valid']``.
             dataloaders (dict): dict of dataloaders, dict(train=xxx, valid=yyy).
             valid_step (int): step to process validation.
-            sampler (obf): sampler to execute ``set_epoch()``.
-            kwargs (dict): arbitrary args passed to ``train_model()``.
 
         Returns:
             list: history data of train and valid.
         """
-        dataloaders = self.prepare_dataloaders(train_data, valid_data,
-                                               dataloaders)
+        self.ml.validate('train')
+
+        if dataloaders is None:
+            dataloaders = dict(
+                train=self.prepare_dataloader(train_data, 'train'),
+                valid=self.prepare_dataloader(valid_data, 'valid'))
+
         early_stopping = util.EarlyStopping(patience=self._max_patience)
         self._scaler = torch.cuda.amp.GradScaler(enabled=self._is_gpu)
 
         history = {'train': [], 'valid': []}
 
         for epoch in range(1, self._num_epochs + 1):
-            if sampler is not None:
-                sampler.set_epoch(epoch)
+            if self._sampler is not None:
+                self._sampler.set_epoch(epoch)
 
             # train
             self.ml.model.train()
-            result = self.train_model(epoch, 'train', dataloaders['train'],
-                                      **kwargs)
+            result = self.step_epoch(epoch, 'train', dataloaders['train'])
             history['train'].append(result)
 
             # valid
             if (const.VALID in self.phases) and (epoch % valid_step == 0):
                 self.ml.model.eval()
-                result = self.train_model(epoch, 'valid', dataloaders['valid'],
-                                          **kwargs)
+                result = self.step_epoch(epoch, 'valid', dataloaders['valid'])
                 history['valid'].append(result)
 
-                if self._early_stopping:
-                    if early_stopping(result['running_loss'], self.ml.model):
-                        break
+                if early_stopping(result['loss'], self.ml.model):
+                    break
 
             if self._scheduler is not None:
                 self._scheduler.step()
@@ -351,13 +281,47 @@ class PytorchBaseTask(MLBaseTask):
 
         return history
 
-    def train_model(self,
-                    epoch,
-                    phase,
-                    dataloader,
-                    rank=None,
-                    input_index=0,
-                    true_index=1):
+    def predict(self, data=None, dataloader=None, phase=None, label=False):
+        """ Predict model.
+
+        This method predicts and returns results. Data need to be provided by
+        ```data``` option, or setting property of ``dataloaders`` directory.
+
+        Args:
+            data (ndarray): If ``data`` is given, data are converted to 
+                ``TendorDataset`` and set to ``dataloaders['test']``.
+            dataloader (obj): dataloader instance.
+            phase (str): 'all' or 'train' or 'valid' or 'test' to specify 
+                dataloaders.
+            label (bool): If True, returns metric results based on labels.
+
+        Returns:
+            ndarray or list: results of prediction.
+        """
+        self.ml.validate('test')
+        self.ml.model.eval()
+
+        if dataloader is None:
+            dataloader = self.prepare_dataloader(data, phase)
+
+<<<<<<< HEAD
+        disable_tqdm = True
+        if self._verbose is None:
+            if logger.MIN_LEVEL <= logger.DEBUG:
+                disable_tqdm = False
+        elif self._verbose == 1:
+            disable_tqdm = False
+        disable_tqdm = False
+=======
+        results = self.step_epoch(0, 'test', dataloader, label)
+>>>>>>> ac05224ec17bdba7a652e762c546751c886aea6e
+
+        if label:
+            return results
+        else:
+            return results['pred']
+
+    def step_epoch(self, epoch, phase, dataloader, label=True):
         """ Process model for given epoch and phase.
 
         ``ml.model``, ``ml.optimizer`` and ``ml.loss`` need to be set before
@@ -367,63 +331,26 @@ class PytorchBaseTask(MLBaseTask):
             epoch (int): epoch numer.
             phase (str): *train* mode or *valid* mode.
             dataloader (obj): dataloader instance.
-            rank (int): rank for distributed data parallel.
-            input_index (int): index of input variables for dataloader outputs.
-            true_index (int): index of true variable for dataloader outputs.
+            label (bool): If True, returns metric results based on labels.
 
         Returns:
             dict: dict of result.
         """
-        if self.ml.model is None:
-            raise AttributeError('model is not defined')
-
-        if self.ml.optimizer is None:
-            raise AttributeError('optimizer is not defined')
-
-        if self.ml.loss is None:
-            raise AttributeError('loss is not defined')
-
-        if rank is None:
-            rank = self._device
-
-        disable_tqdm = True
-        if self._verbose is None:
-            if logger.MIN_LEVEL <= logger.DEBUG:
-                disable_tqdm = False
-        elif self._verbose == 1:
-            disable_tqdm = False
-        disable_tqdm = False
-
-        sig = inspect.signature(self.ml.model.forward)
-        if 'training' in sig.parameters:
-            self._pass_training = True
-        else:
-            self._pass_training = False
-
-        epoch_loss, epoch_corrects, total = 0.0, 0, 0
-
-        if self.ml.multi_loss:
-            epoch_subloss = [0.0] * len(self.true_var_names)
-            epoch_corrects = [0] * len(self.true_var_names)
-
-        results = {}
-        if 'lr' in self._metrics:
-            lr = [f'{p["lr"]:.2e}' for p in self.ml.optimizer.param_groups]
-            results['lr'] = f'{lr}'
-
-        pbar_args = dict(
-            total=len(dataloader),
-            unit=' batch',
-            ncols=150,
-            bar_format=
-            "{desc}: {percentage:3.0f}%| {n_fmt: >4}/{total_fmt: >4} [{rate_fmt: >16}{postfix}]",
-            disable=disable_tqdm)
+        epoch_metric = metrics.EpochMetric(self._metrics, label,
+                                           self.true_var_names, self.ml)
+        pbar_args = dict(total=len(dataloader), disable=self._disable_tqdm())
+        pbar_args.update(self._pbar_args)
         pbar_desc = f'Epoch [{epoch: >4}/{self._num_epochs}] {phase.ljust(5)}'
 
+        results = {}
         with tqdm(**pbar_args) as pbar:
             pbar.set_description(pbar_desc)
-            for data in dataloader:
 
+            for data in dataloader:
+                batch_result = self.step_batch(data, phase, label)
+                results.update(epoch_metric(batch_result))
+
+<<<<<<< HEAD
                 inputs = self.add_device(data[input_index], rank)
                 labels = self.add_device(data[true_index], rank)
                 batch_result = self.step_train(inputs, labels, phase)
@@ -453,223 +380,132 @@ class PytorchBaseTask(MLBaseTask):
                         results['acc'] = f'{accuracy:.2e}'
 
                 pbar.set_postfix(results)
+=======
+                if phase == 'test':
+                    epoch_metric.pred(batch_result)
+
+                pbar_metrics = metrics.get_pbar_metric(results)
+                pbar.set_postfix(pbar_metrics)
+>>>>>>> ac05224ec17bdba7a652e762c546751c886aea6e
                 pbar.update(1)
 
         if self._verbose == 2:
-            logger.info(f'{pbar_desc} {results}')
+            logger.info(f'{pbar_desc} {pbar_metrics}')
 
-        results['running_loss'] = running_loss
+        if phase == 'test':
+            results['pred'] = epoch_metric.all_preds()
+
         return results
 
-    def step_train(self, inputs, labels, phase):
+    def step_batch(self, data, phase, label=True):
         """ Process batch data and update weights.
 
         Args:
-            inputs (obj): input tensor data.
-            labels (obj): true tensor data.
-            phase (str): *train* mode or *valid* mode.
+            data (obj): inputs and labels data.
+            phase (str): *train* mode or *valid* mode or *test* mode.
+            label (bool): If True, returns metric results based on labels.
 
         Returns:
             dict: dict of result.
         """
-        result = {}
-        self.ml.optimizer.zero_grad()
+        inputs, labels = data  #FIXME: data without labels
+        inputs = self.add_device(inputs, self._device)
+        labels = self.add_device(labels, self._device)
 
+        result = {'batch_size': util.inputs_size(inputs)}
         with torch.set_grad_enabled(phase == 'train'):
             with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                outputs = self._step_model(inputs, True)
-                if self._pred_index is not None:
-                    outputs = self._select_pred_data(outputs)
+                outputs = self.step_model(inputs)
 
-                loss, subloss = self._step_loss(outputs, labels)
+                if label:
+                    loss_result = self.step_loss(outputs, labels)
+                else:
+                    loss_result = None
 
             if phase == 'train':
-                self._step_optimizer(loss)
+                self.step_optimizer(loss_result['loss'])
 
-            result['loss'] = loss.item()
+            elif phase == 'test':
+                result['pred'] = outputs
 
-            if 'subloss' in self._metrics:
-                result['subloss'] = [l.item() for l in subloss]
-
-            if 'acc' in self._metrics:
-                if self.ml.multi_loss:
-                    result['acc'] = []
-
-                    for output, label in zip(outputs, labels):
-                        _, preds = torch.max(output, 1)
-                        corrects = torch.sum(preds == label.data)
-                        result['acc'].append(corrects.item())
-                else:
-                    _, preds = torch.max(outputs, 1)
-                    corrects = torch.sum(preds == labels.data)
-                    result['acc'] = corrects.item()
+            batch_metric = metrics.BatchMetric(self._metrics, label)
+            result.update(batch_metric(outputs, labels, loss_result))
 
         return result
 
-    def predict(self,
-                data=None,
-                dataloader=None,
-                phase=None,
-                input_index=0,
-                argmax=None):
-        """ Predict model.
-
-        This method predicts and returns results. Data need to be provided by
-        ```data``` option, or setting property of ``dataloaders`` directory.
+    def step_model(self, inputs):
+        """ Process model.
 
         Args:
-            data (ndarray): If ``data`` is given, data are converted to 
-                ``TendorDataset`` and set to ``dataloaders['test']``.
-            dataloader (obj): dataloader instance.
-            phase (str): 'all' or 'train' or 'valid' or 'test' to specify 
-                dataloaders.
-            input_index (int): index of input variables for dataloader outputs.
-            argmax (int): apply ``np.argmax`` to resuls.
+            inputs (Tensor or list): inputs data passed to model.
 
         Returns:
-            ndarray or list: results of prediction.
+            Tensor or list: outputs of model.
         """
-        if self.ml.model is None:
-            raise AttributeError('model is not defined')
+        outputs = self.ml.model(inputs)
 
-        self.ml.model.eval()
+        if self._pred_index is not None:
+            outputs = self._select_pred_data(outputs)
 
-        sig = inspect.signature(self.ml.model.forward)
-        if 'training' in sig.parameters:
-            self._pass_training = True
-        else:
-            self._pass_training = False
+        return outputs
 
-        dataloader = self.prepare_test_dataloader(data, dataloader, phase)
-
-        true_index = 1 if input_index == 0 else 0  # FIXME : hard code
-        results, loss = self._predict(dataloader, input_index, true_index,
-                                      argmax)
-        return results
-
-    def predict_and_loss(self,
-                         data=None,
-                         dataloader=None,
-                         phase=None,
-                         input_index=0,
-                         argmax=None):
-        """ Predict model.
-
-        This method predicts and returns results. Data need to be provided by
-        ```data``` option, or setting property of ``dataloaders`` directory.
+    def step_loss(self, outputs, labels):
+        """ Process loss function. 
 
         Args:
-            data (ndarray): If ``data`` is given, data are converted to 
-                ``TendorDataset`` and set to ``dataloaders['test']``.
-            dataloader (obj): dataloader instance.
-            phase (str): 'all' or 'train' or 'valid' or 'test' to specify 
-                dataloaders.
-            input_index (int): index of input variables for dataloader outputs.
-            argmax (int): apply ``np.argmax`` to resuls.
+            outputs (Tensor or list): predicted data by model.
+            labels (Tensor or list): true data.
 
         Returns:
-            ndarray or list: results of prediction.
+            dict: result of loss and subloss.
         """
-        if self.ml.model is None:
-            raise AttributeError('model is not defined')
+        loss_result = {'loss': 0, 'subloss': []}
 
-        self.ml.model.eval()
+        if self.ml.multi_loss:
+            for loss_fn, loss_w, output, label in zip(self.ml.loss,
+                                                      self.ml.loss_weights,
+                                                      outputs, labels):
+                if loss_w:
+                    loss_tmp = loss_fn(output, label) * loss_w
+                    loss_result['loss'] += loss_tmp
+                    loss_result['subloss'].append(loss_tmp)
 
-        sig = inspect.signature(self.ml.model.forward)
-        if 'training' in sig.parameters:
-            self._pass_training = True
         else:
-            self._pass_training = False
+            if self.ml.loss_weights is None:
+                loss_result['loss'] += self.ml.loss(outputs, labels)
+            elif self.ml.loss_weights != 0.0:
+                loss_result['loss'] += self.ml.loss(
+                    outputs, labels) * self.ml.loss_weights
 
-        dataloader = self.prepare_test_dataloader(data, dataloader, phase)
-        true_index = 1 if input_index == 0 else 0  # FIXME : hard code
+        return loss_result
 
-        results, loss = self._predict(dataloader, input_index, true_index,
-                                      argmax)
-        return results, loss
+    def step_optimizer(self, loss):
+        """ Process optimizer. 
 
-    def _predict(self, dataloader, input_index, true_index, argmax):
-        pred_results = []
-        loss_results = {'loss': 0., 'total': 0, 'subloss': None}
-        with torch.no_grad():
-
-            for data in dataloader:
-                inputs = self.add_device(data[input_index], self._device)
-                labels = self.add_device(data[true_index], self._device)
-
-                with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                    outputs = self._step_model(inputs, False)
-
-                    # metric part
-                    if isinstance(outputs, Tensor):
-                        pred_results.append(outputs.cpu().numpy())
-                    else:
-                        if pred_results:
-                            for index, output_obj in enumerate(outputs):
-                                output_obj = output_obj.cpu().numpy()
-                                pred_results[index].append(output_obj)
-                        else:
-                            for output_obj in outputs:
-                                output_obj = output_obj.cpu().numpy()
-                                pred_results.append([output_obj])
-
-                    # loss part
-                    loss, subloss = self._step_loss(outputs, labels)
-                    inputs_size = util.inputs_size(inputs)
-                    loss_results['loss'] += loss.item() * inputs_size
-                    loss_results['total'] += inputs_size
-
-                    if 'subloss' in self._metrics:
-                        if loss_results['subloss'] is None:
-                            loss_results['subloss'] = []
-
-                            for idx, sloss in enumerate(subloss):
-                                loss_results['subloss'].append(sloss.item() *
-                                                               inputs_size)
-                        else:
-                            for idx, sloss in enumerate(subloss):
-                                loss_results['subloss'][idx] += sloss.item(
-                                ) * inputs_size
-
-        if isinstance(pred_results[0], list):
-            pred_results = [
-                np.concatenate(result, 0) for result in pred_results
-            ]
+        Args:
+            loss (obf): loss value.
+        """
+        self.ml.optimizer.zero_grad()
+        if self._is_gpu and self._amp:
+            self._scaler.scale(loss).backward()
+            self._scaler.step(self.ml.optimizer)
+            self._scaler.update()
         else:
-            pred_results = np.concatenate(pred_results, 0)
-            if argmax:
-                pred_results = np.argmax(pred_results, axis=argmax)
-
-        loss_results['loss'] = loss_results['loss'] / float(
-            loss_results['total'])
-        if loss_results['subloss'] is not None:
-            loss_results['subloss'] = [
-                s / float(loss_results['total'])
-                for s in loss_results['subloss']
-            ]
-
-        return pred_results, loss_results
+            loss.backward()
+            self.ml.optimizer.step()
 
     def get_tensor_dataset(self, data):
         """ Returns dataset from given ndarray data. 
         """
-        inputs, targets = data
-
-        inputs = self.add_device(inputs, 'cpu')
-        targets = self.add_device(targets, 'cpu')
-
-        dataset = NumpyDataset(inputs, targets)
-
-        return dataset
+        return NumpyDataset(*data)
 
     def get_storegate_dataset(self, phase):
         """ Returns storegate dataset. 
         """
-        dataset = StoreGateDataset(self.storegate,
-                                   phase,
-                                   input_var_names=self.input_var_names,
-                                   true_var_names=self.true_var_names)
-        return dataset
+        return StoreGateDataset(self.storegate,
+                                phase,
+                                input_var_names=self.input_var_names,
+                                true_var_names=self.true_var_names)
 
     def add_device(self, data, device):
         """ Add data to device.
@@ -691,24 +527,29 @@ class PytorchBaseTask(MLBaseTask):
     ##########################################################################
     # Internal methods
     ##########################################################################
-    def _step_model(self, inputs, training):
-
-        if self._pass_training:
-            forward_args = dict(training)
+    def _select_pred_data(self, y_pred):
+        if len(self._pred_index) == 1:
+            return y_pred[self._pred_index[0]]
         else:
-            forward_args = {}
+            return [y_pred[index] for index in self._pred_index]
 
-        if self.ml.multi_inputs and self._unpack_inputs:
-            outputs = self.ml.model(*inputs, **forward_args)
-        else:
-            outputs = self.ml.model(inputs, **forward_args)
+    def _disable_tqdm(self):
+        disable_tqdm = True
+        if self._verbose is None:
+            if logger.MIN_LEVEL <= logger.DEBUG:
+                disable_tqdm = False
+        elif self._verbose == 1:
+            disable_tqdm = False
+        return disable_tqdm
 
-        return outputs
+    def _get_batch_size(self, phase=None, num_dataset=None):
+        if isinstance(self._batch_size, int):
+            return self._batch_size
 
-    def _step_loss(self, outputs, labels):
-        loss = 0.0
-        subloss = []
+        if not isinstance(self._batch_size, dict):
+            raise ValueError(f'batch_size is not known!! {self._batch_size}')
 
+<<<<<<< HEAD
         if self.ml.multi_loss:
             for loss_fn, loss_w, output, label in zip(self.ml.loss,
                                                       self.ml.loss_weights,
@@ -720,28 +561,21 @@ class PytorchBaseTask(MLBaseTask):
                     loss_tmp = loss_fn(output, label) * loss_w
                     loss += loss_tmp
                     subloss.append(loss_tmp)
+=======
+        if phase in self._batch_size:
+            return self._batch_size[phase]
+>>>>>>> ac05224ec17bdba7a652e762c546751c886aea6e
 
-        else:
-            if self._view_as_outputs:
-                outputs = outputs.view_as(labels)
-            if self.ml.loss_weights is None:
-                loss += self.ml.loss(outputs, labels)
-            elif self.ml.loss_weights != 0.0:
-                loss += self.ml.loss(outputs, labels) * self.ml.loss_weights
+        if 'equal_length' not in self._batch_size['type']:
+            raise ValueError(f'batch_size is not known!! {self._batch_size}')
 
-        return loss, subloss
+        batch_size = num_dataset // self._batch_size['length']
+        batch_size = batch_size if batch_size > 1.0 else 1
 
-    def _step_optimizer(self, loss):
-        if self._is_gpu and self._amp:
-            self._scaler.scale(loss).backward()
-            self._scaler.step(self.ml.optimizer)
-            self._scaler.update()
-        else:
-            loss.backward()
-            self.ml.optimizer.step()
+        log = f'phase={phase}, '
+        log += f'dataset={num_dataset}, '
+        log += f'length={self._batch_size["length"]}, '
+        log += f'batch_size={batch_size}'
+        logger.info(log)
 
-    def _select_pred_data(self, y_pred):
-        if len(self._pred_index) == 1:
-            return y_pred[self._pred_index[0]]
-        else:
-            return [y_pred[index] for index in self._pred_index]
+        return batch_size

@@ -108,7 +108,6 @@ def test_keras_darts():
         'zeta': 1e-3,
         # ConnectionModel
         'subtasks': [task0, task1],
-        'use_multi_loss': True,
         'loss_weights': [0.5, 0.5],
         'variable_mapping': [('var2', 'output0'), ('var3', 'output1')],
         # KerasBaseTask

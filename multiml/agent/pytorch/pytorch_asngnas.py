@@ -57,11 +57,46 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         Currently, only categorical ASNG NAS is implemented.
         """
 
-        asng_block_list = None
-        if self.is_connected_categorical:
-            asng_block_list, task_ids = self._build_connected_task_block_list()
-        else:
-            asng_block_list, task_ids = self._build_disconnected_task_block_list(
+        categories = []
+        task_ids = []
+        asng_block_list = []
+
+        for task_idx, task_id in enumerate(
+                self._task_scheduler.get_sorted_task_ids()):
+            subtasktuples = self._task_scheduler.get_subtasks_with_hps(task_id)
+            n_cat = 0
+
+            for subtask_idx, subtask in enumerate(subtasktuples):
+                n_cat += 1
+                subtask_env = subtask.env
+                subtask_hps = subtask.hps
+                subtask_env.set_hps(subtask_hps)
+                subtask_env._verbose = self._verbose
+                subtask_env._num_epochs = self._num_epochs
+
+                if self.do_pretraining:
+                    self._execute_subtask(subtask, is_pretraining=True)
+                else:
+                    subtask.env.storegate = self._storegate
+                    subtask.env.saver = self._saver
+                    subtask.env.compile()
+
+                if '_model_fit' in dir(subtask_env):
+                    if self._freeze_model_weights:
+                        self._set_trainable_flags(subtask_env._model_fit,
+                                                  False)
+
+            params_list = [v.hps for v in subtasktuples]
+            self._saver.add(f'asng_block_{task_id}_submodel_params',
+                            params_list)
+
+            # build asng task block
+            subtasks = [v.env for v in subtasktuples]
+            asng_block = PytorchASNGNASBlockTask(
+                subtasks=subtasks,
+                job_id=f'ASNG-NAS-Block-{task_id}',
+                saver=self._saver,
+                load_weights=self._connectiontask_args['load_weights'],
             )
 
         asng_task = PytorchASNGNASTask(
@@ -139,9 +174,10 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         theta_cat, theta_int = asng_task.get_thetas()
         cat_idx = c_cat.argmax(axis=1)
 
-        pred, loss = best_combination_task.env.predict_and_loss()
+        
+        pred_result = best_combination_task.env.predict(label=True)
         best_combination_task.env._storegate.update_data(
-            data=pred,
+            data=pred_result['pred'],
             var_names=best_combination_task.env._output_var_names,
             phase='auto')
         self._metric._storegate = best_combination_task.env._storegate
@@ -157,8 +193,8 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
                            metric=test_metric)
         self._saver.add(f"results.ASNG-NAS-Final", test_result)
 
-        results_json['loss_test'] = loss['loss']
-        results_json['subloss_test'] = loss['subloss']
+        results_json['loss_test'] = pred_result['loss']
+        results_json['subloss_test'] = pred_result['subloss']
         results_json['metric_test'] = test_metric
 
         for task_idx, task_id in enumerate(task_ids):

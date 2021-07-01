@@ -43,22 +43,19 @@ class ModelConnectionTask(MLBaseTask):
     """
     def __init__(self,
                  subtasks,
-                 use_multi_loss=False,
+                 loss_weights=None,
                  variable_mapping=None,
-                 auto_ordering=True,
                  **kwargs):
         """ Constructor of ModelConnectionTask.
 
         Args:
             subtasks (list): list must contains ordered instance objects
                 inherited from ``MLBaseTask``.
-            use_multi_loss (bool): If False, intermediate losses are not
-                considered in training steps.
+            loss_weights (list or dict or str): list of loss weights for each
+                task. ``last_loss`` and ``flat_loss`` are also allowed.
             variable_mapping (list(str, str)): Input variables are replaced
                 following this list. Used for the case that the input variables
                 change from pre-training to main-training (with model connecting).
-            auto_ordering (bool): If True, given subtasks are ordered by
-                input_var_names and output_var_names automatically.
             **kwargs: Arbitrary keyword arguments passed to ``MLBaseTask``.
         """
         super().__init__(**kwargs)
@@ -67,9 +64,7 @@ class ModelConnectionTask(MLBaseTask):
             raise ValueError('Please provide at least two subtasks.')
 
         self._subtasks = subtasks
-        self._use_multi_loss = use_multi_loss
         self._variable_mapping = variable_mapping
-        self._auto_ordering = auto_ordering
 
         self._cache_var_names = None
         self._input_var_index = None
@@ -99,62 +94,52 @@ class ModelConnectionTask(MLBaseTask):
         super().compile()
 
     def compile_loss(self):
-        """ Compile loss.
+        """ Compile loss and loss_weights.
 
         Loss functions are retrieved from subtasks, thus each subtask must
-        contain ``loss``. ``loss_weights`` are set according to options:
-          * If ``use_multi_loss`` is False, only loss of the last subtask is
-            considered with weight = 1.0,
-          * If ``use_multi_loss`` is True and ``loss_weights`` is given
-            explicitly, given ``loss_weights`` is used.
-          * If ``use_multi_loss`` is True and ``loss_weights`` is None,
-            ``loss_weights`` is retrieved from each subtask.
+        contain ``loss``.
         """
         self.ml.loss = []
         self.ml.loss_weights = []
 
         n_subtasks = len(self._subtasks)
         # Define loss weights for each task
-        if self._loss_weights is None or self._use_multi_loss is False:
-            task_weights = [1.0 for _ in range(n_subtasks)]
+        if (self._loss_weights is None) or (self._loss_weights == 'last_loss'):
+            task_weights = [0.] * (n_subtasks - 1) + [1.0]
+
+        elif self._loss_weights == 'flat_loss':
+            task_weights = [1.0] * n_subtasks
+
         elif isinstance(self._loss_weights, list):
             task_weights = self._loss_weights
+
         elif isinstance(self._loss_weights, dict):
             task_weights = [
-                self._loss_weights[subtask.task_id]
-                for subtask in self._subtasks
+                self._loss_weights[s.task_id] for s in self._subtasks
             ]
 
+        else:
+            raise ValueError(
+                f'Unknown loss_weights: {self._loss_weights} is given')
+
         # Collect loss and weights for the loss from each subtask
-        for index in range(n_subtasks):
-            subtask = self._subtasks[index]
-            task_weight = task_weights[index]
+        for subtask, task_weight in zip(self._subtasks, task_weights):
+            if task_weight > 0.:
+                lws = subtask.ml.loss_weights
+                if lws is None:
+                    lws = 1.0
 
-            if type(subtask.ml.loss) is list or type(
-                    subtask.ml.loss_weights) is list:
-                if type(subtask.ml.loss) != type(subtask.ml.loss_weights):
-                    raise ValueError(
-                        f"Inconsistent type: loss={type(subtask.ml.loss)}, loss_weights={type(subtask.ml.loss_weights)}"
-                    )
-
-                if len(subtask.ml.loss) != len(subtask.ml.loss_weights):
-                    raise ValueError(
-                        f"Inconsistent list length: loss={len(subtask.ml.loss)}, loss_weights={len(subtask.ml.loss_weights)}"
-                    )
-
-            loss_weights = subtask.ml.loss_weights
-            if loss_weights is None:
-                loss_weights = 1.0
-
-            if self._use_multi_loss or index == n_subtasks - 1:
                 if isinstance(subtask.ml.loss, list):
                     self.ml.loss += subtask.ml.loss
-                    self.ml.loss_weights += [
-                        l * task_weight for l in loss_weights
-                    ]
+                    self.ml.loss_weights += [lw * task_weight for lw in lws]
                 else:
                     self.ml.loss.append(subtask.ml.loss)
+<<<<<<< HEAD
                     self.ml.loss_weights.append(loss_weights * task_weight)
+=======
+                    self.ml.loss_weights.append(lws * task_weight)
+
+>>>>>>> ac05224ec17bdba7a652e762c546751c886aea6e
             else:
                 # Dummy loss which is not used in backpropagation
                 if isinstance(subtask.ml.loss, list):
@@ -164,12 +149,16 @@ class ModelConnectionTask(MLBaseTask):
                     self.ml.loss.append(None)
                     self.ml.loss_weights.append(0.0)
 
+        if len(self.ml.loss) != len(self.ml.loss_weights):
+            error_log = f'loss length is inconsistent: '
+            error_log += f'tasl_weights {task_weights}, '
+            error_log += f'loss {self.ml.loss}, '
+            error_log += f'loss_weights {self.ml.loss_weights}'
+            raise ValueError(error_log)
+
     def compile_var_names(self):
         """ Compile subtask dependencies and I/O variables.
         """
-        if self._auto_ordering:
-            self.set_ordered_subtasks()
-
         self.set_output_var_index()
         self.set_input_var_index()
 
@@ -278,80 +267,6 @@ class ModelConnectionTask(MLBaseTask):
                 self._input_var_index.append(tuple(input_index))
             else:
                 self._input_var_index.append(input_index)
-
-    def set_ordered_subtasks(self):
-        """ Order subtasks based on input_var_names and output_var_names.
-        """
-        import networkx as nx
-
-        def _flatten(data):
-            from collections.abc import Iterable
-            for v in data:
-                if isinstance(v, Iterable) and not isinstance(v, (str, bytes)):
-                    yield from _flatten(v)
-                else:
-                    yield v
-
-        # dag built with subtasks and input/output names
-        dag_sub = nx.DiGraph()
-        for i_subtask, subtask in enumerate(self._subtasks):
-            # Add subtask name
-            dag_sub.add_node(i_subtask)
-
-            # Add variable name
-            input_var_names = subtask.input_var_names
-            if isinstance(input_var_names, str):
-                input_var_names = [input_var_names]
-
-            input_var_names = self._apply_variable_mapping(input_var_names)
-
-            for var in _flatten(input_var_names):
-                if not dag_sub.has_node('var_' + var):
-                    dag_sub.add_node('var_' + var)
-                dag_sub.add_edge('var_' + var, i_subtask)
-
-            output_var_names = subtask.output_var_names
-            if isinstance(output_var_names, str):
-                output_var_names = [output_var_names]
-
-            for var in _flatten(output_var_names):
-                if not dag_sub.has_node('var_' + var):
-                    dag_sub.add_node('var_' + var)
-                dag_sub.add_edge(i_subtask, 'var_' + var)
-
-        # dag built with subtasks
-        dag = nx.DiGraph()
-        for i_subtask, subtask in enumerate(self._subtasks):
-            dag.add_node(i_subtask)
-
-        for node in nx.topological_sort(dag_sub):
-            if isinstance(node, int):
-                predecessors = set([
-                    u for v in dag_sub.predecessors(node)
-                    for u in dag_sub.predecessors(v)
-                ])
-                for v in predecessors:
-                    dag.add_edge(v, node)
-
-                successors = set([
-                    u for v in dag_sub.successors(node)
-                    for u in dag_sub.successors(v)
-                ])
-                for v in successors:
-                    dag.add_edge(node, v)
-
-        new_subtasks = []
-        for i_subtask in nx.topological_sort(dag):
-            new_subtasks.append(self._subtasks[i_subtask])
-
-        self._subtasks = new_subtasks
-
-        if isinstance(self._loss_weights, list):
-            new_loss_weights = []
-            for i_subtask in nx.topological_sort(dag):
-                new_loss_weights.append(self._loss_weights[i_subtask])
-
-            self._loss_weights = new_loss_weights
 
     def _apply_variable_mapping(self, input_vars):
         """ Convert variable name by given mapping.
