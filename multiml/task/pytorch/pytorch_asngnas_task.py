@@ -26,7 +26,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         self.subtask_ids = [subtask.subtask_ids for subtask in self._subtasks]
 
         self.lam = asng_args['lam']
-        self.delta_init_factor = asng_args['delta_init_factor']
+        self.delta_init_factor = asng_args['delta']
         self.alpha = asng_args['alpha']
         self.range_restriction = asng_args['range_restriction']
         self.clipping_value = asng_args['clipping_value']
@@ -184,12 +184,11 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                         loss_valid, batch_result = self._step_train(
                             False, valid_data, rank)
                         self.ml.model.update_theta(
-                            np.array(loss_valid),
-                            range_restriction=True)  # FIXME :
+                            np.array(loss_valid) )
                         results_valid.update_results(batch_result)
 
-                    loss_train = results_train.get_running_loss()
-                    loss_valid = results_valid.get_running_loss()
+                    loss_train_ = results_train.get_running_loss()
+                    loss_valid_ = results_valid.get_running_loss()
 
                     theta_cats, theta_ints = self.ml.model.get_thetas()
                     theta_cat0 = '/'.join(f'{v:.2f}' for v in theta_cats[0])
@@ -392,7 +391,7 @@ class training_results:
         if 'subloss' in self._metrics:
             self.results['subloss'] = []
             for index, subloss in enumerate(batch_result['subloss']):
-                self.epoch_subloss[index] += subloss * input_size
+                self.epoch_subloss[index] += subloss * batch_result['batch_size']
                 self.running_subloss[
                     index] = self.epoch_subloss[index] / self.total
                 self.results['subloss'].append(

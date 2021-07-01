@@ -64,6 +64,7 @@ class ModelConnectionTask(MLBaseTask):
             raise ValueError('Please provide at least two subtasks.')
 
         self._subtasks = subtasks
+        self._loss_weights = loss_weights
         self._variable_mapping = variable_mapping
 
         self._cache_var_names = None
@@ -134,12 +135,8 @@ class ModelConnectionTask(MLBaseTask):
                     self.ml.loss_weights += [lw * task_weight for lw in lws]
                 else:
                     self.ml.loss.append(subtask.ml.loss)
-<<<<<<< HEAD
-                    self.ml.loss_weights.append(loss_weights * task_weight)
-=======
                     self.ml.loss_weights.append(lws * task_weight)
 
->>>>>>> ac05224ec17bdba7a652e762c546751c886aea6e
             else:
                 # Dummy loss which is not used in backpropagation
                 if isinstance(subtask.ml.loss, list):

@@ -304,17 +304,7 @@ class PytorchBaseTask(MLBaseTask):
         if dataloader is None:
             dataloader = self.prepare_dataloader(data, phase)
 
-<<<<<<< HEAD
-        disable_tqdm = True
-        if self._verbose is None:
-            if logger.MIN_LEVEL <= logger.DEBUG:
-                disable_tqdm = False
-        elif self._verbose == 1:
-            disable_tqdm = False
-        disable_tqdm = False
-=======
         results = self.step_epoch(0, 'test', dataloader, label)
->>>>>>> ac05224ec17bdba7a652e762c546751c886aea6e
 
         if label:
             return results
@@ -350,43 +340,11 @@ class PytorchBaseTask(MLBaseTask):
                 batch_result = self.step_batch(data, phase, label)
                 results.update(epoch_metric(batch_result))
 
-<<<<<<< HEAD
-                inputs = self.add_device(data[input_index], rank)
-                labels = self.add_device(data[true_index], rank)
-                batch_result = self.step_train(inputs, labels, phase)
-                inputs_size = util.inputs_size(inputs)
-                total += inputs_size
-                epoch_loss += batch_result['loss'] * inputs_size
-                running_loss = epoch_loss / total
-                results['loss'] = f'{running_loss:.2e}'
-
-                if 'subloss' in self._metrics:
-                    results['subloss'] = []
-                    for index, subloss in enumerate(batch_result['subloss']):
-                        epoch_subloss[index] += subloss * inputs_size
-                        running_subloss = epoch_subloss[index] / total
-                        results['subloss'].append(f'{running_subloss:.2e}')
-
-                if 'acc' in self._metrics:
-                    if self.ml.multi_loss:
-                        results['acc'] = []
-                        for index, acc in enumerate(batch_result['acc']):
-                            epoch_corrects[index] += acc
-                            accuracy = epoch_corrects[index] / total
-                            results['acc'].append(f'{accuracy:.2e}')
-                    else:
-                        epoch_corrects += batch_result['acc']
-                        accuracy = epoch_corrects / total
-                        results['acc'] = f'{accuracy:.2e}'
-
-                pbar.set_postfix(results)
-=======
                 if phase == 'test':
                     epoch_metric.pred(batch_result)
 
                 pbar_metrics = metrics.get_pbar_metric(results)
                 pbar.set_postfix(pbar_metrics)
->>>>>>> ac05224ec17bdba7a652e762c546751c886aea6e
                 pbar.update(1)
 
         if self._verbose == 2:
@@ -549,22 +507,8 @@ class PytorchBaseTask(MLBaseTask):
         if not isinstance(self._batch_size, dict):
             raise ValueError(f'batch_size is not known!! {self._batch_size}')
 
-<<<<<<< HEAD
-        if self.ml.multi_loss:
-            for loss_fn, loss_w, output, label in zip(self.ml.loss,
-                                                      self.ml.loss_weights,
-                                                      outputs, labels):
-
-                if loss_w:
-                    if self._view_as_outputs:
-                        output = output.view_as(label)
-                    loss_tmp = loss_fn(output, label) * loss_w
-                    loss += loss_tmp
-                    subloss.append(loss_tmp)
-=======
         if phase in self._batch_size:
             return self._batch_size[phase]
->>>>>>> ac05224ec17bdba7a652e762c546751c886aea6e
 
         if 'equal_length' not in self._batch_size['type']:
             raise ValueError(f'batch_size is not known!! {self._batch_size}')

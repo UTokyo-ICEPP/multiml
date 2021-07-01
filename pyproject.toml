@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "multiml"
-version = "0.10.22"
+version = "0.10.46"
 description = ""
 authors = ["Your Name <you@example.com>"]
 
