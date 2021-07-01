@@ -1,5 +1,4 @@
-""" ZarrDatabase module
-"""
+"""ZarrDatabase module."""
 import tempfile
 import zarr
 
@@ -10,13 +9,8 @@ from .utils import get_slice
 
 
 class ZarrDatabase(Database):
-    """ Base class of Zarr database
-    """
-    def __init__(self,
-                 output_dir=None,
-                 chunk=1000,
-                 compressor='default',
-                 mode='a'):
+    """Base class of Zarr database."""
+    def __init__(self, output_dir=None, chunk=1000, compressor='default', mode='a'):
 
         if output_dir is None:
             output_dir = tempfile.mkdtemp()

@@ -25,10 +25,7 @@ def load_iris(storegate,
     storegate.compile()
 
 
-def load_boston(storegate,
-                target_var_name='true',
-                phase='train',
-                shuffle=True):
+def load_boston(storegate, target_var_name='true', phase='train', shuffle=True):
     from sklearn.datasets import load_boston
 
     logger.info(f'Load boston dataset: {target_var_name}')

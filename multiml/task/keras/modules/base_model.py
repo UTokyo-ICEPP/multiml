@@ -7,8 +7,7 @@ from multiml import logger
 
 class BaseModel(Model):
     def __init__(self, *args, **kwargs):
-        """ Base model to overwrite train_step().
-        """
+        """Base model to overwrite train_step()."""
         super().__init__(*args, **kwargs)
 
         self._pred_index = None
@@ -30,10 +29,7 @@ class BaseModel(Model):
             if self._pred_index is not None:
                 y_pred = self.select_pred_data(y_pred)
 
-            loss = self.compiled_loss(y,
-                                      y_pred,
-                                      sample_weight,
-                                      regularization_losses=self.losses)
+            loss = self.compiled_loss(y, y_pred, sample_weight, regularization_losses=self.losses)
 
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
         self.compiled_metrics.update_state(y, y_pred, sample_weight)
@@ -57,10 +53,7 @@ class BaseModel(Model):
         if self._pred_index is not None:
             y_pred = self.select_pred_data(y_pred)
 
-        self.compiled_loss(y,
-                           y_pred,
-                           sample_weight,
-                           regularization_losses=self.losses)
+        self.compiled_loss(y, y_pred, sample_weight, regularization_losses=self.losses)
 
         self.compiled_metrics.update_state(y, y_pred, sample_weight)
         return {m.name: m.result() for m in self.metrics}

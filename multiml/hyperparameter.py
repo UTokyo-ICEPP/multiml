@@ -1,5 +1,4 @@
-"""Hyperparameter module.
-"""
+"""Hyperparameter module."""
 
 import itertools
 
@@ -7,7 +6,7 @@ import numpy as np
 
 
 class Hyperparameter:
-    """ Hyperparameter management class.
+    """Hyperparameter management class.
 
     This class describes hyperparameter names, type of parameters
     (*continuous* or *discrete*), and valid spaces. This class also retains
@@ -62,13 +61,12 @@ class Hyperparameter:
         return result
 
     def __len__(self):
-        """Returns the number of possible hyperparameter values.
-        """
+        """Returns the number of possible hyperparameter values."""
         return len(self.get_grid())
 
     def __getitem__(self, item):
         """Returns the hyperparameter value by index.
- 
+
         Args:
             item (int): index of ``get_grid()`` result.
 
@@ -137,8 +135,7 @@ class Hyperparameter:
         return True
 
     def set_min_value(self):
-        """ Set the minimum value to the current value.
-        """
+        """Set the minimum value to the current value."""
         if self._is_continuous:
             self._value = self._data[0]
         else:
@@ -146,8 +143,7 @@ class Hyperparameter:
             self._value = self._data[0]
 
     def set_max_value(self):
-        """Set the maximum value to the current value.
-        """
+        """Set the maximum value to the current value."""
         if self._is_continuous:
             self._value = self._data[1]
         else:
@@ -171,7 +167,7 @@ class Hyperparameter:
 
 class Hyperparameters:
     """Utility class to manage Hyperparameter classes.
- 
+
     The *Hyperparameters* class provides interfances to manage
     *Hyperparameter* class instances. This *Hyperparameters* class
     instance should be passed to *TaskScheduler* together with corresponding
@@ -214,8 +210,7 @@ class Hyperparameters:
         return result
 
     def __len__(self):
-        """Returns the number of all possible combinations of hyperparameters.
-        """
+        """Returns the number of all possible combinations of hyperparameters."""
         if not self._hps:
             return 0
 
@@ -225,7 +220,7 @@ class Hyperparameters:
         return result
 
     def __getitem__(self, item):
-        """ Returns registered Hyperparameter class instance by index.
+        """Returns registered Hyperparameter class instance by index.
 
         If ``item`` is str, *Hyperparameter* is searched by its ``name``, and
         class instance is returned if it exists. If ``item`` is int, a
@@ -302,8 +297,7 @@ class Hyperparameters:
                 self.add_hp(key, values, is_continuous=False)
             else:
                 raise ValueError(
-                    'Only list of discrete values is supported for converting from dict'
-                )
+                    'Only list of discrete values is supported for converting from dict')
 
     def add_hp(self, name, values, is_continuous=False):
         """Add hyperparameter.
@@ -316,14 +310,12 @@ class Hyperparameters:
         self._hps.append(Hyperparameter(name, values, is_continuous))
 
     def set_min_hps(self):
-        """Set the minimum value for each Hyperparameter.
-        """
+        """Set the minimum value for each Hyperparameter."""
         for hp in self._hps:
             hp.set_min_value()
 
     def set_max_hps(self):
-        """Set the maximum value for each Hyperparameter.
-        """
+        """Set the maximum value for each Hyperparameter."""
         for hp in self._hps:
             hp.set_max_value()
 

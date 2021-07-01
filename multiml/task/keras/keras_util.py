@@ -20,20 +20,19 @@ def compile(obj, obj_args, modules):
         return copy.copy(obj)
 
 
-def training_keras_model(
-        model,
-        num_epochs,
-        batch_size,
-        max_patience,
-        x_train,
-        y_train,
-        x_valid,
-        y_valid,
-        chpt_path=None,
-        callbacks=['EarlyStopping', 'ModelCheckpoint', 'TensorBoard'],
-        tensorboard_path=None,
-        verbose=None):
-    """ Training keras model
+def training_keras_model(model,
+                         num_epochs,
+                         batch_size,
+                         max_patience,
+                         x_train,
+                         y_train,
+                         x_valid,
+                         y_valid,
+                         chpt_path=None,
+                         callbacks=['EarlyStopping', 'ModelCheckpoint', 'TensorBoard'],
+                         tensorboard_path=None,
+                         verbose=None):
+    """Training keras model.
 
     Args:
         num_epochs (int): maximum number of epochs
@@ -87,9 +86,7 @@ def training_keras_model(
         elif callback == 'TensorBoard':
             if tensorboard_path is not None:
                 from tensorflow.keras.callbacks import TensorBoard
-                tb_cb = TensorBoard(log_dir=tensorboard_path,
-                                    histogram_freq=1,
-                                    profile_batch=5)
+                tb_cb = TensorBoard(log_dir=tensorboard_path, histogram_freq=1, profile_batch=5)
                 cbs.append(tb_cb)
 
         elif issubclass(callback.__class__, Callback):
@@ -124,7 +121,7 @@ def training_keras_model(
 
 
 def get_optimizer(optimizer, optimizer_args=None):
-    """ Get Keras optimizer
+    """Get Keras optimizer.
 
     Args:
         optimizer (str or obj): If str, the corresponding optimizer is searched for in the keras class.
@@ -138,9 +135,6 @@ def get_optimizer(optimizer, optimizer_args=None):
         raise ValueError("optimizer is None. Please use a valid optimizer")
 
     elif isinstance(optimizer, str):
-        return optimizers.get({
-            'class_name': optimizer,
-            'config': optimizer_args
-        })
+        return optimizers.get({'class_name': optimizer, 'config': optimizer_args})
     else:
         return optimizer

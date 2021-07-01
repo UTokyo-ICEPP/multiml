@@ -1,5 +1,4 @@
-""" StoreGate module
-"""
+"""StoreGate module."""
 
 import numpy as np
 
@@ -68,8 +67,7 @@ class StoreGate:
         elif self._backend == 'hybrid':
             self._db = HybridDatabase(**backend_args)
         else:
-            raise NotImplementedError(
-                f'Backend: {backend} is not supported in the storegate')
+            raise NotImplementedError(f'Backend: {backend} is not supported in the storegate')
 
         self._data_id = None
         if data_id is not None:
@@ -126,9 +124,7 @@ class StoreGate:
             if self._phase == 'all' and item == slice(None, None, None):
                 item = -1  # all index
 
-            return self.get_data(var_names=self._var_names,
-                                 phase=self._phase,
-                                 index=item)
+            return self.get_data(var_names=self._var_names, phase=self._phase, index=item)
 
         raise NotImplementedError(f'item {item} is not supported')
 
@@ -160,10 +156,7 @@ class StoreGate:
         if self._phase == 'all' and item == slice(None, None, None):
             item = -1  # all index
 
-        self.update_data(var_names=self._var_names,
-                         data=data,
-                         phase=self._phase,
-                         index=item)
+        self.update_data(var_names=self._var_names, data=data, phase=self._phase, index=item)
 
     def __delitem__(self, item):
         """Delete data by python delitem syntax.
@@ -239,14 +232,13 @@ class StoreGate:
         return self._data_id
 
     def set_data_id(self, data_id):
-        """ Set the default ``data_id`` and initialize the backend.
+        """Set the default ``data_id`` and initialize the backend.
 
         If the default ``data_id`` is set, all methods defined in storegate,
         e.g. ``add_data()`` use the default ``data_id`` to manage data.
 
         Args:
             data_id (str): the default ``data_id``.
-
         """
         self._data_id = data_id
         self._check_valid_data_id()
@@ -261,13 +253,7 @@ class StoreGate:
         """
         return self._backend
 
-    def add_data(self,
-                 var_names,
-                 data,
-                 phase='train',
-                 shuffle=False,
-                 mode=None,
-                 do_compile=False):
+    def add_data(self, var_names, data, phase='train', shuffle=False, mode=None, do_compile=False):
         """Add data to the storegate with given options.
 
         If ``var_names`` already exists in given ``data_id`` and ``phase``,
@@ -305,8 +291,7 @@ class StoreGate:
         # recursive operation
         if isinstance(var_names, list):
             for var_name, idata in zip(var_names, data):
-                self.add_data(var_name, idata, phase, shuffle, mode,
-                              do_compile)
+                self.add_data(var_name, idata, phase, shuffle, mode, do_compile)
             return
 
         self._check_valid_data_id()
@@ -325,16 +310,11 @@ class StoreGate:
 
             indices = self._get_phase_indices(phase, len(idata))
 
-            for iphase, phase_data in zip(const.PHASES,
-                                          np.split(idata, indices)):
+            for iphase, phase_data in zip(const.PHASES, np.split(idata, indices)):
                 if len(phase_data) == 0:
                     continue
 
-                self._db.add_data(self._data_id,
-                                  var_name,
-                                  phase_data,
-                                  iphase,
-                                  mode=mode)
+                self._db.add_data(self._data_id, var_name, phase_data, iphase, mode=mode)
 
         if self._data_id in self._metadata:
             self._metadata[self._data_id]['compiled'] = False
@@ -342,13 +322,7 @@ class StoreGate:
         if do_compile:
             self.compile(reset=False)
 
-    def update_data(self,
-                    var_names,
-                    data,
-                    phase='train',
-                    index=-1,
-                    mode=None,
-                    do_compile=True):
+    def update_data(self, var_names, data, phase='train', index=-1, mode=None, do_compile=True):
         """Update data in storegate with given options.
 
         Update (replace) data in the storegate. If ``var_names`` does not exist
@@ -374,8 +348,7 @@ class StoreGate:
         # recursive operation
         if isinstance(var_names, list):
             for var_name, idata in zip(var_names, data):
-                self.update_data(var_name, idata, phase, index, mode,
-                                 do_compile)
+                self.update_data(var_name, idata, phase, index, mode, do_compile)
             return
 
         self._check_valid_data_id()
@@ -387,21 +360,14 @@ class StoreGate:
             idata = self._convert_to_np(idata)
             indices = self._get_phase_indices(phase, len(idata))
 
-            for iphase, phase_data in zip(const.PHASES,
-                                          np.split(idata, indices)):
-                metadata = self._db.get_metadata(self._data_id,
-                                                 iphase,
-                                                 mode=mode)
+            for iphase, phase_data in zip(const.PHASES, np.split(idata, indices)):
+                metadata = self._db.get_metadata(self._data_id, iphase, mode=mode)
 
                 if len(phase_data) == 0:
                     continue
 
                 if var_name not in metadata.keys():
-                    self.add_data(var_name,
-                                  phase_data,
-                                  iphase,
-                                  False,
-                                  mode=mode)
+                    self.add_data(var_name, phase_data, iphase, False, mode=mode)
 
                 else:
                     self._db.update_data(self._data_id,
@@ -462,8 +428,7 @@ class StoreGate:
             raise ValueError('get_data is supported only after compile')
 
         if all_phase and (index != -1):
-            raise ValueError(
-                'phase=all is not supported together with index option')
+            raise ValueError('phase=all is not supported together with index option')
 
         is_single_var = False
         if isinstance(var_names, str):
@@ -490,11 +455,9 @@ class StoreGate:
 
             for var_name in var_names:
                 if var_name not in metadata.keys():
-                    raise ValueError(
-                        f'var_name {var_name} does not exist in storegate.')
+                    raise ValueError(f'var_name {var_name} does not exist in storegate.')
 
-                phase_results.append(
-                    self._db.get_data(self._data_id, var_name, iphase, index))
+                phase_results.append(self._db.get_data(self._data_id, var_name, iphase, index))
 
             results.append(phase_results)
 
@@ -625,7 +588,7 @@ class StoreGate:
         return self._metadata[self._data_id]
 
     def astype(self, var_names, dtype, phase='train'):
-        """ Convert data type to given dtype (operation is limited by memory)
+        """Convert data type to given dtype (operation is limited by memory)
 
         Args:
             var_names (str or list): see ``add_data()`` method.
@@ -694,9 +657,7 @@ class StoreGate:
             mode (str): *numpy* or *zarr*.
         """
         if self._backend != 'hybrid':
-            logger.warn(
-                f'set_mode is valid for only hybrid database ({self._backend})'
-            )
+            logger.warn(f'set_mode is valid for only hybrid database ({self._backend})')
 
         else:
             self._db.mode = mode
@@ -713,13 +674,10 @@ class StoreGate:
             phase (str): *all*, *train*, *valid*, *test*.
         """
         if self._backend != 'hybrid':
-            raise ValueError(
-                f'to_memory is valid for only hybrid database ({self._backend})'
-            )
+            raise ValueError(f'to_memory is valid for only hybrid database ({self._backend})')
 
         if self._db.mode != 'zarr':
-            raise ValueError(
-                f'to_memory is valid when the current mode is zarr.')
+            raise ValueError(f'to_memory is valid when the current mode is zarr.')
 
         self.compile()
 
@@ -748,13 +706,10 @@ class StoreGate:
             phase (str): *all*, *train*, *valid*, *test*.
         """
         if self._backend != 'hybrid':
-            raise ValueError(
-                f'to_storage is valid for only hybrid database ({self._backend})'
-            )
+            raise ValueError(f'to_storage is valid for only hybrid database ({self._backend})')
 
         if self._db.mode != 'numpy':
-            raise ValueError(
-                f'to_storage is valid when the current mode is numpy.')
+            raise ValueError(f'to_storage is valid when the current mode is numpy.')
 
         self.compile()
 
@@ -797,8 +752,7 @@ class StoreGate:
                 phase_events.append(data["total_events"])
 
             if len(set(phase_events)) > 1:
-                raise ValueError(
-                    f'Number of events are not consistent {metadata}')
+                raise ValueError(f'Number of events are not consistent {metadata}')
 
             if phase_events:
                 if reset:
@@ -824,16 +778,12 @@ class StoreGate:
             self.show_info()
 
     def show_info(self):
-        """Show information currently registered in storegate.
-        """
+        """Show information currently registered in storegate."""
         self._check_valid_data_id()
         is_compiled = self._is_compiled()
         header = f'StoreGate data_id : {self._data_id}, compiled : {is_compiled}'
 
-        names = [
-            'phase', 'backend', 'var_name', 'var_type', 'total_events',
-            'var_shape'
-        ]
+        names = ['phase', 'backend', 'var_name', 'var_type', 'total_events', 'var_shape']
 
         table_data = []
         for phase in ['train', 'valid', 'test']:
@@ -847,8 +797,7 @@ class StoreGate:
                 total_events = str(data["total_events"])
                 shape = f'{data["shape"]}'
 
-                table_data.append(
-                    [phase, backend, var_name, dtype, total_events, shape])
+                table_data.append([phase, backend, var_name, dtype, total_events, shape])
             table_data.append('-')
 
         logger.table(header=header, names=names, data=table_data)
@@ -860,12 +809,10 @@ class StoreGate:
     def _view_to_list(var_names, data):
         """(private) utility method to convert var_names.
 
-        ```var_names``` is converted to a list if it is string, and check shape
-        of data.
+        ```var_names``` is converted to a list if it is string, and check shape of data.
         """
         if not isinstance(var_names, (tuple, list, str)):
-            raise ValueError(
-                f'{type(var_names)} is not supported for var_names')
+            raise ValueError(f'{type(var_names)} is not supported for var_names')
 
         if isinstance(var_names, str):
             var_names = [var_names]
@@ -904,8 +851,7 @@ class StoreGate:
         return data
 
     def _check_valid_data_id(self):
-        """(private) check if data_id is valid or not.
-        """
+        """(private) check if data_id is valid or not."""
         if self._data_id is None:
             raise ValueError('please set default data_id')
 
@@ -913,35 +859,30 @@ class StoreGate:
             raise ValueError('data_id must be string')
 
     def _check_valid_phase(self, phase):
-        """(private) check if given phase is valid or not.
-        """
+        """(private) check if given phase is valid or not."""
         if (phase in ('auto', 'all')) and (not self._is_compiled()):
             raise ValueError('Auto fraction is supported only after compile')
 
-        if isinstance(phase, tuple) and (not isinstance(
-                phase[0], int)) and (sum(phase) != 1.0):
+        if isinstance(phase, tuple) and (not isinstance(phase[0], int)) and (sum(phase) != 1.0):
             raise ValueError('Sum of fraction must be 1.0')
 
-        if (phase not in ('auto', 'all')) and isinstance(
-                phase, str) and (phase not in const.PHASES):
+        if (phase not in ('auto', 'all')) and isinstance(phase, str) and (phase
+                                                                          not in const.PHASES):
             raise ValueError(f'Phase {phase} is not supported')
 
     def _get_phase_indices(self, phase, ndata):
-        """(private) returns a slice based on given phase.
-        """
+        """(private) returns a slice based on given phase."""
         if phase in ('auto', 'all'):
             total_events = self._metadata[self._data_id]['total_events']
             if ndata != sum(total_events):
-                raise ValueError(
-                    'Provided events are not consistent with metadata')
+                raise ValueError('Provided events are not consistent with metadata')
             indices = [total_events[0], total_events[0] + total_events[1]]
 
         elif isinstance(phase, tuple):
             if isinstance(phase[0], int):
                 if sum(phase) != ndata:
                     raise ValueError(
-                        f'Provided phases {phase} is not consistent with total # of data {ndata}'
-                    )
+                        f'Provided phases {phase} is not consistent with total # of data {ndata}')
                 indices0 = phase[0]
                 indices1 = indices0 + phase[1]
                 indices = [int(indices0), int(indices1)]
@@ -963,8 +904,7 @@ class StoreGate:
         return indices
 
     def _is_compiled(self):
-        """(private) check if compiled or not.
-        """
+        """(private) check if compiled or not."""
         if self._data_id not in self._metadata.keys():
             return False
 

@@ -2,8 +2,7 @@ from ..basic import ConnectionRandomSearchAgent
 
 
 class PytorchConnectionRandomSearchAgent(ConnectionRandomSearchAgent):
-    """ Pytorch implementation for ConnectionRandomSearchAgent
-    """
+    """Pytorch implementation for ConnectionRandomSearchAgent."""
 
     from multiml.task.pytorch import ModelConnectionTask
     _ModelConnectionTask = ModelConnectionTask

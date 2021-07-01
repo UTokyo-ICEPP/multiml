@@ -5,8 +5,7 @@ from . import KerasConnectionRandomSearchAgent
 
 
 class KerasEnsembleAgent(KerasConnectionRandomSearchAgent):
-    """ Agent packing subtasks using Keras EnsembelModel
-    """
+    """Agent packing subtasks using Keras EnsembelModel."""
     def __init__(self, ensembletask_args={}, **kwargs):
         """
 
@@ -20,14 +19,11 @@ class KerasEnsembleAgent(KerasConnectionRandomSearchAgent):
 
         phases = self._ensembletask_args['phases']
         if phases is None or 'train' in phases:
-            raise ValueError(
-                "Not Implemented the case of phases = ['train'] in ensembletask"
-            )
+            raise ValueError("Not Implemented the case of phases = ['train'] in ensembletask")
 
     @logger.logging
     def execute(self):
-        """ Execute
-        """
+        """Execute."""
         ensemble_list = []  # list of ensembled subtasks
 
         tasks_list = self._task_scheduler.get_sorted_task_ids()

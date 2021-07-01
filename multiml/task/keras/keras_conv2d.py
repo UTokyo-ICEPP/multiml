@@ -2,8 +2,7 @@ from . import MLPTask
 
 
 class Conv2DTask(MLPTask):
-    """ Keras MLP task
-    """
+    """Keras MLP task."""
     def __init__(self, conv2d_layers=None, **kwargs):
         """
 
@@ -16,8 +15,7 @@ class Conv2DTask(MLPTask):
         self._conv2d_layers = conv2d_layers
 
     def build_model(self):
-        """ Build a Keras MLP model
-        """
+        """Build a Keras MLP model."""
         from tensorflow.keras import backend as K
         from tensorflow.keras.layers import Flatten
         from tensorflow.keras.models import Model

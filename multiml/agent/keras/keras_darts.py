@@ -4,9 +4,7 @@ from . import KerasEnsembleAgent
 
 
 class KerasDartsAgent(KerasEnsembleAgent):
-    """
-    Model selection agent inspired by Differential Architecture Search (DARTS)
-    """
+    """Model selection agent inspired by Differential Architecture Search (DARTS)"""
     def __init__(self,
                  select_one_models=True,
                  use_original_darts_optimization=True,
@@ -75,12 +73,10 @@ class KerasDartsAgent(KerasEnsembleAgent):
 
             # Get best models by alpha values
             from multiml.task.keras.modules import DARTSModel
-            index_of_best_submodels = DARTSModel._get_best_submodels(
-                alpha_vars)
+            index_of_best_submodels = DARTSModel._get_best_submodels(alpha_vars)
 
             best_subtasks = []
-            for subtask_env, i_model in zip(task.env._subtasks,
-                                            index_of_best_submodels):
+            for subtask_env, i_model in zip(task.env._subtasks, index_of_best_submodels):
                 best_subtasks.append(subtask_env.get_submodel(i_model))
 
             # Save ensemble weights

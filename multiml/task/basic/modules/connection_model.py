@@ -2,13 +2,8 @@ from abc import ABCMeta, abstractmethod
 
 
 class ConnectionModel(metaclass=ABCMeta):
-    def __init__(self,
-                 models=None,
-                 input_var_index=None,
-                 output_var_index=None,
-                 *args,
-                 **kwargs):
-        """ Connecting ML models differentially.
+    def __init__(self, models=None, input_var_index=None, output_var_index=None, *args, **kwargs):
+        """Connecting ML models differentially.
 
         This ConnectionModel is usually build inside ``ModelConnectionTask`` to
         set proper indexes automatically. Inputs data for ``call()`` or

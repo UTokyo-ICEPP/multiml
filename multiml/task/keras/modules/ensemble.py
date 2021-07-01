@@ -10,7 +10,7 @@ class EnsembleModel(Model):
                  individual_loss=False,
                  *args,
                  **kwargs):
-        ''' Constructor
+        """Constructor.
 
         Args:
             models (list(tf.keras.Model)): list of keras models for ensembling
@@ -18,8 +18,7 @@ class EnsembleModel(Model):
             ensemble_type (str): type of ensemble way (linear or softmax)
             dropout_rate (float): dropout rate. Valid only for ensemble_type = softmax
             individual_loss (bool): use multiple outputs
-
-        '''
+        """
         super().__init__(*args, **kwargs)
 
         self._models = models
@@ -27,19 +26,15 @@ class EnsembleModel(Model):
 
         if ensemble_type == 'linear':
             from tensorflow.keras.layers import Dense
-            self.ensemble_layer = Dense(1,
-                                        activation=None,
-                                        name=f"{prefix}_ensemble_weights")
+            self.ensemble_layer = Dense(1, activation=None, name=f"{prefix}_ensemble_weights")
         elif ensemble_type == 'softmax':
             from . import SoftMaxDenseLayer
-            self.ensemble_layer = SoftMaxDenseLayer(
-                kernel_initializer='zeros',
-                dropout_rate=dropout_rate,
-                name=f"{prefix}_ensemble_weights")
+            self.ensemble_layer = SoftMaxDenseLayer(kernel_initializer='zeros',
+                                                    dropout_rate=dropout_rate,
+                                                    name=f"{prefix}_ensemble_weights")
         else:
             raise ValueError(
-                f'ensemble_type should be linear or softmax. {ensemble_type} is given.'
-            )
+                f'ensemble_type should be linear or softmax. {ensemble_type} is given.')
 
     def call(self, inputs, training=False):
         from tensorflow import expand_dims, squeeze

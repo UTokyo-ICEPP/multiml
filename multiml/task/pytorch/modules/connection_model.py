@@ -42,8 +42,7 @@ class ConnectionModel(ConnectionModel, Module):
             # If index is tuple, convert from list to tensor
             elif isinstance(input_indexes, tuple):
                 tensor_inputs = [
-                    torch.unsqueeze(tensor_input, 1)
-                    for tensor_input in tensor_inputs
+                    torch.unsqueeze(tensor_input, 1) for tensor_input in tensor_inputs
                 ]
                 tensor_inputs = torch.cat(tensor_inputs, dim=1)
 

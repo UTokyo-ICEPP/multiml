@@ -5,8 +5,7 @@ from . import PytorchConnectionRandomSearchAgent
 
 
 class PytorchSPOSNASAgent(PytorchConnectionRandomSearchAgent):
-    """ Agent packing subtasks using Pytorch SPOS-NAS Model
-    """
+    """Agent packing subtasks using Pytorch SPOS-NAS Model."""
     def __init__(self, training_choiceblock_model=True, **kwargs):
         """
 
@@ -20,8 +19,7 @@ class PytorchSPOSNASAgent(PytorchConnectionRandomSearchAgent):
 
     @logger.logging
     def execute(self):
-        """ Execute
-        """
+        """Execute."""
         choiceblock_list = []  # list of choiceblockd subtasks
 
         tasks_list = self._task_scheduler.get_sorted_task_ids()
@@ -36,13 +34,11 @@ class PytorchSPOSNASAgent(PytorchConnectionRandomSearchAgent):
 
                 if '_model_fit' in dir(subtask_env):
                     if self._freeze_model_weights:
-                        self._set_trainable_flags(subtask_env._model_fit,
-                                                  False)
+                        self._set_trainable_flags(subtask_env._model_fit, False)
 
             # Save model hyperparameters
             params_list = [v.hps for v in subtasktuples]
-            self._saver.add(f'choiceblock_{task_id}_submodel_params',
-                            params_list)
+            self._saver.add(f'choiceblock_{task_id}_submodel_params', params_list)
 
             # Not apply choiceblock for single submodel set
             if len(subtasktuples) == 1:
@@ -54,8 +50,7 @@ class PytorchSPOSNASAgent(PytorchConnectionRandomSearchAgent):
             choiceblock_list.append(choiceblock.env)
 
         # Connecting each choiceblock model
-        subtask = self._build_connected_models(choiceblock_list,
-                                               job_id='SPOS-NAS')
+        subtask = self._build_connected_models(choiceblock_list, job_id='SPOS-NAS')
         self._execute_subtask(subtask, is_pretraining=False)
 
         # evaluate each choice block
@@ -69,32 +64,27 @@ class PytorchSPOSNASAgent(PytorchConnectionRandomSearchAgent):
             model_name = []
             for i, choice in enumerate(choices):
                 subtask.env._subtasks[i].choice = choice
-                model_name.append(subtask.env._subtasks[i].ml.model.
-                                  _choice_block[choice].__class__.__name__[1:])
+                model_name.append(
+                    subtask.env._subtasks[i].ml.model._choice_block[choice].__class__.__name__[1:])
             all_data = subtask.env.get_input_true_data('all')
             subtask.env.predict_update(all_data)
             self._metric.storegate = self._storegate
             metric = self._metric.calculate()
-            result = dict(model_name='_'.join(model_name),
-                          choices=choices,
-                          metric=metric)
+            result = dict(model_name='_'.join(model_name), choices=choices, metric=metric)
             self._saver.add(f"results.{'_'.join(model_name)}", result)
             results.append(result)
 
         from numpy import argmax
-        model_name, choices, metric = results[argmax(
-            [i['metric'] for i in results])].values()
+        model_name, choices, metric = results[argmax([i['metric'] for i in results])].values()
         for i, choice in enumerate(choices):
             subtask.env._subtasks[i].ml.model._choice = choice
         self._saver.add('SPOS-NAS_train.selected_model', model_name)
         self._saver.add('SPOS-NAS_train.metric', metric)
 
         # re-train
-        subtask = self._build_connected_models(subtasks=[
-            self._task_prod[num][choice].env
-            for num, choice in enumerate(choices)
-        ],
-                                               job_id='SPOS-NAS.final')
+        subtask = self._build_connected_models(
+            subtasks=[self._task_prod[num][choice].env for num, choice in enumerate(choices)],
+            job_id='SPOS-NAS.final')
         self._execute_subtask(subtask, is_pretraining=False)
         self._metric.storegate = self._storegate
         metric = self._metric.calculate()
@@ -114,23 +104,17 @@ class PytorchSPOSNASAgent(PytorchConnectionRandomSearchAgent):
         )
 
         self._task_scheduler.add_task(task_id=task_id, add_to_dag=False)
-        self._task_scheduler.add_subtask(task_id,
-                                         task_id + '_choiceblock',
-                                         env=choiceblock)
-        subtask = self._task_scheduler.get_subtask(task_id,
-                                                   task_id + '_choiceblock')
+        self._task_scheduler.add_subtask(task_id, task_id + '_choiceblock', env=choiceblock)
+        subtask = self._task_scheduler.get_subtask(task_id, task_id + '_choiceblock')
 
         self._execute_subtask(subtask, is_pretraining=True)
 
         if not self._connectiontask_args["load_weights"]:
             unique_id = choiceblock.get_unique_id()
-            self.saver.dump_ml(unique_id,
-                               ml_type='pytorch',
-                               model=choiceblock.ml.model)
+            self.saver.dump_ml(unique_id, ml_type='pytorch', model=choiceblock.ml.model)
 
         # Save model ordering (model index)
         submodel_names = subtask.env.get_submodel_names()
-        self._saver.add(f'choiceblock_{task_id}_submodel_names',
-                        submodel_names)
+        self._saver.add(f'choiceblock_{task_id}_submodel_names', submodel_names)
 
         return subtask

@@ -7,7 +7,7 @@ class SoftMaxDenseLayer(Layer):
                  kernel_regularizer=None,
                  dropout_rate=None,
                  **kwargs):
-        """ Constructor
+        """Constructor.
 
         Args:
             kernel_initializer (str): initializer for softmax weights
@@ -44,10 +44,8 @@ class SoftMaxDenseLayer(Layer):
             from tensorflow.math import divide_no_nan, reduce_sum
             from tensorflow.nn import dropout
             batch_size = shape(inputs)[0]
-            dropout_layer_shape = stack(
-                [batch_size, self._last_dim, self.units])
-            dropout_layer = dropout(ones(dropout_layer_shape),
-                                    rate=self.dropout_rate)
+            dropout_layer_shape = stack([batch_size, self._last_dim, self.units])
+            dropout_layer = dropout(ones(dropout_layer_shape), rate=self.dropout_rate)
             dropout_sum = reduce_sum(dropout_layer, axis=1, keepdims=True)
             dropout_layer = divide_no_nan(dropout_layer, dropout_sum)
             dropout_layer *= self._last_dim

@@ -26,8 +26,7 @@ class ChoiceBlockModel(Module):
     @choice.setter
     def choice(self, value):
         if value is not None:
-            self._name = ('ChoiceBlock' +
-                          self._choice_block[value].__class__.__name__)
+            self._name = ('ChoiceBlock' + self._choice_block[value].__class__.__name__)
         else:
             self._name = 'ChoiceBlock'
         self._choice = value

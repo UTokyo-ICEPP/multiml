@@ -6,8 +6,7 @@ from ..basic import RandomSearchAgent
 
 
 class ConnectionRandomSearchAgent(RandomSearchAgent):
-    """ Agent executing with only one possible hyperparameter combination
-    """
+    """Agent executing with only one possible hyperparameter combination."""
     def __init__(self,
                  freeze_model_weights=False,
                  do_pretraining=True,
@@ -32,8 +31,7 @@ class ConnectionRandomSearchAgent(RandomSearchAgent):
 
     @logger.logging
     def execute(self):
-        """ Execute
-        """
+        """Execute."""
         # Select first candidate of all combinations
         subtasktuples = self.task_scheduler[0]
 
@@ -66,10 +64,7 @@ class ConnectionRandomSearchAgent(RandomSearchAgent):
                            subtask_hps=subtask_hps,
                            metric_value=metric)
 
-    def _build_connected_models(self,
-                                subtasks,
-                                job_id=None,
-                                use_task_scheduler=True):
+    def _build_connected_models(self, subtasks, job_id=None, use_task_scheduler=True):
         task_id = 'connection'
         subtask_id = self.connectiontask_name_with_jobid(job_id)
 
@@ -98,8 +93,7 @@ class ConnectionRandomSearchAgent(RandomSearchAgent):
         else:
             from multiml.hyperparameter import Hyperparameters
             from multiml.task_scheduler import subtasktuple
-            return subtasktuple(task_id, subtask_id, subtask,
-                                Hyperparameters())
+            return subtasktuple(task_id, subtask_id, subtask, Hyperparameters())
 
     def _execute_subtask(self, subtask, is_pretraining):
         if is_pretraining is True and self._do_pretraining is False:
@@ -120,7 +114,7 @@ class ConnectionRandomSearchAgent(RandomSearchAgent):
             var.trainable = do_trainable
 
     def connectiontask_name_with_jobid(self, job_id):
-        """ Returns a formatted name for ConnectionTask. job_id is used as a suffix.
+        """Returns a formatted name for ConnectionTask. job_id is used as a suffix.
 
         Returns:
             str: formatted name for the ConnectionTask

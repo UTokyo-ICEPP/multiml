@@ -2,8 +2,7 @@ from ..basic import ConnectionRandomSearchAgent
 
 
 class KerasConnectionRandomSearchAgent(ConnectionRandomSearchAgent):
-    """ Keras implementation for ConnectionRandomSearchAgent
-    """
+    """Keras implementation for ConnectionRandomSearchAgent."""
 
     from multiml.task.keras import ModelConnectionTask
     _ModelConnectionTask = ModelConnectionTask

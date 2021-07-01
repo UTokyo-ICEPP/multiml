@@ -8,8 +8,7 @@ import numpy as np
 
 
 class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
-    """ Agent packing subtasks using Pytorch ASNG-NAS Model
-    """
+    """Agent packing subtasks using Pytorch ASNG-NAS Model."""
     def __init__(
             self,
             verbose=1,
@@ -59,9 +58,7 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
 
     @logger.logging
     def execute(self):
-        """ Execute
-        Currently, only categorical ASNG NAS is implemented.
-        """
+        """Execute Currently, only categorical ASNG NAS is implemented."""
 
         asng_block_list, task_ids = self._build_disconnected_task_block_list()
 
@@ -86,17 +83,12 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         )
 
         self._task_scheduler.add_task(task_id='ASNG-NAS', add_to_dag=False)
-        self._task_scheduler.add_subtask('ASNG-NAS',
-                                         'main-task',
-                                         env=asng_task)
-        asng_subtask = self._task_scheduler.get_subtask(
-            'ASNG-NAS', 'main-task')
+        self._task_scheduler.add_subtask('ASNG-NAS', 'main-task', env=asng_task)
+        asng_subtask = self._task_scheduler.get_subtask('ASNG-NAS', 'main-task')
 
         if not self._connectiontask_args["load_weights"]:
             unique_id = asng_task.get_unique_id()
-            self.saver.dump_ml(unique_id,
-                               ml_type='pytorch',
-                               model=asng_task.ml.model)
+            self.saver.dump_ml(unique_id, ml_type='pytorch', model=asng_task.ml.model)
 
         # Save model ordering (model index)
         submodel_names = asng_subtask.env.get_submodel_names()
@@ -146,9 +138,7 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
                            subtask_hps=[None],
                            metric_value=test_metric)
 
-        test_result = dict(model_name='ASNG-NAS-Final',
-                           cat_idx=cat_idx,
-                           metric=test_metric)
+        test_result = dict(model_name='ASNG-NAS-Final', cat_idx=cat_idx, metric=test_metric)
         self._saver.add(f"results.ASNG-NAS-Final", test_result)
 
         results_json['loss_test'] = pred_result['loss']
@@ -157,15 +147,14 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
 
         for task_idx, task_id in enumerate(task_ids):
             results_json['tasks'][task_id] = {}
-            results_json['tasks'][task_id][
-                'weight'] = best_combination_task.env.ml.loss_weights[task_idx]
+            results_json['tasks'][task_id]['weight'] = best_combination_task.env.ml.loss_weights[
+                task_idx]
             results_json['tasks'][task_id]['models'] = []
             results_json['tasks'][task_id]['theta_cat'] = []
 
             subtasktuples = self._task_scheduler.get_subtasks_with_hps(task_id)
             for subtask_idx, subtask in enumerate(subtasktuples):
-                this_id = subtask.subtask_id.split('-')[
-                    -1]  # FIXME : hard coded
+                this_id = subtask.subtask_id.split('-')[-1]  # FIXME : hard coded
                 theta = theta_cat[task_idx, subtask_idx]
                 results_json['tasks'][task_id]['models'].append(this_id)
                 results_json['tasks'][task_id]['theta_cat'].append(theta)
@@ -194,8 +183,7 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         task_ids = []
         asng_block_list = []
 
-        for task_idx, task_id in enumerate(
-                self._task_scheduler.get_sorted_task_ids()):
+        for task_idx, task_id in enumerate(self._task_scheduler.get_sorted_task_ids()):
             subtasktuples = self._task_scheduler.get_subtasks_with_hps(task_id)
 
             for subtask_idx, subtask in enumerate(subtasktuples):
@@ -204,9 +192,7 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
                 subtask_env.set_hps(subtask_hps)
 
                 if self.do_pretraining:
-                    logger.info(
-                        f'pretraining of {subtask_env.subtask_id} is starting...'
-                    )
+                    logger.info(f'pretraining of {subtask_env.subtask_id} is starting...')
                     self._execute_subtask(subtask, is_pretraining=True)
                 else:
                     subtask.env.storegate = self._storegate
@@ -215,20 +201,16 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
 
                 if '_model_fit' in dir(subtask_env):
                     if self._freeze_model_weights:
-                        self._set_trainable_flags(subtask_env._model_fit,
-                                                  False)
+                        self._set_trainable_flags(subtask_env._model_fit, False)
 
             l = ', '.join(subtask.env.subtask_id for subtask in subtasktuples)
             logger.info(f'{l}')
             params_list = [v.hps for v in subtasktuples]
-            self._saver.add(f'asng_block_{task_id}_submodel_params',
-                            params_list)
+            self._saver.add(f'asng_block_{task_id}_submodel_params', params_list)
 
             # build asng task block
             subtasks = [v.env for v in subtasktuples]
-            asng_block_subtask = self._build_block_task(subtasks,
-                                                        task_id,
-                                                        is_pretraining=False)
+            asng_block_subtask = self._build_block_task(subtasks, task_id, is_pretraining=False)
             asng_block_list.append(asng_block_subtask.env)
             task_ids.append(task_id)
 
@@ -244,15 +226,11 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         )
         asng_task_id = 'ASNG-NAS-' + task_id
 
-        self._loss_weights[asng_task_id] = self._connectiontask_args[
-            'loss_weights'][task_id]
+        self._loss_weights[asng_task_id] = self._connectiontask_args['loss_weights'][task_id]
 
         self._task_scheduler.add_task(task_id=asng_task_id)
-        self._task_scheduler.add_subtask(asng_task_id,
-                                         'BlockTask',
-                                         env=asng_block)
-        asng_block_subtask = self._task_scheduler.get_subtask(
-            asng_task_id, 'BlockTask')
+        self._task_scheduler.add_subtask(asng_task_id, 'BlockTask', env=asng_block)
+        asng_block_subtask = self._task_scheduler.get_subtask(asng_task_id, 'BlockTask')
 
         if is_pretraining:
             self._execute_subtask(asng_block_subtask, is_pretraining=True)
@@ -263,9 +241,7 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
 
         if not self._connectiontask_args['load_weights']:
             unique_id = asng_block.get_unique_id()
-            self.saver.dump_ml(unique_id,
-                               ml_type='pytorch',
-                               model=asng_block.ml.model)
+            self.saver.dump_ml(unique_id, ml_type='pytorch', model=asng_block.ml.model)
 
         submodel_names = asng_block_subtask.env.get_submodel_names()
         self._saver.add(f'asng_block_{task_id}_submodel_names', submodel_names)

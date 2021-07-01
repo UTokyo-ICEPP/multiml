@@ -1,5 +1,4 @@
-""" NumpyDatabase module
-"""
+"""NumpyDatabase module."""
 
 import numpy as np
 
@@ -9,8 +8,7 @@ from .utils import get_slice
 
 
 class NumpyDatabase(Database):
-    """ Base class of Numpy database
-    """
+    """Base class of Numpy database."""
     def __init__(self):
         self._db = {}
         self._metadata = {}
@@ -26,14 +24,12 @@ class NumpyDatabase(Database):
     def add_data(self, data_id, var_name, idata, phase, mode=None):
         if var_name in self._db[data_id][phase].keys():
             tmp_data = self._db[data_id][phase][var_name]
-            self._db[data_id][phase][var_name] = np.concatenate(
-                (tmp_data, idata), axis=0)
+            self._db[data_id][phase][var_name] = np.concatenate((tmp_data, idata), axis=0)
             self._metadata[data_id][phase][var_name]['type'] = type(
                 self._db[data_id][phase][var_name][0]).__name__
-            self._metadata[data_id][phase][var_name]['shape'] = self._db[
-                data_id][phase][var_name][0].shape[1:]
-            self._metadata[data_id][phase][var_name]['total_events'] += len(
-                idata)
+            self._metadata[data_id][phase][var_name]['shape'] = self._db[data_id][phase][var_name][
+                0].shape[1:]
+            self._metadata[data_id][phase][var_name]['total_events'] += len(idata)
 
         else:
             self._db[data_id][phase][var_name] = idata

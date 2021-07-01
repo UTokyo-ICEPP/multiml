@@ -1,5 +1,4 @@
-""" GridSearchAgent module.
-"""
+"""GridSearchAgent module."""
 
 import multiprocessing as mp
 
@@ -8,10 +7,9 @@ from multiml.agent.basic.random_search import RandomSearchAgent
 
 
 class GridSearchAgent(RandomSearchAgent):
-    """ Agent scanning all possible subtasks and hyper parameters.
-    """
+    """Agent scanning all possible subtasks and hyper parameters."""
     def __init__(self, **kwargs):
-        """ Initialize grid scan agent.
+        """Initialize grid scan agent.
 
         Args:
             kwargs (dict): arbitrary kwargs passed to ``RandomSearchAgent`` class.
@@ -20,8 +18,7 @@ class GridSearchAgent(RandomSearchAgent):
 
     @logger.logging
     def execute(self):
-        """ Execute grid scan agent.
-        """
+        """Execute grid scan agent."""
         if not self._multiprocessing:
             for counter, subtasktuples in enumerate(self.task_scheduler):
                 self._storegate.compile()
@@ -36,8 +33,7 @@ class GridSearchAgent(RandomSearchAgent):
         else:  # multiprocessing
             if self._storegate.backend not in ('numpy', 'hybrid'):
                 raise NotImplementedError(
-                    'multiprocessing is supported for only numpy and hybrid backend'
-                )
+                    'multiprocessing is supported for only numpy and hybrid backend')
 
             ctx = mp.get_context('spawn')
             queue = ctx.Queue()
@@ -49,8 +45,6 @@ class GridSearchAgent(RandomSearchAgent):
                 if len(args) == self._num_workers:
                     self.execute_jobs(ctx, queue, args)
                     args = []
-                    logger.counter(counter + 1,
-                                   len(self.task_scheduler),
-                                   divide=1)
+                    logger.counter(counter + 1, len(self.task_scheduler), divide=1)
 
             self.execute_jobs(ctx, queue, args)

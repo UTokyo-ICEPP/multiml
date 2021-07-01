@@ -11,7 +11,7 @@ class MLPBlock(Model):
                  batch_norm=False,
                  *args,
                  **kwargs):
-        """ Constructor
+        """Constructor.
 
         Args:
             layers (list): list of hidden layers
@@ -27,8 +27,7 @@ class MLPBlock(Model):
 
         self._layers = []
 
-        from tensorflow.keras.layers import (Activation, BatchNormalization,
-                                             Dense)
+        from tensorflow.keras.layers import (Activation, BatchNormalization, Dense)
 
         for i, node in enumerate(layers):
             self._layers.append(

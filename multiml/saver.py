@@ -1,5 +1,4 @@
-""" Saver module.
-"""
+"""Saver module."""
 
 import os
 import copy
@@ -10,7 +9,7 @@ from multiml import logger
 
 
 class Saver:
-    """ Miscellaneous object management class.
+    """Miscellaneous object management class.
 
     Dictionary to save miscellaneous objects, and provides utility methods to
     manage ML metadata. There are two type of backends, *shelve* and *dict*,
@@ -24,12 +23,8 @@ class Saver:
         >>> saver['key0'] = obj0
         >>> saver['key1'] = obj1
     """
-    def __init__(self,
-                 save_dir=None,
-                 serial_id=None,
-                 mode='shelve',
-                 recreate=False):
-        """ Initialize Saver and create the base directory.
+    def __init__(self, save_dir=None, serial_id=None, mode='shelve', recreate=False):
+        """Initialize Saver and create the base directory.
 
         Args:
             save_dir (str): directory path to save objects. If ``None`` is
@@ -137,7 +132,7 @@ class Saver:
 
         Args:
             recreate (bool): If ``recreate`` is True, existing database is
-                overwritten by an empty database. 
+                overwritten by an empty database.
         """
         if recreate:
             self.open(mode='n')
@@ -187,13 +182,11 @@ class Saver:
         if self._state == 'open':
             logger.debug('saver is already open')
         else:
-            self._shelve = shelve.open(f'{self._save_dir}/{self._shelve_name}',
-                                       flag=mode)
+            self._shelve = shelve.open(f'{self._save_dir}/{self._shelve_name}', flag=mode)
             self._state = 'open'
 
     def close(self):
-        """Close the shelve database.
-        """
+        """Close the shelve database."""
         if self._state == 'close':
             logger.debug('saver is already close')
         else:
@@ -248,12 +241,10 @@ class Saver:
             mode = self._mode
 
         if check and (mode == 'shelve') and (key in self.keys('dict')):
-            raise ValueError(
-                f'mode is shelve, but {key} already exists in dict')
+            raise ValueError(f'mode is shelve, but {key} already exists in dict')
 
         if check and (mode == 'dict') and (key in self.keys('shelve')):
-            raise ValueError(
-                f'mode is dict, but {key} already exists in shelve')
+            raise ValueError(f'mode is dict, but {key} already exists in shelve')
 
         if mode == 'shelve':
             if self._state == 'open':
@@ -289,8 +280,7 @@ class Saver:
                 self.close()
 
     def save(self):
-        """Save the objects registered in dict to shelve.
-        """
+        """Save the objects registered in dict to shelve."""
         if self._mode == 'dict':
             self._mode = 'shelve'
             self._shelve_mode = 'c'
@@ -343,7 +333,7 @@ class Saver:
     @property
     def shelve_name(self):
         """Returns the name of shelve database file.
-        
+
         Returns:
             str: the name of shelve database file.
         """
@@ -351,14 +341,16 @@ class Saver:
 
     @shelve_name.setter
     def shelve_name(self, name):
-        """Set name of shelve database file. Default is 'results.slv'.
+        """Set name of shelve database file.
+
+        Default is 'results.slv'.
         """
         self._shelve_name = name
 
     @property
     def shelve_mode(self):
         """Returns the mode of shelve database file.
-        
+
         Returns:
             str: the mode of shelve database file.
         """
@@ -366,7 +358,9 @@ class Saver:
 
     @shelve_mode.setter
     def shelve_mode(self, mode):
-        """Set mode of shelve database file. Default is 'c'.
+        """Set mode of shelve database file.
+
+        Default is 'c'.
         """
         self._shelve_mode = mode
 
@@ -381,8 +375,7 @@ class Saver:
 
     @save_dir.setter
     def save_dir(self, save_dir):
-        """Set name of base directory of saver
-        """
+        """Set name of base directory of saver."""
         self._save_dir = save_dir
 
     def dump_ml(self, key, suffix=None, ml_type=None, **kwargs):
@@ -410,8 +403,7 @@ class Saver:
             self._dump_keras(key, **kwargs)
 
         else:
-            raise NotImplementedError(
-                f'ml_type: {ml_type} is not supported in the saver')
+            raise NotImplementedError(f'ml_type: {ml_type} is not supported in the saver')
 
     def load_ml(self, key, suffix=None):
         """Load machine learning models and parameters.
@@ -432,8 +424,7 @@ class Saver:
     # Internal methods
     ##########################################################################
     def _dump_pytorch(self, key, model=None, model_path=None, **kwargs):
-        """Dump pytorch model and parameters.
-        """
+        """Dump pytorch model and parameters."""
         kwargs = self._get_basic_kwargs(**kwargs)
         kwargs['model_type'] = 'pytorch'
         kwargs['timestamp'] = logger.get_now()
@@ -450,8 +441,7 @@ class Saver:
         self[key] = kwargs
 
     def _dump_keras(self, key, model=None, model_path=None, **kwargs):
-        """Dump keras model and parameters.
-        """
+        """Dump keras model and parameters."""
         kwargs = self._get_basic_kwargs(**kwargs)
         kwargs['model_type'] = 'keras'
         kwargs['timestamp'] = logger.get_now()

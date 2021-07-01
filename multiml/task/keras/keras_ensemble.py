@@ -38,8 +38,7 @@ class EnsembleTask(KerasBaseTask):
                 self._output_var_names = [output_var_names]
 
                 for index in range(len(subtasks)):
-                    sub_var_names = self._get_sub_var_names(
-                        output_var_names, index)
+                    sub_var_names = self._get_sub_var_names(output_var_names, index)
                     self._output_var_names.append(sub_var_names)
 
             else:
@@ -99,7 +98,7 @@ class EnsembleTask(KerasBaseTask):
         return self._proxy_model.get_inputs()
 
     def get_submodel_names(self):
-        """ Returns subtask_id used in ensembling.
+        """Returns subtask_id used in ensembling.
 
         Returns:
             list (str): list of subtask_id
@@ -107,7 +106,7 @@ class EnsembleTask(KerasBaseTask):
         return [v.subtask_id for v in self._subtasks]
 
     def get_submodel(self, i_models):
-        """ Get a submodel by model index
+        """Get a submodel by model index.
 
         Args:
             i_models (int): submodel index
@@ -119,7 +118,7 @@ class EnsembleTask(KerasBaseTask):
 
     @staticmethod
     def get_ensemble_weights(model):
-        """ Collect ensemble_weights in the keras model
+        """Collect ensemble_weights in the keras model.
 
         Args:
             model (keras.Model):
@@ -142,13 +141,9 @@ class EnsembleTask(KerasBaseTask):
             return f'{output_var_names}.{index}'
 
         elif isinstance(output_var_names, list):
-            results = [
-                self._get_sub_var_names(v, index) for v in output_var_names
-            ]
+            results = [self._get_sub_var_names(v, index) for v in output_var_names]
             return results
 
         elif isinstance(output_var_names, tuple):
-            results = [
-                self._get_sub_var_names(v, index) for v in output_var_names
-            ]
+            results = [self._get_sub_var_names(v, index) for v in output_var_names]
             return tuple(results)

@@ -4,8 +4,7 @@ from . import KerasBaseTask
 
 
 class MLPTask(KerasBaseTask):
-    """ Keras MLP task
-    """
+    """Keras MLP task."""
     def __init__(self,
                  input_shapes=None,
                  layers=None,
@@ -40,7 +39,7 @@ class MLPTask(KerasBaseTask):
         self._format_member_variables()
 
     def set_hps(self, hps):
-        """ Set thresholds. Cut-names are given by get_hyperparameters methods.
+        """Set thresholds. Cut-names are given by get_hyperparameters methods.
 
         Args:
             hps (dict): (hyperparameter name => hyperparameter value)
@@ -54,8 +53,7 @@ class MLPTask(KerasBaseTask):
             self._input_shapes = [len(self.input_var_names)]
 
     def build_model(self):
-        """ Build a Keras MLP model
-        """
+        """Build a Keras MLP model."""
         from tensorflow.keras import backend as K
         from tensorflow.keras.models import Model
 

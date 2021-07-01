@@ -69,9 +69,7 @@ class DARTSTask(ModelConnectionTask):
             )
 
         batch_size_total = self._batch_size * frac_sum // frac_train
-        logger.debug(
-            f"total batch size (train + valid) in DARTS training = {batch_size_total}"
-        )
+        logger.debug(f"total batch size (train + valid) in DARTS training = {batch_size_total}")
 
         alpha_model_names = [v.name for v in self._model.alpha_vars]
         result['alpha_model_names'] = alpha_model_names
@@ -87,8 +85,7 @@ class DARTSTask(ModelConnectionTask):
         x_train_valid = []
         y_train_valid = []
         bsize_valid = batch_size_total - self._batch_size
-        logger.debug(
-            f"validation batch size in DARTS training = {bsize_valid}")
+        logger.debug(f"validation batch size in DARTS training = {bsize_valid}")
         for v1, v2 in zip(x['train'], x['valid']):
             v1 = v1.reshape((self._batch_size, -1) + v1.shape[1:])
             v2 = v2.reshape((bsize_valid, -1) + v2.shape[1:])
@@ -141,8 +138,7 @@ class DARTSTask(ModelConnectionTask):
                                 profile_batch=5)
             cbs.append(tb_cb)
 
-        from multiml.agent.keras.callback import (AlphaDumperCallback,
-                                                  EachLossDumperCallback)
+        from multiml.agent.keras.callback import (AlphaDumperCallback, EachLossDumperCallback)
         alpha_cb = AlphaDumperCallback()
         loss_cb = EachLossDumperCallback()
         cbs.append(alpha_cb)
@@ -169,8 +165,7 @@ class DARTSTask(ModelConnectionTask):
         result['darts_loss_history'] = loss_cb.get_loss_history()
         result['darts_lambda_history'] = history0['lambda']
         result['darts_alpha_gradients_sum'] = history0['alpha_gradients_sum']
-        result['darts_alpha_gradients_sq_sum'] = history0[
-            'alpha_gradients_sq_sum']
+        result['darts_alpha_gradients_sq_sum'] = history0['alpha_gradients_sq_sum']
         result['darts_alpha_gradients_n'] = history0['alpha_gradients_n']
 
         # Check nan in alpha parameters
@@ -179,30 +174,26 @@ class DARTSTask(ModelConnectionTask):
         ##################
         # Save meta data #
         ##################
-        self._index_of_best_submodels = self.ml.model.get_index_of_best_submodels(
-        )
+        self._index_of_best_submodels = self.ml.model.get_index_of_best_submodels()
 
         return result
 
     def load_metadata(self):
         #self._io_index = self.get_metadata('io_index')
-        self._index_of_best_submodels = self.get_metadata(
-            'index_of_best_submodels')
+        self._index_of_best_submodels = self.get_metadata('index_of_best_submodels')
 
     def get_best_submodels(self):
-        """ Returns indices of the best submodels determined by the alpha
+        """Returns indices of the best submodels determined by the alpha.
 
         Returns:
             list (int): list of index of the selected submodels
         """
         subtask_ids_best = []
-        for subtask_env, i_model in zip(self._subtasks,
-                                        self._index_of_best_submodels):
+        for subtask_env, i_model in zip(self._subtasks, self._index_of_best_submodels):
             subtask_ids_best.append(subtask_env.get_submodel(i_model))
 
             logger.info(
-                f"Submodels used in DARTS = {[m.subtask_id for m in subtask_env._subtasks]}"
-            )
+                f"Submodels used in DARTS = {[m.subtask_id for m in subtask_env._subtasks]}")
             logger.info(f"  Selected = {subtask_ids_best[-1].subtask_id}")
 
         return subtask_ids_best
@@ -211,23 +202,20 @@ class DARTSTask(ModelConnectionTask):
         from .modules import DARTSModel
         models = [subtask.ml.model for subtask in self._subtasks]
 
-        self._model = DARTSModel(
-            optimizer_alpha=self._optimizer_alpha,
-            optimizer_weight=self._optimizer_weight,
-            learning_rate_alpha=self._learning_rate_alpha,
-            learning_rate_weight=self._learning_rate_weight,
-            zeta=self._zeta,
-            models=models,
-            input_var_index=self._input_var_index,
-            output_var_index=self._output_var_index)
+        self._model = DARTSModel(optimizer_alpha=self._optimizer_alpha,
+                                 optimizer_weight=self._optimizer_weight,
+                                 learning_rate_alpha=self._learning_rate_alpha,
+                                 learning_rate_weight=self._learning_rate_weight,
+                                 zeta=self._zeta,
+                                 models=models,
+                                 input_var_index=self._input_var_index,
+                                 output_var_index=self._output_var_index)
 
         self._optimizer = 'SGD'  # This is dummy
 
     def dump_model(self, extra_args=None):
-        """ Dump current DARTS model.
-        """
-        args_dump_ml = dict(
-            index_of_best_submodels=self._index_of_best_submodels)
+        """Dump current DARTS model."""
+        args_dump_ml = dict(index_of_best_submodels=self._index_of_best_submodels)
 
         if extra_args is not None:
             args_dump_ml.update(extra_args)

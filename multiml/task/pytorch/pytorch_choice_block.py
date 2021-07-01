@@ -31,8 +31,7 @@ class PytorchChoiceBlockTask(PytorchBaseTask):
 
     def build_model(self):
         from .modules import ChoiceBlockModel
-        self._model = ChoiceBlockModel(
-            models=[v._model for v in self._subtasks])
+        self._model = ChoiceBlockModel(models=[v._model for v in self._subtasks])
 
     @property
     def choice(self):
