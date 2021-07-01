@@ -14,7 +14,7 @@ class MyPytorchModel(nn.Module):
         super(MyPytorchModel, self).__init__()
         self.fc1 = nn.Linear(2, 2)
 
-    def forward(self, x, training):
+    def forward(self, x):
         x = F.relu(self.fc1(x))
         return x
 
@@ -54,7 +54,7 @@ def test_mypytorchtask():
                          optimizer='SGD',
                          optimizer_args=dict(lr=0.1),
                          loss='CrossEntropyLoss',
-                         metrics=['acc', 'lrs'])
+                         metrics=['loss', 'acc', 'lr'])
     task.set_hps({'num_epochs': 5})
 
     task.execute()

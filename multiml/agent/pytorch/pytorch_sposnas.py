@@ -111,7 +111,6 @@ class PytorchSPOSNASAgent(PytorchConnectionRandomSearchAgent):
             saver=self._saver,
             phases=self._training_choiceblock_model,
             load_weights=self._connectiontask_args["load_weights"],
-            unpack_inputs=False,
         )
 
         self._task_scheduler.add_task(task_id=task_id, add_to_dag=False)

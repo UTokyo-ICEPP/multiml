@@ -26,6 +26,7 @@ class BaseTask(Task):
                  input_saver_key='tmpkey',
                  output_saver_key='tmpkey',
                  storegate=None,
+                 data_id=None,
                  name=None):
         """ Initialize base task.
 
@@ -34,6 +35,7 @@ class BaseTask(Task):
             input_saver_key (int): unique saver key to retrieve metadata.
             output_saver_key (int): unique saver key to save metadata.
             storegate (Storegate): ``Storegate`` class instance to manage data.
+            data_id (str): data_id of ``Storegate``, which is set by set_hps().
             name (str): task's name. If None, ``classname`` is used alternatively.
         """
         self._storegate = storegate
@@ -41,6 +43,7 @@ class BaseTask(Task):
         self._input_saver_key = input_saver_key
         self._output_saver_key = output_saver_key
         self._task_type = 'base'
+        self._data_id = data_id
         if name is None:
             self._name = self.__class__.__name__
         else:
@@ -80,6 +83,9 @@ class BaseTask(Task):
                 raise AttributeError(f'{key} is not defined.')
 
             setattr(self, '_' + key, value)
+
+        if self._data_id is not None:
+            self.storegate.set_data_id(self._data_id)
 
         if self.saver is not None:
             self.saver[self.output_saver_key] = params

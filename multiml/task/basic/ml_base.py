@@ -29,6 +29,7 @@ class MLBaseTask(BaseTask):
                  metrics=None,
                  num_epochs=10,
                  batch_size=64,
+                 num_workers=0,
                  verbose=None,
                  **kwargs):
         """ Initialize ML base task.
@@ -74,7 +75,9 @@ class MLBaseTask(BaseTask):
                 weights to given path.
             metrics (list): metrics of evaluation.
             num_epochs (int): number of epochs.
-            batch_size (int or dict): size of mini batch, you can set different batch_size for test, train, valid.
+            batch_size (int or dict): size of mini batch, you can set different
+                batch_size for test, train, valid.
+            num_workers (int): number of workers for dataloaders.
             verbose (int): verbose option for fitting step. If None, it's set
                 based on logger.MIN_LEVEL
         """
@@ -119,6 +122,7 @@ class MLBaseTask(BaseTask):
         self._save_weights = save_weights
         self._metrics = metrics
         self._num_epochs = num_epochs
+        self._num_workers = num_workers
 
         self._verbose = verbose
         self._batch_size = batch_size
@@ -184,6 +188,9 @@ class MLBaseTask(BaseTask):
                     raise AttributeError(f'{key} is not defined.')
 
                 setattr(self, '_' + key, value)
+
+        if self._data_id is not None:
+            self.storegate.set_data_id(self._data_id)
 
         if self.saver is not None:
             self.saver[self.output_saver_key] = params
