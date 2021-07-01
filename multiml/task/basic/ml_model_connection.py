@@ -64,6 +64,7 @@ class ModelConnectionTask(MLBaseTask):
             raise ValueError('Please provide at least two subtasks.')
 
         self._subtasks = subtasks
+        self._loss_weights = loss_weights
         self._variable_mapping = variable_mapping
 
         self._cache_var_names = None
@@ -103,7 +104,6 @@ class ModelConnectionTask(MLBaseTask):
         self.ml.loss_weights = []
 
         n_subtasks = len(self._subtasks)
-
         # Define loss weights for each task
         if (self._loss_weights is None) or (self._loss_weights == 'last_loss'):
             task_weights = [0.] * (n_subtasks - 1) + [1.0]

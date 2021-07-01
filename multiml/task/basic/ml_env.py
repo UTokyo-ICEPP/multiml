@@ -8,6 +8,7 @@ class MLEnv:
         self,
         model=None,
         optimizer=None,
+        scheduler=None,
         loss=None,
         loss_weights=None,
         multi_inputs=None,
@@ -18,6 +19,7 @@ class MLEnv:
         """
         self._model = model
         self._optimizer = optimizer
+        self._scheduler = scheduler
         self._loss = loss
         self._loss_weights = loss_weights
         self._multi_inputs = multi_inputs
@@ -27,6 +29,7 @@ class MLEnv:
     def clear(self):
         self._model = None
         self._optimizer = None
+        self._scheduler = None
         self._loss = None
         self._loss_weights = None
         self._multi_inputs = None
@@ -56,6 +59,18 @@ class MLEnv:
         """ Set optimizer.
         """
         self._optimizer = optimizer
+
+    @property
+    def scheduler(self):
+        """ Returns scheduler.
+        """
+        return self._scheduler
+
+    @scheduler.setter
+    def scheduler(self, optimizer):
+        """ Set scheduler.
+        """
+        self._scheduler = scheduler
 
     @property
     def loss(self):

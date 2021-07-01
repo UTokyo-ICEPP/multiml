@@ -7,7 +7,13 @@ import numpy as np
 
 
 class ASNGModel(ConnectionModel, Module):
-    def __init__(self, lam, delta_init_factor, *args, **kwargs):
+    def __init__(self,
+                 lam,
+                 delta_init_factor,
+                 alpha=1.5,
+                 range_restriction=True,
+                 *args,
+                 **kwargs):
         """
         Args:
             *args: Variable length argument list
@@ -18,53 +24,88 @@ class ASNGModel(ConnectionModel, Module):
         self._sub_models = ModuleList([])
 
         categories = []
+        integers = []
 
         for subtask in self._models:
             self._sub_models.append(subtask)
             categories += [subtask.n_subtask()]
 
         categories = np.array(categories)
-        from multiml.task.pytorch.modules import AdaptiveSNG
 
         n = np.sum(categories - 1) + 0  # 0 is integer part
+        if len(categories) > 0 and len(integers) > 0:
+            from multiml.task.pytorch.modules import AdaptiveSNG
+            self.asng = AdaptiveSNG(categories,
+                                    lam=lam,
+                                    delta_init=1.0 / (n**delta_init_factor),
+                                    delta_max=np.inf,
+                                    alpha=alpha,
+                                    range_restriction=range_restriction)
 
-        self.asng = AdaptiveSNG(categories,
-                                lam=lam,
-                                delta_init=1.0 / (n**delta_init_factor),
-                                delta_max=np.inf)
-        self.is_fix = False
+        elif len(categories) > 0 and len(integers) == 0:
+            from multiml.task.pytorch.modules import AdaptiveSNG_cat
+            self.asng = AdaptiveSNG_cat(categories,
+                                        lam=lam,
+                                        delta_init=1.0 /
+                                        (n**delta_init_factor),
+                                        delta_max=np.inf,
+                                        alpha=alpha,
+                                        range_restriction=range_restriction)
+
+        elif len(categories) == 0 and len(integers) > 0:
+            from multiml.task.pytorch.modules import AdaptiveSNG_int
+            self.asng = AdaptiveSNG_int(categories,
+                                        lam=lam,
+                                        delta_init=1.0 /
+                                        (n**delta_init_factor),
+                                        delta_max=np.inf,
+                                        alpha=alpha,
+                                        range_restriction=range_restriction)
+
+        else:
+            raise ValueError(
+                'ASNGModel : Both categories and integers is not active...')
+
+        self.set_fix(False)
 
     def set_most_likely(self):
         self.c_cat, self.c_int = self.asng.most_likely_value()
-        self.is_fix = True
+        self.set_fix(True)
+
+    def set_fix(self, fix):
+        self.is_fix = fix
+        if self.is_fix:
+            self.forward = self.forward_fix
+        else:
+            self.forward = self.forward_sampling
 
     def get_most_likely(self):
         return self.c_cat, self.c_int
 
-    def update_theta(self, losses, range_restriction=True):
-
-        self.asng.update_theta(self.c_cats, self.c_ints, losses,
-                               range_restriction)
+    def update_theta(self, losses):
+        self.asng.update_theta(self.c_cats, self.c_ints, losses)
 
     def get_thetas(self):
-        return self.asng.get_thetas()
+        thetas = self.asng.get_thetas()
+        return thetas
+
+    def set_thetas(self, theta_cat, theta_int):
+        self.asng.set_thetas(theta_cat, theta_int)
 
     def best_models(self):
         return self.best_task_ids, self.best_subtask_ids
 
-    def forward(self, inputs):
+    def forward_fix(self, inputs):
+        outputs = self._forward(inputs, self.c_cat, self.c_int)
+        return outputs
+
+    def forward_sampling(self, inputs):
         outputs = []
+        self.c_cats, self.c_ints = self.asng.sampling()
 
-        if self.is_fix:
-            outputs = self._forward(inputs, self.c_cat, self.c_int)
-        else:
-            self.c_cats, self.c_ints = self.asng.sampling()
-            # print(f'forward')
-            # print(f'c_cats is --> {self.c_cats.argmax(axis = 2)[0]}, {self.c_cats.argmax(axis = 2)[1]}')
-            for c_cat, c_int in zip(self.c_cats, self.c_ints):
-                o = self._forward(inputs, c_cat, c_int)
-                outputs.append(o)
-
+        for c_cat, c_int in zip(self.c_cats, self.c_ints):
+            o = self._forward(inputs, c_cat, c_int)
+            outputs.append(o)
         return outputs
 
     def _forward(self, inputs, c_cat, c_int):

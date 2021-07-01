@@ -75,7 +75,6 @@ class PytorchBaseTask(MLBaseTask):
         self._pbar_args = const.PBAR_ARGS
         self._pred_index = None
         self._early_stopping = False
-        self._scheduler = None
         self._sampler = None
         self._scaler = None
 
@@ -114,7 +113,7 @@ class PytorchBaseTask(MLBaseTask):
             self.ml.model.to(self._device)
 
     def compile_optimizer(self):
-        """ Compile pytorch optimizer.
+        """ Compile pytorch optimizer and scheduler.
 
         Compile optimizer based on self._optimizer type, which is usually set
         by ``__init__()`` method. Compiled optimizer is set to
@@ -129,6 +128,12 @@ class PytorchBaseTask(MLBaseTask):
 
         self.ml.optimizer = util.compile(self._optimizer, optimizer_args,
                                          optim)
+
+        if self._scheduler is not None:
+            scheduler_args = copy.copy(self._scheduler_args)
+            scheduler_args['optimizer'] = self.ml.optimizer
+            self.ml.scheduler = util.compile(self._scheduler, scheduler_args,
+                                             optim)
 
     def compile_loss(self):
         """ Compile pytorch loss.
@@ -266,8 +271,8 @@ class PytorchBaseTask(MLBaseTask):
                 if early_stopping(result['loss'], self.ml.model):
                     break
 
-            if self._scheduler is not None:
-                self._scheduler.step()
+            if self.ml.scheduler is not None:
+                self.ml.scheduler.step()
 
         if self._early_stopping:
             best_model = early_stopping.best_model.state_dict()

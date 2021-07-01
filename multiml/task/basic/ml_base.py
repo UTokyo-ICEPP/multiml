@@ -18,6 +18,8 @@ class MLBaseTask(BaseTask):
                  model_args=None,
                  optimizer=None,
                  optimizer_args=None,
+                 scheduler=None,
+                 scheduler_args=None,
                  loss=None,
                  loss_args=None,
                  max_patience=None,
@@ -58,6 +60,8 @@ class MLBaseTask(BaseTask):
             model_args (dict): args of model, e.g. dict(param0=0, param1=1).
             optimizer (str or obj): name of optimizer, or class object of optimizer
             optimizer_args (dict): args of optimizer.
+            scheduler (str or obj): name of scheduler, or class object of scheduler
+            scheduler_args (dict): args of scheduler.
             loss (str or obj): name of loss, or class object of loss
             loss_args (dict): args of loss.
             max_patience (int): max number of patience for early stopping.
@@ -90,6 +94,9 @@ class MLBaseTask(BaseTask):
         if optimizer_args is None:
             optimizer_args = {}
 
+        if scheduler_args is None:
+            scheduler_args = {}
+
         if loss_args is None:
             loss_args = {}
 
@@ -110,6 +117,8 @@ class MLBaseTask(BaseTask):
         self._model_args = model_args
         self._optimizer = optimizer
         self._optimizer_args = optimizer_args
+        self._scheduler = scheduler
+        self._scheduler_args = scheduler_args
         self._loss = loss
         self._loss_args = loss_args
         self._loss_weights = loss_weights
@@ -172,6 +181,9 @@ class MLBaseTask(BaseTask):
 
             elif key.startswith('optimizer__'):
                 self._optimizer_args[key.replace('optimizer__', '')] = value
+
+            elif key.startswith('optimizer__'):
+                self._scheduler_args[key.replace('scheduler__', '')] = value
 
             elif key.startswith('loss__'):
                 self._loss_args[key.replace('loss__', '')] = value
