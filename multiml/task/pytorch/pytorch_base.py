@@ -72,6 +72,7 @@ class PytorchBaseTask(MLBaseTask):
         self._amp = amp
 
         self._pbar_args = const.PBAR_ARGS
+        self._running_step = 1
         self._pred_index = None
         self._early_stopping = False
         self._sampler = None
@@ -311,7 +312,8 @@ class PytorchBaseTask(MLBaseTask):
             dict: dict of result.
         """
         epoch_metric = metrics.EpochMetric(self._metrics, label, self.true_var_names, self.ml)
-        pbar_args = dict(total=len(dataloader), disable=self._disable_tqdm())
+        num_batches = len(dataloader)
+        pbar_args = dict(total=num_batches, disable=self._disable_tqdm())
         pbar_args.update(self._pbar_args)
         pbar_desc = f'Epoch [{epoch: >4}/{self._num_epochs}] {phase.ljust(5)}'
 
@@ -319,15 +321,17 @@ class PytorchBaseTask(MLBaseTask):
         with tqdm(**pbar_args) as pbar:
             pbar.set_description(pbar_desc)
 
-            for data in dataloader:
+            for ii, data in enumerate(dataloader):
                 batch_result = self.step_batch(data, phase, label)
                 results.update(epoch_metric(batch_result))
 
                 if phase == 'test':
                     epoch_metric.pred(batch_result)
 
-                pbar_metrics = metrics.get_pbar_metric(results)
-                pbar.set_postfix(pbar_metrics)
+                if (ii % self._running_step == 0) or (ii == num_batches -1): 
+                    results = metrics.sync_gpu_data(results)
+                    pbar_metrics = metrics.get_pbar_metric(results)
+                    pbar.set_postfix(pbar_metrics)
                 pbar.update(1)
 
         if self._verbose == 2:
