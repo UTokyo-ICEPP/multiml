@@ -328,7 +328,7 @@ class PytorchBaseTask(MLBaseTask):
                 if phase == 'test':
                     epoch_metric.pred(batch_result)
 
-                if (ii % self._running_step == 0) or (ii == num_batches -1): 
+                if (ii % self._running_step == 0) or (ii == num_batches - 1):
                     results = metrics.sync_gpu_data(results)
                     pbar_metrics = metrics.get_pbar_metric(results)
                     pbar.set_postfix(pbar_metrics)

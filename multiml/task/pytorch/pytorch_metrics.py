@@ -130,6 +130,7 @@ class EpochMetric:
 
         return results
 
+
 def sync_gpu_data(results):
     if 'loss' in results:
         results['loss'] = results['loss'].item()
@@ -144,6 +145,7 @@ def sync_gpu_data(results):
             results['acc'] = results['acc'].item()
 
     return results
+
 
 def get_pbar_metric(epoch_result):
     result = {}
