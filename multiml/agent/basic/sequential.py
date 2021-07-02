@@ -1,6 +1,4 @@
 """SequentialAgent module."""
-from collections import namedtuple
-
 from multiml import logger
 from multiml.agent.basic import BaseAgent
 
@@ -23,12 +21,11 @@ class SequentialAgent(BaseAgent):
         """Initialize sequential agent.
 
         Args:
-            differentiable (str): ``keras`` or ``pytorch``. If differentiable
-                is given, ``ConnectionTask()`` is created based on sequential
-                tasks. If differentiable is None (default), sequential tasks
-                are executed step by step.
-            diff_pretrain (bool): If True, each subtask is trained before
-                creating `ConnectionTask()``.
+            differentiable (str): ``keras`` or ``pytorch``. If differentiable is given,
+                ``ConnectionTask()`` is created based on sequential tasks. If differentiable is
+                None (default), sequential tasks are executed step by step.
+            diff_pretrain (bool): If True, each subtask is trained before creating
+                `ConnectionTask()``.
             diff_task_args (dict): arbitrary args passed to ``ConnectionTask()``.
         """
         if diff_task_args is None:

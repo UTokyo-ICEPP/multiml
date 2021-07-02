@@ -18,18 +18,16 @@ class BaseAgent(Agent):
         """Initialize base agent.
 
         Args:
-            saver (Saver): ``Saver`` class instance. If ``saver`` is None,
-                ``Saver`` class instance is created without any args.
+            saver (Saver): ``Saver`` class instance. If ``saver`` is None, ``Saver`` class instance
+                is created without any args.
             storegate (Storegate): ``Storegate`` class instance.
-            task_scheduler (TaskScheduler or list): ``TaskScheduler`` class
-                instance. If *ordered tasks* (list) are given, ``TaskScheduler``
-                is initialized with *ordered tasks*. Please see
-                ``TaskScheduler`` class for details.
-            metric (str or BaseMetric): str or Metric class instance. If str
-                is given, Metric class is searched from multiml.agent.metric,
-                and initialized with ``metric_args`` below.
-            metric_args (dict): arbitrary args of Metric class. This option is
-                valid only if ``metric`` is str.
+            task_scheduler (TaskScheduler or list): ``TaskScheduler`` class instance. If *ordered
+                tasks* (list) are given, ``TaskScheduler`` is initialized with *ordered tasks*.
+                Please see ``TaskScheduler`` class for details.
+            metric (str or BaseMetric): str or Metric class instance. If str is given, Metric class
+                is searched from multiml.agent.metric, and initialized with ``metric_args`` below.
+            metric_args (dict): arbitrary args of Metric class. This option is valid only if
+                ``metric`` is str.
         """
         if metric_args is None:
             metric_args = {}

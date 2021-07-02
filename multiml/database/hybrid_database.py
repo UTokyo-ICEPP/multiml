@@ -18,8 +18,8 @@ class HybridDatabase(Database):
         self._output_dir = output_dir
         self._chunk = chunk
         self._mode = 'zarr'
-        self._db = {}
 
+        self._db = dict()
         self._db['numpy'] = NumpyDatabase()
         self._db['zarr'] = ZarrDatabase(output_dir=output_dir,
                                         chunk=chunk,
@@ -53,7 +53,7 @@ class HybridDatabase(Database):
 
     def delete_data(self, data_id, var_name, phase):
         if data_id not in self._db[self._mode].get_data_ids():
-            logger.info(f'data_id:{data_id} does not exist in backend:{backend}')
+            logger.info(f'data_id:{data_id} does not exist in backend:{self._mode}')
             return
 
         self._db[self._mode].delete_data(data_id, var_name, phase)

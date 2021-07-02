@@ -3,7 +3,6 @@
 import os
 from abc import abstractmethod
 
-import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 

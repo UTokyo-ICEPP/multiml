@@ -17,8 +17,8 @@ class Metric(metaclass=ABCMeta):
 class BaseMetric(Metric):
     """Base class of metric calculation.
 
-    All Metric class need to inherit this ``BaseMetric`` class. Metric class is
-    usually passed to *agent* class to calculate metric.
+    All Metric class need to inherit this ``BaseMetric`` class. Metric class is usually passed to
+    *agent* class to calculate metric.
 
     Examples:
         >>> metric = BaseMetric(storegate=storegate,
@@ -113,8 +113,7 @@ class BaseMetric(Metric):
     def get_true_pred_data(self):
         """Return true and pred data.
 
-        If special variable *active* is available, only samples with active is
-        True are selected.
+        If special variable *active* is available, only samples with active is True are selected.
 
         Returns:
             ndarray, ndarray: true and pred values.

@@ -1,6 +1,4 @@
 """ModelConnectionTask module."""
-import numpy as np
-
 from multiml import logger
 from multiml.task.basic import MLBaseTask
 
@@ -8,18 +6,17 @@ from multiml.task.basic import MLBaseTask
 class ModelConnectionTask(MLBaseTask):
     """Build a single task connecting with multiple tasks.
 
-    ``ModelConnectionTask`` connects multiple ML tasks considering the
-    input/output variables and dependencies of the tasks, then builds a single
-    task. ML model of component tasks are trained diferentially, thus
-    each ML model must be implemented by the same deep
-    learning library, i.e. Keras or Pytorch. Each subtask must contain
+    ``ModelConnectionTask`` connects multiple ML tasks considering the input/output variables and
+    dependencies of the tasks, then builds a single task. ML model of component tasks are trained
+    diferentially, thus each ML model must be implemented by the same deep learning library,
+    i.e. Keras or Pytorch. Each subtask must contain
       * ``input_var_names``, `output_var_names`` and `true_var_names`,
       * loss function,
-    to compile subtask dependencies and data I/O formats. The following
-    examples shows a workflow and its attributes, which are automatically
-    compiled:
+    to compile subtask dependencies and data I/O formats. The following examples shows a workflow
+    and its attributes, which are automatically compiled:
 
     Examples:
+        >>> '''
         >>> (input0, input1, input2)
         >>>      |   |        |
         >>>   [subtask0]      |
@@ -29,7 +26,8 @@ class ModelConnectionTask(MLBaseTask):
         >>>   [subtask1]------+
         >>>       |
         >>>   (output1)
-        >>> 
+        >>> '''
+        >>>
         >>> input_var_names = ['input0', 'input1', 'input2']
         >>> output_var_names = ['output0', 'output1']
         >>> input_var_index = [[0, 1], [-1, 2]]
@@ -44,13 +42,13 @@ class ModelConnectionTask(MLBaseTask):
         """Constructor of ModelConnectionTask.
 
         Args:
-            subtasks (list): list must contains ordered instance objects
-                inherited from ``MLBaseTask``.
-            loss_weights (list or dict or str): list of loss weights for each
-                task. ``last_loss`` and ``flat_loss`` are also allowed.
-            variable_mapping (list(str, str)): Input variables are replaced
-                following this list. Used for the case that the input variables
-                change from pre-training to main-training (with model connecting).
+            subtasks (list): list must contains ordered instance objects inherited
+                from ``MLBaseTask``.
+            loss_weights (list or dict or str): list of loss weights for each task. ``last_loss``
+                and ``flat_loss`` are also allowed.
+            variable_mapping (list(str, str)): Input variables are replaced following this list.
+                Used for the case that the input variables change from pre-training to
+                main-training (with model connecting).
             **kwargs: Arbitrary keyword arguments passed to ``MLBaseTask``.
         """
         super().__init__(**kwargs)

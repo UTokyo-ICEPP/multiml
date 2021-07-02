@@ -7,11 +7,10 @@ from multiml.task import Task
 class BaseTask(Task):
     """Base task class for the default functions.
 
-    All subtasks defined by users, need to inherit this ``BaseTask``.
-    In user defined class, super.__init__() must be called in __init__()
-    method. A task class is assumed to call its methods by following sequence:
-    ``set_hps()`` -> ``execute()`` -> ``finalize()``. If task class instance
-    is registered to ``TaskScheduler`` as *subtask*, ``self._task_id`` and
+    All subtasks defined by users, need to inherit this ``BaseTask``. In user defined class,
+    super.__init__() must be called in __init__() method. A task class is assumed to call its
+    methods by following sequence: ``set_hps()`` -> ``execute()`` -> ``finalize()``. If task class
+    instance is registered to ``TaskScheduler`` as *subtask*, ``self._task_id`` and
     ``self._subtask_id`` are automatically set by ``TaskScheduler``.
 
     Examples:
@@ -77,9 +76,8 @@ class BaseTask(Task):
     def set_hps(self, params):
         """Set hyperparameters to this task.
 
-        Class attributes (self._XXX) are automatically set based on keys and
-        values of given dict. E.g. dict of {'key0': 0, 'key1': 1} is given,
-        self._key0 = 0 and self._key1 = 1 are created.
+        Class attributes (self._XXX) are automatically set based on keys and values of given dict.
+        E.g. dict of {'key0': 0, 'key1': 1} is given, self._key0 = 0 and self._key1 = 1 are created.
         """
         for key, value in params.items():
             if not hasattr(self, '_' + key):

@@ -9,7 +9,7 @@ from multiml.agent.basic import SequentialAgent
 class RandomSearchAgent(SequentialAgent):
     """Agent executing random search.."""
     def __init__(self,
-                 samplings=[0],
+                 samplings=None,
                  seed=0,
                  metric_type=None,
                  num_workers=None,
@@ -18,17 +18,19 @@ class RandomSearchAgent(SequentialAgent):
         """Initialize simple agent.
 
         Args:
-            samplings (int or list): If int, number of random samplings.
-                If list, indexes of combination.
+            samplings (int or list): If int, number of random samplings. If list, indexes of
+                combination.
             seed (int): seed of random samplings.
-            metric_type (str): 'min' or 'max' for indicating direction of
-                metric optimization. If it is None, ``type`` is retrieved from
-                metric class instance.
+            metric_type (str): 'min' or 'max' for indicating direction of metric optimization.
+                If it is None, ``type`` is retrieved from metric class instance.
             num_workers (int): number of workers for multiprocessing. If
                 ``num_workers`` is given, multiprocessing is enabled.
             dump_all_results (bool): dump all results or not.
         """
         super().__init__(**kwargs)
+        if samplings is None:
+            samplings = [0]
+
         self._history = []
         self._samplings = samplings
         self._seed = seed

@@ -5,9 +5,8 @@ class ConnectionModel(metaclass=ABCMeta):
     def __init__(self, models=None, input_var_index=None, output_var_index=None, *args, **kwargs):
         """Connecting ML models differentially.
 
-        This ConnectionModel is usually build inside ``ModelConnectionTask`` to
-        set proper indexes automatically. Inputs data for ``call()`` or
-        ``forward()`` are assumed to be list format.
+        This ConnectionModel is usually build inside ``ModelConnectionTask`` to set proper indexes
+        automatically. Inputs data for ``call()`` or ``forward()`` are assumed to be list format.
 
         Args:
             models (list): list of compiled models.

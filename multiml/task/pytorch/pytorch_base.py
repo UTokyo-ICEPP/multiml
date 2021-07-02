@@ -49,8 +49,8 @@ class PytorchBaseTask(MLBaseTask):
 
         Args:
             device (str or obj): pytorch device, e.g. 'cpu', 'cuda'.
-            gpu_ids (list): GPU identifiers, e.g. [0, 1, 2]. ``data_parallel``
-                mode is enabled if ``gpu_ids`` is given.
+            gpu_ids (list): GPU identifiers, e.g. [0, 1, 2]. ``data_parallel`` mode is enabled if
+                ``gpu_ids`` is given.
             amp (bool): *(expert option)* enable amp mode.
         """
         super().__init__(**kwargs)
@@ -184,8 +184,8 @@ class PytorchBaseTask(MLBaseTask):
     def prepare_dataloader(self, data=None, phase=None):
         """Prepare dataloader.
 
-        If inputs are given, tensor_dataset() is called. If inputs are None,
-        storegate_dataset with given phase is called.
+        If inputs are given, tensor_dataset() is called. If inputs are None, storegate_dataset with
+        given phase is called.
 
         Args:
             data (ndarray): data passed to tensor_dataset().
@@ -213,9 +213,9 @@ class PytorchBaseTask(MLBaseTask):
     def fit(self, train_data=None, valid_data=None, dataloaders=None, valid_step=1):
         """Train model over epoch.
 
-        This methods train and valid model over epochs by calling
-        ``step_epoch()`` method. train and valid need to be provided by
-        ``train_data`` and ``valid_data`` options, or ``dataloaders`` option.
+        This methods train and valid model over epochs by calling ``step_epoch()`` method.
+        train and valid need to be provided by ``train_data`` and ``valid_data`` options, or
+        ``dataloaders`` option.
 
         Args:
             train_data (ndarray): If ``train_data`` is given, data are converted
@@ -269,15 +269,14 @@ class PytorchBaseTask(MLBaseTask):
     def predict(self, data=None, dataloader=None, phase=None, label=False):
         """Predict model.
 
-        This method predicts and returns results. Data need to be provided by
-        ```data``` option, or setting property of ``dataloaders`` directory.
+        This method predicts and returns results. Data need to be provided by ``data`` option, or
+        setting property of ``dataloaders`` directory.
 
         Args:
             data (ndarray): If ``data`` is given, data are converted to
                 ``TendorDataset`` and set to ``dataloaders['test']``.
             dataloader (obj): dataloader instance.
-            phase (str): 'all' or 'train' or 'valid' or 'test' to specify
-                dataloaders.
+            phase (str): 'all' or 'train' or 'valid' or 'test' to specify dataloaders.
             label (bool): If True, returns metric results based on labels.
 
         Returns:
@@ -299,8 +298,8 @@ class PytorchBaseTask(MLBaseTask):
     def step_epoch(self, epoch, phase, dataloader, label=True):
         """Process model for given epoch and phase.
 
-        ``ml.model``, ``ml.optimizer`` and ``ml.loss`` need to be set before
-        calling this method, please see ``compile()`` method.
+        ``ml.model``, ``ml.optimizer`` and ``ml.loss`` need to be set before calling this method,
+        please see ``compile()`` method.
 
         Args:
             epoch (int): epoch numer.
@@ -350,7 +349,7 @@ class PytorchBaseTask(MLBaseTask):
         Returns:
             dict: dict of result.
         """
-        inputs, labels = data  #FIXME: data without labels
+        inputs, labels = data  # FIXME: data without labels
         inputs = self.add_device(inputs, self._device)
         labels = self.add_device(labels, self._device)
 
@@ -434,7 +433,8 @@ class PytorchBaseTask(MLBaseTask):
             loss.backward()
             self.ml.optimizer.step()
 
-    def get_tensor_dataset(self, data):
+    @staticmethod
+    def get_tensor_dataset(data):
         """Returns dataset from given ndarray data."""
         return NumpyDataset(*data)
 

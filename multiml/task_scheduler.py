@@ -1,23 +1,22 @@
 """TaskScheduler module.
 
-In the multiml framework, *task* describes each step of pipeline, and *subtask*
-describes component of *task* with different type of approarchs, e.g. different
-type of ML models. The following scheme shows the case that the multiml
-consists of two steps, and three subtasks are defined for each step:
+In the multiml framework, *task* describes each step of pipeline, and *subtask* describes component
+of *task* with different type of approarchs, e.g. different type of ML models. The following scheme
+shows the case that the multiml consists of two steps, and three subtasks are defined for each step:
  
 >>> task0 (subtask0, subtask1, subtask2) -> task0 (subtask3, subtask4, subtask5) 
 
-TaskScheduler class manages dependencies of *task*, and stoers *subtask* class
-instances and thier hyperparameters.
+TaskScheduler class manages dependencies of *task*, and stoers *subtask* class instances and thier
+hyperparameters.
 
 Attributes:
-    tasktuple (namedtuple): namedtuple of *task*, which consists of ``task_id``
-        and ``subtasks``, ``task_id`` is unique identifier of *task*, and
-        ``subtasks`` is a list of ``subtasktuple`` described below.
+    tasktuple (namedtuple): namedtuple of *task*, which consists of ``task_id`` and ``subtasks``,
+        ``task_id`` is unique identifier of *task*, and ``subtasks`` is a list of ``subtasktuple``
+        described below.
     subtasktuple (namedtuple): namedtuple of *subtask*, which consists of
-        ``task_id``, ``subtask_id``, ``env`` and ``hps``. ``subtask_id`` is
-        unique identifier of *subtask*. ``env`` is class instance of *subtask*.
-        ``hps`` is class instance of Hyperparameters.
+        ``task_id``, ``subtask_id``, ``env`` and ``hps``. ``subtask_id`` is unique identifier of
+        *subtask*. ``env`` is class instance of *subtask*. ``hps`` is class instance of
+        Hyperparameters.
 """
 import itertools
 from collections import namedtuple
@@ -34,8 +33,8 @@ subtasktuple = namedtuple('subtasktuple', ('task_id', 'subtask_id', 'env', 'hps'
 class TaskScheduler:
     """Task management class for multiml execution.
 
-    Manage tasks and subtasks. Ordering of tasks are controlled by DAG by
-    providing parents and childs dependencies.
+    Manage tasks and subtasks. Ordering of tasks are controlled by DAG by providing parents and
+    childs dependencies.
 
     Examples:
         >>> subtask = MyTask()
@@ -47,18 +46,16 @@ class TaskScheduler:
     def __init__(self, ordered_tasks=None):
         """Initialize the TaskScheduler and reset DAG.
 
-        ``ordered_tasks`` option provides a shortcut of registering ordered
-        task and subtask. Please see ``add_ordered_tasks()`` and 
-        ``add_ordered_subtasks()`` methods for details. If task dependencies
-        are complex, please add task and subtask using ``add_task()`` and
+        ``ordered_tasks`` option provides a shortcut of registering ordered task and subtask.
+        Please see ``add_ordered_tasks()`` and ``add_ordered_subtasks()`` methods for details.
+        If task dependencies are complex, please add task and subtask using ``add_task()`` and
         ``add_subtask()`` methods.
 
         Args:
-            ordered_tasks (list): list of ordered task_ids, or list of ordered
-                subtasks. If given value is list of str,
-                ``add_ordered_tasks()`` is called to register task_ids. If
-                given value is list of other types, ``add_ordered_subtasks()``
-                is called to register subtasks.
+            ordered_tasks (list): list of ordered task_ids, or list of ordered subtasks. If given
+                value is list of str, ``add_ordered_tasks()`` is called to register task_ids. If
+                given value is list of other types, ``add_ordered_subtasks()`` is called to
+                register subtasks.
 
         Examples:
             >>> # ordered task_ids
@@ -104,10 +101,9 @@ class TaskScheduler:
     def add_task(self, task_id, parents=None, children=None, subtasks=None, add_to_dag=True):
         """Register task and add the relation between tasks.
 
-        If ``subtasks`` is provided as a list of dict, subtasks are also
-        registered to given ``task_id``. To specify dependencies of tasks,
-        ``parents`` or/and ``children`` need to be set, and ``add_to_dag``
-        must be True.
+        If ``subtasks`` is provided as a list of dict, subtasks are also registered to given
+        ``task_id``. To specify dependencies of tasks, ``parents`` or/and ``children`` need to be
+        set, and ``add_to_dag`` must be True.
 
         Args:
             task_id (str): unique task identifier
@@ -115,8 +111,8 @@ class TaskScheduler:
             children (list or str): list of child task_ids. or str of child task_id.
             subtasks (list): list of dict of subtasks with format of
                 {'subtask_id': subtask_id, 'env': env, 'hps': hps}
-            add_to_dag (bool): add task to DAG or not. To obtain task
-               dependencies, e.g. ordered tasks, task need to be added to DAG.
+            add_to_dag (bool): add task to DAG or not. To obtain task dependencies, e.g. ordered
+                tasks, task need to be added to DAG.
         """
         if parents is None:
             parents = []
@@ -152,9 +148,8 @@ class TaskScheduler:
     def add_ordered_tasks(self, ordered_tasks):
         """Register ordered tasks.
 
-        For example, if ``ordered_tasks`` is ['task0', 'task1'], 'task0' and
-        'task0' are registered with dependency of 'task0 (parent)' ->
-        'task1 (child)'.
+        For example, if ``ordered_tasks`` is ['task0', 'task1'], 'task0' and 'task0' are registered
+        with dependency of 'task0 (parent)' -> 'task1 (child)'.
 
         Args:
             ordered_tasks (list): list of task_ids
@@ -170,10 +165,9 @@ class TaskScheduler:
     def add_ordered_subtasks(self, ordered_tasks):
         """Register ordered subtasks.
 
-        ``ordered_tasks`` need to be a format of [task0, task1...], where e.g. task0
-        is a list of tuples [('subtask0', env0, hps0), ('subtask1', env0, hps0)...].
-        ``task_id`` is automatically set with 'step0', 'step1'...
-        For the examples below, scheme of pipeline is:
+        ``ordered_tasks`` need to be a format of [task0, task1...], where e.g. task0 is a list of
+        tuples [('subtask0', env0, hps0), ('subtask1', env0, hps0)...]. ``task_id`` is
+        automatically set with 'step0', 'step1'... For the examples below, scheme of pipeline is:
 
         >>> step0 (subtask0, subtask1) -> step1 (subtask2, subtask2) 
 
@@ -229,11 +223,10 @@ class TaskScheduler:
         Args:
             task_id (str): unique task identifier.
             subtask_id (str): unique subtask identifier.
-            env (BaseTask): user defined subtask class instance. subtask class
-                need to inherited from BaseTask class.
-            hps (dict or Hyperparameters): user defined Hyperparameters class
-                instance or dict. If hps is dict, dict is converted to
-                Hyparparameters class instance automatically.
+            env (BaseTask): user defined subtask class instance. subtask class need to inherited
+                from BaseTask class.
+            hps (dict or Hyperparameters): user defined Hyperparameters class instance or dict.
+                If hps is dict, dict is converted to Hyperparameters class instance automatically.
         """
         from multiml import Hyperparameters
 
@@ -354,9 +347,8 @@ class TaskScheduler:
 
         Returns:
             list:
-                list of modified subtasktuples. Modified subtasktuple format
-                is .task_id: task_id, .subtask_id: subtask_id,
-                .env: subtask class instance, .hps: *dictionary of hps*.
+                list of modified subtasktuples. Modified subtasktuple format is .task_id: task_id,
+                .subtask_id: subtask_id, .env: subtask class instance, .hps: *dictionary of hps*.
         """
         results = []
         for subtask in self.get_subtasks(task_id):

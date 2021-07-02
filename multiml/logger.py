@@ -1,8 +1,7 @@
 """Logger module.
 
-In principle, modules in multiml library use this logger.
-There are some print levels: ``DEBUG``, ``INFO``, ``WARN``, ``ERROR`` and
-``DISABLED``.
+In principle, modules in multiml library use this logger. There are some print levels: ``DEBUG``,
+``INFO``, ``WARN``, ``ERROR`` and ``DISABLED``.
 
 Examples:
     >>> from multiml import logger
@@ -37,7 +36,7 @@ def convert(level):
         ret = DISABLED
     else:
         print(f'Your choice({level}) is not valid, set to INFO')
-        ret = INFO
+
     return ret
 
 
@@ -45,8 +44,7 @@ def set_level(level):
     """Set log level.
 
     Args:
-        level (int): ``DEBUG``=10, ``INFO``=20, ``WARN``=30, ``ERROR``=40,
-            ``DISABLED``=50.
+        level (str or int): ``DEBUG``=10, ``INFO``=20, ``WARN``=30, ``ERROR``=40, ``DISABLED``=50.
     """
     if type(level) == str:
         level = convert(level)
@@ -93,7 +91,7 @@ def error(msg, *args):
 def counter(count, max_counts, divide=1, message=None):
     """Show process counter as information.
 
-    >>> ({count}/{max_counts}) events processed (message)
+    >>> '({count}/{max_counts}) events processed (message)'
     """
     if count == 0:
         return
@@ -108,9 +106,9 @@ def counter(count, max_counts, divide=1, message=None):
 def header1(message, level=info):
     """Show the following header.
 
-    >>> =================================
-    >>> ============ message ============
-    >>> =================================
+    >>> '================================='
+    >>> '============ message ============'
+    >>> '================================='
     """
     if len(message) % 2 == 1:
         message += ' '
@@ -127,7 +125,7 @@ def header1(message, level=info):
 def header2(message, level=info):
     """Show the following header.
 
-    >>> ------------ message ------------
+    >>> '------------ message ------------'
     """
     if len(message) % 2 == 1:
         message += ' '
@@ -161,17 +159,17 @@ def table(names, data, header=None, footer=None, max_length=30):
     >>> data = [['hoge0', 'hoge1'], ['hoge2', 'hoge3']]
     >>> header = 'header message'
     >>> footer = 'footer message'
-    >>> 
-    >>> ==============
-    >>> header message
-    >>> ==============
-    >>> var0   var1
-    >>> --------------
-    >>> hoge0  hoge1
-    >>> hoge2  hoge3
-    >>> --------------
-    >>> footer message
-    >>> ==============
+    >>>
+    >>> '=============='
+    >>> 'header message'
+    >>> '=============='
+    >>> 'var0   var1'
+    >>> '--------------'
+    >>> 'hoge0  hoge1'
+    >>> 'hoge2  hoge3'
+    >>> '--------------'
+    >>> 'footer message'
+    >>> '=============='
     """
     lengths = [5] * len(names)
 
@@ -228,6 +226,8 @@ def logging(func):
     """Show the header and footer indicating start and end algorithm.
 
     Examples:
+        >>> from multiml import logger
+        >>>
         >>> @logger.logging
         >>> def your_func(arg0, arg1):
         >>>     pass

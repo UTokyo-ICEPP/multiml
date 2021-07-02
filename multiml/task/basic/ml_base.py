@@ -32,28 +32,28 @@ class MLBaseTask(BaseTask):
                  **kwargs):
         """Initialize ML base task.
 
-        This base class will be inherited by deep learning task classes, ``KerasBaseTask()``
-        and ``PytorchBaseTask()``. ``input_var_names`` and ``output_var_names`` specify data
-        for model inputs and outputs. If ``input_var_names`` is list, e.g. ['var0', 'var1'],
-        model will receive data with format of [(batch size, k), (batch size, k)], where k
-        is arbitrary shape of each variable. If ``input_var_names`` is tuple,
-        e.g. ('var0', 'var1'), model will receive data with (batch size, M, k), where M is
-        the number of variables. If `output_var_names`` is list, model must returns list of
-        tensor data for each variable. If `output_var_names`` is tuple, model must returns
-        a tensor data. ``pred_var_names`` and ``true_var_names`` specify data for loss
-        calculations. If ``pred_var_names`` is given, only variables indicated by
-        ``pred_var_names`` are selected from model outputs before being passed to loss calculation.
-        Please see ``KerasBaseTask()` or ``PytorchBaseTask()`` for actual examples.
+        This base class will be inherited by deep learning task classes, ``KerasBaseTask()`` and
+        ``PytorchBaseTask()``. ``input_var_names`` and ``output_var_names`` specify data for model
+        inputs and outputs. If ``input_var_names`` is list, e.g. ['var0', 'var1'], model will
+        receive data with format of [(batch size, k), (batch size, k)], where k is arbitrary shape
+        of each variable. If ``input_var_names`` is tuple, e.g. ('var0', 'var1'), model will
+        receive data with (batch size, M, k), where M is the number of variables.
+        If `output_var_names`` is list, model must returns list of tensor data for each variable.
+        If `output_var_names`` is tuple, model must returns a tensor data. ``pred_var_names`` and
+        ``true_var_names`` specify data for loss calculations. If ``pred_var_names`` is given, only
+        variables indicated by ``pred_var_names`` are selected from model outputs before being
+        passed to loss calculation. Please see ``KerasBaseTask()` or ``PytorchBaseTask()`` for
+        actual examples.
 
         Args:
-            phases (list): list to indicates ML phases, e.g. ['train', 'test'].
-                If None is given, ['train', 'valid', 'test'] is set.
+            phases (list): list to indicates ML phases, e.g. ['train', 'test']. If None is given,
+                ['train', 'valid', 'test'] is set.
             input_var_names (str or list or tuple): input variable names in StoreGate.
             output_var_names (str or list or tuple): output variable names of model.
             pred_var_names (str or list): prediction variable names passed to loss.
             true_var_names (str or list or tuple): true variable names.
-            var_names (str): str of "input output true" variable names for
-                shortcut. This is not valid to specify multiple variables.
+            var_names (str): str of "input output true" variable names for shortcut. This is not
+                valid to specify multiple variables.
             model (str or obj): name of model, or class object of model.
             model_args (dict): args of model, e.g. dict(param0=0, param1=1).
             optimizer (str or obj): name of optimizer, or class object of optimizer
@@ -62,24 +62,22 @@ class MLBaseTask(BaseTask):
             scheduler_args (dict): args of scheduler.
             loss (str or obj): name of loss, or class object of loss
             loss_args (dict): args of loss.
-            max_patience (int): max number of patience for early stopping.
-                ``early_stopping`` is enabled if ```max_patience` is given.
+            max_patience (int): max number of patience for early stopping. ``early_stopping`` is
+                enabled if ```max_patience` is given.
             loss_weights (list): scalar coefficients to weight the loss.
-            load_weights (bool or str): user defined algorithms should assume
-                the following behavior. If False, not load model weights. If
-                True, load model weights from default location. If str, load
-                weights from given path.
-            save_weights (bool or str): user defined algorithms should assume
-                the following behavior. If False, not save model weights. If
-                True, save model weights to default location. If str, save
-                weights to given path.
+            load_weights (bool or str): user defined algorithms should assume the following
+                behavior. If False, not load model weights. If True, load model weights from
+                default location. If str, load weights from given path.
+            save_weights (bool or str): user defined algorithms should assume the following
+                behavior. If False, not save model weights. If True, save model weights to default
+                location. If str, save weights to given path.
             metrics (list): metrics of evaluation.
             num_epochs (int): number of epochs.
-            batch_size (int or dict): size of mini batch, you can set different
-                batch_size for test, train, valid.
+            batch_size (int or dict): size of mini batch, you can set different batch_size for
+                test, train, valid.
             num_workers (int): number of workers for dataloaders.
-            verbose (int): verbose option for fitting step. If None, it's set
-                based on logger.MIN_LEVEL
+            verbose (int): verbose option for fitting step. If None, it's set based on
+                logger.MIN_LEVEL
         """
         super().__init__(**kwargs)
 
@@ -142,12 +140,10 @@ class MLBaseTask(BaseTask):
     def set_hps(self, params):
         """Set hyperparameters to this task.
 
-        Class attributes (self._XXX) are automatically set based on keys and
-        values of given dict. Hyperparameters start with 'model__',
-        'optimizer__' and 'loss__' are considred as args of model, optimizer,
-        loss, respectively. If value of hyperparameters is str and starts with
-        'saver__', value is retrieved from ```Saver``` instance, please see
-        exampels below.
+        Class attributes (self._XXX) are automatically set based on keys and values of given dict.
+        Hyperparameters start with 'model__', 'optimizer__' and 'loss__' are considred as args of
+        model, optimizer, loss, respectively. If value of hyperparameters is str and starts with
+        'saver__', value is retrieved from ```Saver``` instance, please see exampels below.
 
         Args:
             params (dict): key and value of hyperparameters.

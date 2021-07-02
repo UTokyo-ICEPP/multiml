@@ -9,17 +9,16 @@ from multiml.database import NumpyDatabase, ZarrDatabase, HybridDatabase
 class StoreGate:
     """Data management class for multiml execution.
 
-    StoreGate provides common interfaces to manage data between multiml
-    *agents* and *tasks* with features of:
+    StoreGate provides common interfaces to manage data between multiml *agents* and *tasks* with
+    features of:
       * Different backends are supported (*numpy* or *zarr*, and *hybrid* of them),
       * Data are split into *train*, *valid* and *test* phases for ML,
       * Data are retrieved by ``var_names``, ``phase`` and ``index`` options.
 
-    Each dataset in the storegate is keyed by unique ``data_id``. All data in
-    the dataset are identified by ``var_names`` (column names). The number of
-    samples in a phase is assumed to be the same for all variables in
-    multiml agents and tasks. The ``compile()`` method ensures the validity of
-    the dataset.
+    Each dataset in the storegate is keyed by unique ``data_id``. All data in the dataset are
+    identified by ``var_names`` (column names). The number of samples in a phase is assumed to be
+    the same for all variables in multiml agents and tasks. The ``compile()`` method ensures the
+    validity of the dataset.
 
     Examples:
         >>> from multiml.storegate import StoreGate
@@ -40,17 +39,15 @@ class StoreGate:
     def __init__(self, backend='numpy', backend_args=None, data_id=None):
         """Initialize the storegate and the backend architecture.
 
-        Initialize storegate and the backend architecture with its options.
-        ``numpy`` backend manages data in memory, ``zarr`` backend reads and
-        writes data to storage of given path. ``hybrid`` backend is combination
-        of ``numpy`` and ``zarr`` backends, which allows to  move data between
-        memory and storage.
+        Initialize storegate and the backend architecture with its options. ``numpy`` backend
+        manages data in memory, ``zarr`` backend reads and writes data to storage of given path.
+        ``hybrid`` backend is combination of ``numpy`` and ``zarr`` backends, which allows to
+        move data between memory and storage.
 
         Args:
             backend (str): *numpy* (on memory), *zarr* (on storage), *hybrid*.
-            backend_args (dict): backend options, e.g. path to zarr database.
-                Please see ``ZarrDatabase`` and ``HybridDatabase`` classes for
-                details.
+            backend_args (dict): backend options, e.g. path to zarr database. Please see
+                ``ZarrDatabase`` and ``HybridDatabase`` classes for details.
             data_id (str): set default ``data_id`` if given.
         """
         if backend_args is None:
@@ -86,17 +83,15 @@ class StoreGate:
     def __getitem__(self, item):
         """Retrieve data by python getitem syntax.
 
-        Retrieve data by python getitem syntax, i.e.
-        ``storegate[phase][var_names][index]``. ``data_id``, ``phase``,
-        ``var_names`` and ``index`` need to be given to return selected data.
-        If all parameters are set, selected data are returned. Otherwise, self
-        instance class wit given parameters is returned.
+        Retrieve data by python getitem syntax, i.e. ``storegate[phase][var_names][index]``.
+        ``data_id``, ``phase``, ``var_names`` and ``index`` need to be given to return selected
+        data. If all parameters are set, selected data are returned. Otherwise, self instance class
+        with given parameters is returned.
 
         Args:
-            item (str or list or int or slice): If item is str of *train* or
-                *valid* or *test*, ``phase`` is set. If item is the other str
-                or list of strs, ``var_names`` is set. If item is int or slice,
-                data with index (slice) are returned.
+            item (str or list or int or slice): If item is str of *train* or *valid* or *test*,
+                ``phase`` is set. If item is the other str or list of strs, ``var_names`` is set.
+                If item is int or slice, data with index (slice) are returned.
 
         Returns:
             self or ndarray: please see description above.
@@ -131,9 +126,8 @@ class StoreGate:
     def __setitem__(self, item, data):
         """Update data by python setitem syntax.
 
-        Update data by python setitem syntax, i.e.
-        ``storegate[phase][var_names][index] = data``. ``data_id``, ``phase``,
-        ``var_names`` and ``index`` need to be given to update data.
+        Update data by python setitem syntax, i.e. ``storegate[phase][var_names][index] = data``.
+        ``data_id``, ``phase``, ``var_names`` and ``index`` need to be given to update data.
 
         Args:
             item (int or slice): Index of data to be updated.
@@ -161,9 +155,8 @@ class StoreGate:
     def __delitem__(self, item):
         """Delete data by python delitem syntax.
 
-        Delete data by python setitem syntax, i.e.
-        ``del storegate[phase][var_names]``. ``data_id``, ``phase``,
-        ``var_names`` need to be given to delete data.
+        Delete data by python setitem syntax, i.e. ``del storegate[phase][var_names]``.
+        ``data_id``, ``phase``, ``var_names`` need to be given to delete data.
 
         Args:
             item (str or list): ``var_names`` to be deleted.
@@ -234,8 +227,8 @@ class StoreGate:
     def set_data_id(self, data_id):
         """Set the default ``data_id`` and initialize the backend.
 
-        If the default ``data_id`` is set, all methods defined in storegate,
-        e.g. ``add_data()`` use the default ``data_id`` to manage data.
+        If the default ``data_id`` is set, all methods defined in storegate, e.g. ``add_data()``
+        use the default ``data_id`` to manage data.
 
         Args:
             data_id (str): the default ``data_id``.
@@ -256,31 +249,25 @@ class StoreGate:
     def add_data(self, var_names, data, phase='train', shuffle=False, mode=None, do_compile=False):
         """Add data to the storegate with given options.
 
-        If ``var_names`` already exists in given ``data_id`` and ``phase``,
-        the data are appended, otherwise ``var_names`` are newly registered and
-        the data are stored.
+        If ``var_names`` already exists in given ``data_id`` and ``phase``, the data are appended,
+        otherwise ``var_names`` are newly registered and the data are stored.
 
         Args:
-            var_names (str or list): list of variable names, e.g.
-                ['var0', 'var1', 'var2']. Single string, e.g. 'var0', is also
-                allowed to add only one variable.
-            data (list or ndarray): If ``var_names`` is single string, data
-                shape must be (N, k) where N is the number of samples and k is
-                an arbitrary shape of each data. If ``var_names`` is a tuple,
-                data shape must be (N, M, k), where M is the number of variables.
-                If ``var_names`` is a list, data mustbe a list of
-                [(N, k), (N, k), (N, k)...], where diffeernt shapes of k are
-                allowed.
-            phase (str or tuple): *all (auto)*, *train*, *valid*, *test* or
-                tuple. *all* divides the data to *train*, *valid* and *test*
-                automatically, but only after the ``compile``. If tuple
-                (x, y, z) is given, the data are divided to *train*, *valid*
-                and *test*. If contents of tuple is float and sum of the tuple
-                is 1.0, the data are split to phases with fractions of
-                (x, y, z) respectively. If contents of tuple is int, the data
-                are split by given indexes.
-            shuffle (bool or int): data are shuffled if True or int. If int is
-                given, it is used as random seed of ``np.random``.
+            var_names (str or list): list of variable names, e.g. ['var0', 'var1', 'var2'].
+                Single string, e.g. 'var0', is also allowed to add only one variable.
+            data (list or ndarray): If ``var_names`` is single string, data shape must be (N, k)
+                where N is the number of samples and k is an arbitrary shape of each data.
+                If ``var_names`` is a tuple, data shape must be (N, M, k), where M is the number of
+                variables. If ``var_names`` is a list, data mustbe a list of
+                [(N, k), (N, k), (N, k)...], where diffeernt shapes of k are allowed.
+            phase (str or tuple): *all (auto)*, *train*, *valid*, *test* or tuple. *all* divides
+                the data to *train*, *valid* and *test* automatically, but only after the
+                ``compile``. If tuple (x, y, z) is given, the data are divided to *train*, *valid*
+                and *test*. If contents of tuple is float and sum of the tuple is 1.0, the data are
+                split to phases with fractions of (x, y, z) respectively. If contents of tuple is
+                int, the data are split by given indexes.
+            shuffle (bool or int): data are shuffled if True or int. If int is given, it is used as
+                random seed of ``np.random``.
             mode (str): 'numpy' or 'zarr'. Only valid for 'hybrid' backend.
             do_compile (bool): do compile if True after adding data.
 
@@ -325,18 +312,17 @@ class StoreGate:
     def update_data(self, var_names, data, phase='train', index=-1, mode=None, do_compile=True):
         """Update data in storegate with given options.
 
-        Update (replace) data in the storegate. If ``var_names`` does not exist
-        in given ``data_id`` and ``phase``, data are newly added. Otherwise,
-        selected data are replaced with given data.
+        Update (replace) data in the storegate. If ``var_names`` does not exist in given
+        ``data_id`` and ``phase``, data are newly added. Otherwise, selected data are replaced with
+        given data.
 
         Args:
             var_names (str or list(srt)): see ``add_data()`` method.
             data (list or ndarray): see ``add_data()`` method.
             phase (str or tuple): see ``add_data()`` method.
-            index (int or tuple): If ``index`` is -1 (default), all data are
-                updated for given options. If ``index`` is int, only the data
-                with ``index`` is updated. If index is (x, y), data in the
-                range (x, y) are updated.
+            index (int or tuple): If ``index`` is -1 (default), all data are updated for given
+                options. If ``index`` is int, only the data with ``index`` is updated. If index is
+                (x, y), data in the range (x, y) are updated.
             mode (str): 'numpy' or 'zarr'. Only valid for 'hybrid' backend.
             do_compile (bool): do compile if True after updating data.
 
@@ -386,19 +372,18 @@ class StoreGate:
     def get_data(self, var_names, phase='train', index=-1):
         """Retrieve data from storegate with given options.
 
-        Get data from the storegate. Python getitem sytax is also supported,
-        please see ``__getitem__`` method.
+        Get data from the storegate. Python getitem sytax is also supported, please see
+        ``__getitem__`` method.
 
         Args:
-            var_names (tuple or list or str): If a tuple of variable names is
-                given, e.g. ('var0', 'var1', 'var2'), data with ndarray format
-                are returned. Single string, e.g. 'var0', is also allowed.
-                Please see the matrix below for shape of data.
-                If list of variable names is given, e.g. ['var0', 'var1', 'var2'],
+            var_names (tuple or list or str): If a tuple of variable names is given,
+                e.g. ('var0', 'var1', 'var2'), data with ndarray format are returned.
+                Single string, e.g. 'var0', is also allowed. Please see the matrix below for shape
+                of data. If list of variable names is given, e.g. ['var0', 'var1', 'var2'],
                 list of ndarray data for each variable are returned.
-            phase (str or None): *all*, *train*, *valid*, *test* or *None*.
-                If ``phase`` is *all* or *None*, data in all phases are
-                returned, but it is allowed only after the ``compile``.
+            phase (str or None): *all*, *train*, *valid*, *test* or *None*. If ``phase`` is *all*
+                or *None*, data in all phases are returned, but it is allowed only after the
+                ``compile``.
             index (int or tuple): see update_data method.
 
         Returns:
@@ -477,8 +462,8 @@ class StoreGate:
     def delete_data(self, var_names, phase='train', do_compile=True):
         """Delete data associated with var_names.
 
-        All data associated with ``var_names`` are deleted. Partial deletions
-        with index is not supported for now.
+        All data associated with ``var_names`` are deleted. Partial deletions with index is not
+        supported for now.
 
         Args:
             var_names (str or list): see ``add_data()`` method.
@@ -672,6 +657,8 @@ class StoreGate:
         Args:
             var_names (str or list): see ``add_data()`` method.
             phase (str): *all*, *train*, *valid*, *test*.
+            callback (obj): callback function, which receives ``var_names`` and ``data`` and
+                returns new ``var_names`` and ``data``.
         """
         if self._backend != 'hybrid':
             raise ValueError(f'to_memory is valid for only hybrid database ({self._backend})')
@@ -698,12 +685,14 @@ class StoreGate:
     def to_storage(self, var_names, phase='train', callback=None):
         """Move data from storage to memory.
 
-        This method is valid for only hybrid backend. This is useful if data
-        are large, then data need to be escaped to storage.
+        This method is valid for only hybrid backend. This is useful if data are large, then data
+        need to be escaped to storage.
 
         Args:
             var_names (str or list): see ``add_data()`` method.
             phase (str): *all*, *train*, *valid*, *test*.
+            callback (obj): callback function, which receives ``var_names`` and ``data`` and
+                returns new ``var_names`` and ``data``.
         """
         if self._backend != 'hybrid':
             raise ValueError(f'to_storage is valid for only hybrid database ({self._backend})')
@@ -730,13 +719,12 @@ class StoreGate:
     def compile(self, reset=False, show_info=False):
         """Check if registered samples are valid.
 
-        It is assumed that the ``compile`` is always called after
-        ``add_data()`` or ``update_data()`` methods to validate registered data.
+        It is assumed that the ``compile`` is always called after ``add_data()`` or
+        ``update_data()`` methods to validate registered data.
 
         Args:
-            reset (bool): special variable ``active`` is (re)set if True,
-                ``active`` variable is used to indicate that samples should be
-                used or not. e.g. in the metric calculation.
+            reset (bool): special variable ``active`` is (re)set if True, ``active`` variable is
+                used to indicate that samples should be used or not. e.g. in the metric calculation.
             show_info (bool): show information after compile.
         """
         self._check_valid_data_id()
@@ -823,8 +811,9 @@ class StoreGate:
             len_data = len(data[0])
 
             if len_var_names != len_data:
-                raise ValueError(f'Shapes with bind_var are not consistent\
-                        var_names:{len_var_names} data:{len_data}')
+                raise ValueError(
+                    f'Shapes with bind_var are not consistent var_names:{len_var_names} data:{len_data}'
+                )
 
             bind_data = []
             for ivar in range(len(var_names)):
@@ -834,8 +823,8 @@ class StoreGate:
         len_var_names = len(var_names)
         len_data = len(data)
         if len_var_names != len_data:
-            raise ValueError(f'Shapes are not consistent\
-                    var_names:{len_var_names} data:{len_data}')
+            raise ValueError(
+                f'Shapes are not consistent var_names:{len_var_names} data:{len_data}')
 
         return var_names, data
 

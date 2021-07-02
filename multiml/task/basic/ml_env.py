@@ -60,7 +60,7 @@ class MLEnv:
         return self._scheduler
 
     @scheduler.setter
-    def scheduler(self, optimizer):
+    def scheduler(self, scheduler):
         """Set scheduler."""
         self._scheduler = scheduler
 

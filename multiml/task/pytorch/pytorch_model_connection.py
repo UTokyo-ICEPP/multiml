@@ -2,7 +2,6 @@
 from . import PytorchBaseTask
 from ..basic import ModelConnectionTask
 from .modules import ConnectionModel
-from multiml.task.pytorch.datasets import StoreGateDataset
 
 
 class ModelConnectionTask(ModelConnectionTask, PytorchBaseTask):

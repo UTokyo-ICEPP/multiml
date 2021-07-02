@@ -32,7 +32,7 @@ class BatchMetric:
 
     @staticmethod
     def subloss(outputs, labels, loss):
-        return [l.item() for l in loss['subloss']]
+        return [loss.item() for loss in loss['subloss']]
 
     @staticmethod
     def acc(outputs, labels, loss):
