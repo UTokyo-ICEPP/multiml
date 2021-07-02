@@ -3,8 +3,8 @@
 In the multiml framework, *task* describes each step of pipeline, and *subtask* describes component
 of *task* with different type of approarchs, e.g. different type of ML models. The following scheme
 shows the case that the multiml consists of two steps, and three subtasks are defined for each step:
- 
->>> task0 (subtask0, subtask1, subtask2) -> task0 (subtask3, subtask4, subtask5) 
+
+>>> task0 (subtask0, subtask1, subtask2) -> task0 (subtask3, subtask4, subtask5)
 
 TaskScheduler class manages dependencies of *task*, and stoers *subtask* class instances and thier
 hyperparameters.
@@ -169,15 +169,15 @@ class TaskScheduler:
         tuples [('subtask0', env0, hps0), ('subtask1', env0, hps0)...]. ``task_id`` is
         automatically set with 'step0', 'step1'... For the examples below, scheme of pipeline is:
 
-        >>> step0 (subtask0, subtask1) -> step1 (subtask2, subtask2) 
+        >>> step0 (subtask0, subtask1) -> step1 (subtask2, subtask2)
 
         Args:
             ordered_tasks (list): list of subtasks. Please see examples below.
 
         Examples:
            >>> # ordered tasks with subtask_id and hyperparameters
-           >>> step0 = [('subtask0', env0, hps0), ('subtask1', env1, hps1)] 
-           >>> step1 = [('subtask2', env2, hps2), ('subtask3', env3, hps3)] 
+           >>> step0 = [('subtask0', env0, hps0), ('subtask1', env1, hps1)]
+           >>> step1 = [('subtask2', env2, hps2), ('subtask3', env3, hps3)]
            >>> steps = [step0, step1]
            >>> task_scheduler.add_ordered_subtasks(steps)
            >>>

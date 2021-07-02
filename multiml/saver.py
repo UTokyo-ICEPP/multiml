@@ -166,7 +166,7 @@ class Saver:
             mode (str): 'r': reading only, 'w': reading and writing, 'c' (default): reading and
                 writing, creating it if it does not exist, 'n': always create a new empty database,
                 reading and writing.
-  
+
         Examples:
             >>> saver.open('r')
             >>> print(saver['key0'])

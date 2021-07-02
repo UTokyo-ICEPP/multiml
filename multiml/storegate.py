@@ -142,7 +142,7 @@ class StoreGate:
         self._check_valid_data_id()
 
         if (self._phase is None) or (self._var_names is None):
-            raise ValueError(f'Please provide phase and var_names')
+            raise ValueError('Please provide phase and var_names')
 
         if not isinstance(item, (int, slice)):
             raise ValueError(f'item {item} must be int or slice')
@@ -168,7 +168,7 @@ class StoreGate:
         self._check_valid_data_id()
 
         if self._phase is None:
-            raise ValueError(f'Please provide phase (train, valid, test, all)')
+            raise ValueError('Please provide phase (train, valid, test, all)')
 
         if not isinstance(item, (str, list)):
             raise ValueError(f'item {item} must be str or list')
@@ -664,7 +664,7 @@ class StoreGate:
             raise ValueError(f'to_memory is valid for only hybrid database ({self._backend})')
 
         if self._db.mode != 'zarr':
-            raise ValueError(f'to_memory is valid when the current mode is zarr.')
+            raise ValueError('to_memory is valid when the current mode is zarr.')
 
         self.compile()
 
@@ -698,7 +698,7 @@ class StoreGate:
             raise ValueError(f'to_storage is valid for only hybrid database ({self._backend})')
 
         if self._db.mode != 'numpy':
-            raise ValueError(f'to_storage is valid when the current mode is numpy.')
+            raise ValueError('to_storage is valid when the current mode is numpy.')
 
         self.compile()
 

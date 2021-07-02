@@ -132,7 +132,7 @@ class ModelConnectionTask(MLBaseTask):
                     self.ml.loss_weights.append(0.0)
 
         if len(self.ml.loss) != len(self.ml.loss_weights):
-            error_log = f'loss length is inconsistent: '
+            error_log = 'loss length is inconsistent: '
             error_log += f'tasl_weights {task_weights}, '
             error_log += f'loss {self.ml.loss}, '
             error_log += f'loss_weights {self.ml.loss_weights}'

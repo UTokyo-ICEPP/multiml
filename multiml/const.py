@@ -14,7 +14,7 @@ Examples:
     >>>
     >>> phase = 'train'
     >>> if phase == const.TRAIN:
-    >>>     pass 
+    >>>     pass
     >>> if phase in const.PHASES:
     >>>     pass
 """

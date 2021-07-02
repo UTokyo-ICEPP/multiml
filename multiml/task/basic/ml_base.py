@@ -150,7 +150,7 @@ class MLBaseTask(BaseTask):
 
         Example:
             >>> hps_dict = {
-            >>>    'num_epochs': 10, # normal hyperparameter    
+            >>>    'num_epochs': 10, # normal hyperparameter
             >>>    'optimizer__lr': 0.01 # hyperparameter of optimizer
             >>>    'saver_hp': 'saver__key__value' # hyperparamer from saver
             >>> }
