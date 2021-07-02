@@ -5,12 +5,16 @@ Attributes:
     VALID (str): constant str to indicate *valid* phase.
     TEST (str): constant str to indicate *test* phase.
     PHASES (list): constant list of TRAIN, VALID and TEST.
+    INVALID (int): integer to indicate invalid value.
+    PBAR_FORMAT (str): format of tqdm progress bar.
+    PBAR_ARGS (str): args of tqdm progress bar.
 
 Examples:
     >>> from multiml import const
-    >>> 
+    >>>
+    >>> phase = 'train'
     >>> if phase == const.TRAIN:
-    >>>     pass 
+    >>>     pass
     >>> if phase in const.PHASES:
     >>>     pass
 """

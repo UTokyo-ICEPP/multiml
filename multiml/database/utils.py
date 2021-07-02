@@ -1,10 +1,8 @@
-""" Utility module for Database
-"""
+"""Utility module for Database."""
 
 
 def get_slice(index):
-    """ Returns a slice converted from index
-    """
+    """Returns a slice converted from index."""
 
     if index == -1:
         return slice(0, None)

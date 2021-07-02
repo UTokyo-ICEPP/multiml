@@ -1,5 +1,4 @@
-""" KerasBaseTask module.
-"""
+"""KerasBaseTask module."""
 from multiml import logger, const
 from multiml.task.keras import modules
 from .keras_util import training_keras_model, compile
@@ -7,7 +6,7 @@ from ..basic import MLBaseTask
 
 
 class KerasBaseTask(MLBaseTask):
-    """ Base task for Keras model.
+    """Base task for Keras model.
 
     Examples:
         >>> # your keras model
@@ -64,16 +63,14 @@ class KerasBaseTask(MLBaseTask):
         self._trainable_model = True
 
     def compile_model(self):
-        """ Compile keras model.
-        """
+        """Compile keras model."""
         self.ml.model = compile(self._model, self._model_args, modules)
 
         if self._pred_var_names is not None:
             self.ml.model.set_pred_index(self.get_pred_index())
 
         from .keras_util import get_optimizer
-        self.ml.optimizer = get_optimizer(self._optimizer,
-                                          self._optimizer_args)
+        self.ml.optimizer = get_optimizer(self._optimizer, self._optimizer_args)
 
         self.ml.model.compile(optimizer=self.ml.optimizer,
                               loss=self.ml.loss,
@@ -90,8 +87,7 @@ class KerasBaseTask(MLBaseTask):
             self.ml.model.summary()
 
     def compile_loss(self):
-        """ Compile keras model.
-        """
+        """Compile keras model."""
         if isinstance(self._loss, str):
             import tensorflow as tf
             self.ml.loss = tf.keras.losses.get(self._loss)
@@ -101,15 +97,13 @@ class KerasBaseTask(MLBaseTask):
         self.ml.loss_weights = self._loss_weights
 
     def load_model(self):
-        """ Load pre-trained keras model weights.
-        """
+        """Load pre-trained keras model weights."""
         model_path = super().load_model()
         logger.info(f'load {model_path}')
         self.ml.model.load_weights(model_path).expect_partial()
 
     def dump_model(self, extra_args=None):
-        """ Dump current keras model.
-        """
+        """Dump current keras model."""
         args_dump_ml = dict(ml_type='keras')
 
         if extra_args is not None:
@@ -118,7 +112,7 @@ class KerasBaseTask(MLBaseTask):
         super().dump_model(args_dump_ml)
 
     def fit(self, train_data=None, valid_data=None):
-        """ Training model.
+        """Training model.
 
         Returns:
             dict: training results.
@@ -154,7 +148,7 @@ class KerasBaseTask(MLBaseTask):
         return result
 
     def predict(self, data=None, phase=None):
-        """ Evaluate model prediction.
+        """Evaluate model prediction.
 
         Args:
             phase (str): data type (train, valid, test or None)
@@ -164,8 +158,7 @@ class KerasBaseTask(MLBaseTask):
             ndarray: target
         """
         if self.ml.model is None:
-            raise ValueError(
-                'model is not defined. Need build_model() or execute().')
+            raise ValueError('model is not defined. Need build_model() or execute().')
 
         if data is None:
             x_data, y_data = self.get_input_true_data(phase)
@@ -175,8 +168,7 @@ class KerasBaseTask(MLBaseTask):
         return self.ml.model.predict(x_data)
 
     def get_inputs(self):
-        """ Returns keras Input from input_var_names.
-        """
+        """Returns keras Input from input_var_names."""
         from tensorflow.keras.layers import Input
         shapes = self.get_input_var_shapes()
 

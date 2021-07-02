@@ -1,14 +1,11 @@
-""" Pytorch ModelConnectionTask module.
-"""
+"""Pytorch ModelConnectionTask module."""
 from . import PytorchBaseTask
 from ..basic import ModelConnectionTask
 from .modules import ConnectionModel
-from multiml.task.pytorch.datasets import StoreGateDataset
 
 
 class ModelConnectionTask(ModelConnectionTask, PytorchBaseTask):
-    """ Pytorch implementation of ModelConnectionTask.
-    """
+    """Pytorch implementation of ModelConnectionTask."""
     def build_model(self):
         models = [subtask.ml.model for subtask in self._subtasks]
 

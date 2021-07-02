@@ -1,13 +1,10 @@
-""" ASNG-NAS
-"""
+"""ASNG-NAS."""
 import numpy as np
 from .asng_util import ranking_based_utility_transformation
 
 
 class AdaptiveSNG:
-    """
-    Adaptive Stochastic Natural Gradient for Categorical Distribution
-    """
+    """Adaptive Stochastic Natural Gradient for Categorical Distribution."""
     def __init__(self,
                  categories=None,
                  integers=None,
@@ -20,8 +17,7 @@ class AdaptiveSNG:
                  threshold=0.10,
                  patience=-1,
                  range_restriction=True):
-        """ AdaptiveSNG
-        """
+        """AdaptiveSNG."""
         if categories is None and integers is None:
             return TypeError("one of categories or integers should be set")
         # Adaptive SG
@@ -37,15 +33,13 @@ class AdaptiveSNG:
 
         # this is not in the original paper
         from .asng_util import ASNG_terminate_condition
-        self.terminate = ASNG_terminate_condition(threshold=threshold,
-                                                  patience=patience)
+        self.terminate = ASNG_terminate_condition(threshold=threshold, patience=patience)
         self.n_theta = 0
 
         # Categorical distribution
         if categories is not None:
             from .asng_util import asng_category
-            self.cat = asng_category(categories, init_theta_cat,
-                                     range_restriction)
+            self.cat = asng_category(categories, init_theta_cat, range_restriction)
             self.terminate.theta_cat_init(self.cat.theta.copy())
             self.n_theta += self.cat.get_n()
         else:
@@ -76,12 +70,10 @@ class AdaptiveSNG:
         self.fnorm = np.sqrt(fnorm_cat + fnorm_int)
         self.eps = self.delta / (self.fnorm + 1e-9)
         self.beta = self.delta / (self.n_theta**0.5)
-        self.s = (1 - self.beta) * self.s + np.sqrt(
-            self.beta * (2 - self.beta)) * hstack / self.fnorm
-        self.gamma = (1 - self.beta)**2 * self.gamma + self.beta * (2 -
-                                                                    self.beta)
-        self.Delta *= np.exp(self.beta *
-                             (self.gamma - np.sum(self.s**2) / self.alpha))
+        self.s = (1 - self.beta) * self.s + np.sqrt(self.beta *
+                                                    (2 - self.beta)) * hstack / self.fnorm
+        self.gamma = (1 - self.beta)**2 * self.gamma + self.beta * (2 - self.beta)
+        self.Delta *= np.exp(self.beta * (self.gamma - np.sum(self.s**2) / self.alpha))
         self.Delta = min(self.Delta, self.delta_max)
 
     def most_likely_value(self):

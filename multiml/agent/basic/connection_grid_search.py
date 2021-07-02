@@ -8,10 +8,9 @@ from . import ConnectionRandomSearchAgent
 
 
 class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
-    """ Agent executing with all possible hyperparameter combination
-    """
+    """Agent executing with all possible hyperparameter combination."""
     def __init__(self, reuse_pretraining=False, **kwargs):
-        """ Initialize
+        """Initialize.
 
         Args:
             reuse_pretraining (bool): Use common model weights for pretraining
@@ -25,8 +24,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
 
     @logger.logging
     def execute(self):
-        """ Execute
-        """
+        """Execute."""
 
         cache_model = dict()
         # Iterate all combinations
@@ -41,8 +39,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
                 subtask_id = subtasktuple.subtask_id
                 subtask_env = subtasktuple.env
                 subtask_hps = subtasktuple.hps.copy()
-                hps_hash = subtask_id + " : " + json.dumps(subtask_hps,
-                                                           sort_keys=True)
+                hps_hash = subtask_id + " : " + json.dumps(subtask_hps, sort_keys=True)
                 logger.info(f'subtask is {subtask_id}')
 
                 if self._reuse_pretraining and (hps_hash in cache_model):
@@ -59,8 +56,8 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
 
                         # for compatibility
                         if unique_id not in self.saver.keys():
-                            load_config = self._saver.load_ml(
-                                subtask_env.name, suffix=subtask_hps['job_id'])
+                            load_config = self._saver.load_ml(subtask_env.name,
+                                                              suffix=subtask_hps['job_id'])
                         else:
                             load_config = self._saver.load_ml(unique_id)
 
@@ -72,12 +69,10 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
 
                     from multiml.task.keras import KerasBaseTask
                     if isinstance(
-                            subtask_env, KerasBaseTask
-                    ) and subtask_env._trainable_model and not os.path.exists(
-                            f'{model_path}.index'):
-                        raise ValueError(
-                            f'model weight does not exist. model_path = {model_path}'
-                        )
+                            subtask_env,
+                            KerasBaseTask) and subtask_env._trainable_model and not os.path.exists(
+                                f'{model_path}.index'):
+                        raise ValueError(f'model weight does not exist. model_path = {model_path}')
 
                     load_weights = subtask_env._load_weights
                     phases = subtask_env._phases
@@ -123,8 +118,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
 
     @logger.logging
     def finalize(self):
-        """ Finalize
-        """
+        """Finalize."""
         super().finalize()
 
         metrics = [result['metric_value'] for result in self._history]
@@ -137,7 +131,7 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
         self._best_result_config = self._history_agent[index]
 
     def get_best_result(self):
-        """ Returns the best combination as a result of agent execution
+        """Returns the best combination as a result of agent execution.
 
         Returns:
             dict: best result

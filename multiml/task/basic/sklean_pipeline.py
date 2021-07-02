@@ -1,17 +1,14 @@
-""" SkleanPipelineTask module.
-"""
+"""SkleanPipelineTask module."""
 
 from multiml.task.basic import MLBaseTask
 from multiml import logger
 
 
 class SkleanPipelineTask(MLBaseTask):
-    """ Wrapper task to process sklean object.
-    """
+    """Wrapper task to process sklean object."""
     @logger.logging
     def execute(self):
-        """Execute fit.
-        """
+        """Execute fit."""
         x_train, y_train = self.get_input_true_data('train')
         x_all, y_all = self.get_input_true_data('all')
 

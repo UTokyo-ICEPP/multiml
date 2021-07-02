@@ -1,12 +1,10 @@
-""" MLBaseTask module.
-"""
+"""MLBaseTask module."""
 from multiml import logger, const
 from multiml.task.basic import BaseTask, MLEnv
 
 
 class MLBaseTask(BaseTask):
-    """ Base task class for (deep) machine learning tasks.
-    """
+    """Base task class for (deep) machine learning tasks."""
     def __init__(self,
                  phases=None,
                  input_var_names=None,
@@ -32,54 +30,54 @@ class MLBaseTask(BaseTask):
                  num_workers=0,
                  verbose=None,
                  **kwargs):
-        """ Initialize ML base task.
+        """Initialize ML base task.
 
-        This base class will be inherited by deep learning task classes, ``KerasBaseTask()``
-        and ``PytorchBaseTask()``. ``input_var_names`` and ``output_var_names`` specify data
-        for model inputs and outputs. If ``input_var_names`` is list, e.g. ['var0', 'var1'],
-        model will receive data with format of [(batch size, k), (batch size, k)], where k
-        is arbitrary shape of each variable. If ``input_var_names`` is tuple,
-        e.g. ('var0', 'var1'), model will receive data with (batch size, M, k), where M is
-        the number of variables. If `output_var_names`` is list, model must returns list of
-        tensor data for each variable. If `output_var_names`` is tuple, model must returns
-        a tensor data. ``pred_var_names`` and ``true_var_names`` specify data for loss
-        calculations. If ``pred_var_names`` is given, only variables indicated by
-        ``pred_var_names`` are selected from model outputs before being passed to loss calculation.
-        Please see ``KerasBaseTask()` or ``PytorchBaseTask()`` for actual examples.
+        This base class will be inherited by deep learning task classes, ``KerasBaseTask()`` and
+        ``PytorchBaseTask()``. ``input_var_names`` and ``output_var_names`` specify data for model
+        inputs and outputs. If ``input_var_names`` is list, e.g. ['var0', 'var1'], model will
+        receive data with format of [(batch size, k), (batch size, k)], where k is arbitrary shape
+        of each variable. If ``input_var_names`` is tuple, e.g. ('var0', 'var1'), model will
+        receive data with (batch size, M, k), where M is the number of variables.
+        If `output_var_names`` is list, model must returns list of tensor data for each variable.
+        If `output_var_names`` is tuple, model must returns a tensor data. ``pred_var_names`` and
+        ``true_var_names`` specify data for loss calculations. If ``pred_var_names`` is given, only
+        variables indicated by ``pred_var_names`` are selected from model outputs before being
+        passed to loss calculation. Please see ``KerasBaseTask()` or ``PytorchBaseTask()`` for
+        actual examples.
 
         Args:
-            phases (list): list to indicates ML phases, e.g. ['train', 'test'].
-                If None is given, ['train', 'valid', 'test'] is set.
+            phases (list): list to indicates ML phases, e.g. ['train', 'test']. If None is given,
+                ['train', 'valid', 'test'] is set.
             input_var_names (str or list or tuple): input variable names in StoreGate.
             output_var_names (str or list or tuple): output variable names of model.
             pred_var_names (str or list): prediction variable names passed to loss.
             true_var_names (str or list or tuple): true variable names.
-            var_names (str): str of "input output true" variable names for
-                shortcut. This is not valid to specify multiple variables.
+            var_names (str): str of "input output true" variable names for shortcut. This is not
+                valid to specify multiple variables.
             model (str or obj): name of model, or class object of model.
             model_args (dict): args of model, e.g. dict(param0=0, param1=1).
             optimizer (str or obj): name of optimizer, or class object of optimizer
             optimizer_args (dict): args of optimizer.
+            scheduler (str or obj): name of scheduler, or class object of scheduler
+            scheduler_args (dict): args of scheduler.
             loss (str or obj): name of loss, or class object of loss
             loss_args (dict): args of loss.
-            max_patience (int): max number of patience for early stopping.
-                ``early_stopping`` is enabled if ```max_patience` is given.
+            max_patience (int): max number of patience for early stopping. ``early_stopping`` is
+                enabled if ```max_patience` is given.
             loss_weights (list): scalar coefficients to weight the loss.
-            load_weights (bool or str): user defined algorithms should assume
-                the following behavior. If False, not load model weights. If
-                True, load model weights from default location. If str, load
-                weights from given path.
-            save_weights (bool or str): user defined algorithms should assume
-                the following behavior. If False, not save model weights. If
-                True, save model weights to default location. If str, save
-                weights to given path.
+            load_weights (bool or str): user defined algorithms should assume the following
+                behavior. If False, not load model weights. If True, load model weights from
+                default location. If str, load weights from given path.
+            save_weights (bool or str): user defined algorithms should assume the following
+                behavior. If False, not save model weights. If True, save model weights to default
+                location. If str, save weights to given path.
             metrics (list): metrics of evaluation.
             num_epochs (int): number of epochs.
-            batch_size (int or dict): size of mini batch, you can set different
-                batch_size for test, train, valid.
+            batch_size (int or dict): size of mini batch, you can set different batch_size for
+                test, train, valid.
             num_workers (int): number of workers for dataloaders.
-            verbose (int): verbose option for fitting step. If None, it's set
-                based on logger.MIN_LEVEL
+            verbose (int): verbose option for fitting step. If None, it's set based on
+                logger.MIN_LEVEL
         """
         super().__init__(**kwargs)
 
@@ -92,12 +90,14 @@ class MLBaseTask(BaseTask):
         if optimizer_args is None:
             optimizer_args = {}
 
+        if scheduler_args is None:
+            scheduler_args = {}
+
         if loss_args is None:
             loss_args = {}
 
         if var_names is not None:
-            input_var_names, output_var_names, true_var_names = var_names.split(
-            )
+            input_var_names, output_var_names, true_var_names = var_names.split()
 
         self._ml = MLEnv()
 
@@ -138,21 +138,19 @@ class MLBaseTask(BaseTask):
         return result
 
     def set_hps(self, params):
-        """ Set hyperparameters to this task. 
+        """Set hyperparameters to this task.
 
-        Class attributes (self._XXX) are automatically set based on keys and
-        values of given dict. Hyperparameters start with 'model__',
-        'optimizer__' and 'loss__' are considred as args of model, optimizer,
-        loss, respectively. If value of hyperparameters is str and starts with
-        'saver__', value is retrieved from ```Saver``` instance, please see
-        exampels below.
+        Class attributes (self._XXX) are automatically set based on keys and values of given dict.
+        Hyperparameters start with 'model__', 'optimizer__' and 'loss__' are considred as args of
+        model, optimizer, loss, respectively. If value of hyperparameters is str and starts with
+        'saver__', value is retrieved from ```Saver``` instance, please see exampels below.
 
         Args:
             params (dict): key and value of hyperparameters.
 
         Example:
             >>> hps_dict = {
-            >>>    'num_epochs': 10, # normal hyperparameter    
+            >>>    'num_epochs': 10, # normal hyperparameter
             >>>    'optimizer__lr': 0.01 # hyperparameter of optimizer
             >>>    'saver_hp': 'saver__key__value' # hyperparamer from saver
             >>> }
@@ -197,8 +195,7 @@ class MLBaseTask(BaseTask):
 
     @logger.logging
     def execute(self):
-        """ Execute a task.
-        """
+        """Execute a task."""
 
         self.compile()
 
@@ -214,7 +211,7 @@ class MLBaseTask(BaseTask):
             self.predict_update()
 
     def fit(self, train_data=None, valid_data=None):
-        """ Fit model.
+        """Fit model.
 
         Args:
             train_data (ndarray): training data.
@@ -223,7 +220,7 @@ class MLBaseTask(BaseTask):
         pass
 
     def predict(self, data=None):
-        """ Predict model.
+        """Predict model.
 
         Args:
             data (ndarray): prediction data.
@@ -231,7 +228,7 @@ class MLBaseTask(BaseTask):
         pass
 
     def fit_predict(self, fit_args=None, predict_args=None):
-        """ Fit and predict model.
+        """Fit and predict model.
 
         Args:
             fit_args (dict): arbitrary dict passed to ``fit()``.
@@ -251,7 +248,7 @@ class MLBaseTask(BaseTask):
         return self.predict(**predict_args)
 
     def predict_update(self, data=None):
-        """ Predict and update data in StoreGate.
+        """Predict and update data in StoreGate.
 
         Args:
             data (ndarray): data passed to ``predict()`` method.
@@ -262,13 +259,12 @@ class MLBaseTask(BaseTask):
 
     @property
     def phases(self):
-        """ Returns ML phases.
-        """
+        """Returns ML phases."""
         return self._phases
 
     @phases.setter
     def phases(self, phases):
-        """ Set ML phases.
+        """Set ML phases.
 
         Args:
             phases (list): a list contains 'train' or 'valid' or 'test'.
@@ -277,61 +273,52 @@ class MLBaseTask(BaseTask):
 
     @property
     def input_var_names(self):
-        """ Returns input_var_names.
-        """
+        """Returns input_var_names."""
         return self._input_var_names
 
     @input_var_names.setter
     def input_var_names(self, input_var_names):
-        """ Set input_var_names.
-        """
+        """Set input_var_names."""
         self._input_var_names = input_var_names
 
     @property
     def output_var_names(self):
-        """ Returns output_var_names.
-        """
+        """Returns output_var_names."""
         return self._output_var_names
 
     @output_var_names.setter
     def output_var_names(self, output_var_names):
-        """ Set output_var_names.
-        """
+        """Set output_var_names."""
         self._output_var_names = output_var_names
 
     @property
     def pred_var_names(self):
-        """ Returns pred_var_names.
-        """
+        """Returns pred_var_names."""
         return self._pred_var_names
 
     @pred_var_names.setter
     def pred_var_names(self, pred_var_names):
-        """ Set pred_var_names.
-        """
+        """Set pred_var_names."""
         self._pred_var_names = pred_var_names
 
     @property
     def true_var_names(self):
-        """ Returns true_var_names.
-        """
+        """Returns true_var_names."""
         return self._true_var_names
 
     @true_var_names.setter
     def true_var_names(self, true_var_names):
-        """ Set true_var_names.
-        """
+        """Set true_var_names."""
         self._true_var_names = true_var_names
 
     @property
     def ml(self):
-        """ Returns ML data class.
-        """
+        """Returns ML data class."""
         return self._ml
 
     @ml.setter
     def ml(self, ml):
-        """ Set ML data class.
+        """Set ML data class.
 
         Args:
             ml (MLEnv): ML data class.
@@ -339,7 +326,7 @@ class MLBaseTask(BaseTask):
         self._ml = ml
 
     def compile(self):
-        """ Compile model, optimizer and loss.
+        """Compile model, optimizer and loss.
 
         Compiled objects will be avaialble via ``self.ml.model``, ``self.ml.optimizer``
         and ``self.ml.loss``.
@@ -367,13 +354,11 @@ class MLBaseTask(BaseTask):
         # self.show_info()
 
     def build_model(self):
-        """ Build model.
-        """
+        """Build model."""
         pass
 
     def compile_var_names(self):
-        """ Compile var_names.
-        """
+        """Compile var_names."""
         if isinstance(self.input_var_names, list):
             self.ml.multi_inputs = True
         else:
@@ -390,22 +375,19 @@ class MLBaseTask(BaseTask):
             self.ml.multi_loss = False
 
     def compile_model(self):
-        """ Compile model.
-        """
+        """Compile model."""
         pass
 
     def compile_optimizer(self):
-        """ Compile optimizer.
-        """
+        """Compile optimizer."""
         pass
 
     def compile_loss(self):
-        """ Compile loss.
-        """
+        """Compile loss."""
         pass
 
     def load_model(self):
-        """ Load pre-trained model path from ``Saver``.
+        """Load pre-trained model path from ``Saver``.
 
         Returns:
             str: model path.
@@ -422,7 +404,7 @@ class MLBaseTask(BaseTask):
         return model_path
 
     def dump_model(self, extra_args=None):
-        """ Dump current model to ``saver``.
+        """Dump current model to ``saver``.
 
         Args:
             extra_args (dict): extra metadata to be stored together with model.
@@ -449,12 +431,11 @@ class MLBaseTask(BaseTask):
         self._saver.dump_ml(**args_dump_ml)
 
     def load_metadata(self):
-        """ Load metadata.
-        """
+        """Load metadata."""
         pass
 
     def get_input_true_data(self, phase):
-        """ Get input and true data.
+        """Get input and true data.
 
         Args:
             phase (str): data type (train, valid, test or None).
@@ -465,15 +446,13 @@ class MLBaseTask(BaseTask):
         input_data, true_data = None, None
 
         if self._input_var_names is not None:
-            input_data = self._storegate.get_data(
-                var_names=self._input_var_names, phase=phase)
+            input_data = self._storegate.get_data(var_names=self._input_var_names, phase=phase)
         if self._true_var_names is not None:
-            true_data = self._storegate.get_data(
-                var_names=self._true_var_names, phase=phase)
+            true_data = self._storegate.get_data(var_names=self._true_var_names, phase=phase)
         return input_data, true_data
 
     def get_input_var_shapes(self, phase='train'):
-        """ Get shape of input_var_names.
+        """Get shape of input_var_names.
 
         Args:
             phase (str): train, valid, test or None.
@@ -484,7 +463,7 @@ class MLBaseTask(BaseTask):
         return self.storegate.get_var_shapes(self.input_var_names, phase=phase)
 
     def get_metadata(self, metadata_key):
-        """ Returns metadata.
+        """Returns metadata.
 
         Args:
             metadata_key (str): key of ``Saver()``.
@@ -496,7 +475,7 @@ class MLBaseTask(BaseTask):
         return self.saver.load_ml(unique_id)[metadata_key]
 
     def get_pred_index(self):
-        """ Returns prediction index passed to loss calculation.
+        """Returns prediction index passed to loss calculation.
 
         Returns:
             list: list of prediction index.
@@ -506,8 +485,7 @@ class MLBaseTask(BaseTask):
         pred_var_names = self.pred_var_names
 
         if not isinstance(output_var_names, list):
-            raise ValueError(
-                f'output_var_names: {output_var_names} is not list.')
+            raise ValueError(f'output_var_names: {output_var_names} is not list.')
 
         if not isinstance(pred_var_names, list):
             pred_var_names = [pred_var_names]
@@ -522,8 +500,7 @@ class MLBaseTask(BaseTask):
         return pred_index
 
     def show_info(self):
-        """ Print information.
-        """
+        """Print information."""
         logger.header2(f'{self.name} information', level=logger.debug)
         logger.debug(f'input_var_names = {self.input_var_names}')
         logger.debug(f'output_var_names = {self.output_var_names}')

@@ -2,8 +2,7 @@ import torch.utils.data as tdata
 
 
 class NumpyDataset(tdata.Dataset):
-    """ StoreGate dataset class
-    """
+    """StoreGate dataset class."""
     def __init__(self, inputs, targets):
 
         self._inputs = inputs

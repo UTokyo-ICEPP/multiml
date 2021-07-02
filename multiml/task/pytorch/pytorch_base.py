@@ -1,5 +1,4 @@
-""" PytorchBaseTask module.
-"""
+"""PytorchBaseTask module."""
 import copy
 
 import numpy as np
@@ -18,7 +17,7 @@ from multiml.task.pytorch import pytorch_metrics as metrics
 
 
 class PytorchBaseTask(MLBaseTask):
-    """ Base task for PyTorch model.
+    """Base task for PyTorch model.
 
     Examples:
         >>> # your pytorch model
@@ -46,12 +45,12 @@ class PytorchBaseTask(MLBaseTask):
         >>> task.finalize()
     """
     def __init__(self, device='cpu', gpu_ids=None, amp=False, **kwargs):
-        """ Initialize the pytorch base task.
+        """Initialize the pytorch base task.
 
         Args:
             device (str or obj): pytorch device, e.g. 'cpu', 'cuda'.
-            gpu_ids (list): GPU identifiers, e.g. [0, 1, 2]. ``data_parallel``
-                mode is enabled if ``gpu_ids`` is given.
+            gpu_ids (list): GPU identifiers, e.g. [0, 1, 2]. ``data_parallel`` mode is enabled if
+                ``gpu_ids`` is given.
             amp (bool): *(expert option)* enable amp mode.
         """
         super().__init__(**kwargs)
@@ -75,7 +74,6 @@ class PytorchBaseTask(MLBaseTask):
         self._pbar_args = const.PBAR_ARGS
         self._pred_index = None
         self._early_stopping = False
-        self._scheduler = None
         self._sampler = None
         self._scaler = None
 
@@ -86,12 +84,11 @@ class PytorchBaseTask(MLBaseTask):
             self._early_stopping = True
 
     def compile_model(self):
-        """ Compile pytorch model.
+        """Compile pytorch model.
 
-        Compile model based on self._model type, which is usually set by
-        ``__init__()`` or ``build_model() method. Compiled model is set to
-        ``self.ml.model`` and moved to ``self._device``.
-
+        Compile model based on self._model type, which is usually set by ``__init__()`` or
+        ``build_model() method. Compiled model is set to ``self.ml.model`` and moved to
+        ``self._device``.
         """
         if self._model is None:
             return
@@ -106,19 +103,17 @@ class PytorchBaseTask(MLBaseTask):
             self.load_metadata()
 
         if self._data_parallel:
-            self.ml.model = torch.nn.DataParallel(self.ml.model,
-                                                  device_ids=self._gpu_ids)
+            self.ml.model = torch.nn.DataParallel(self.ml.model, device_ids=self._gpu_ids)
             self.ml.model.to(self._device)
 
         else:
             self.ml.model.to(self._device)
 
     def compile_optimizer(self):
-        """ Compile pytorch optimizer.
+        """Compile pytorch optimizer and scheduler.
 
-        Compile optimizer based on self._optimizer type, which is usually set
-        by ``__init__()`` method. Compiled optimizer is set to
-        ``self.ml.optimizer``.
+        Compile optimizer based on self._optimizer type, which is usually set by ``__init__()``
+        method. Compiled optimizer is set to ``self.ml.optimizer``.
         """
         if self._optimizer is None:
             return
@@ -127,20 +122,18 @@ class PytorchBaseTask(MLBaseTask):
         if 'params' not in optimizer_args:
             optimizer_args['params'] = list(self.ml.model.parameters())
 
-        self.ml.optimizer = util.compile(self._optimizer, optimizer_args,
-                                         optim)
+        self.ml.optimizer = util.compile(self._optimizer, optimizer_args, optim)
 
         if self._scheduler is not None:
             scheduler_args = copy.copy(self._scheduler_args)
             scheduler_args['optimizer'] = self.ml.optimizer
-            self.ml.scheduler = util.compile(self._scheduler, scheduler_args,
-                                             optim)
+            self.ml.scheduler = util.compile(self._scheduler, scheduler_args, optim)
 
     def compile_loss(self):
-        """ Compile pytorch loss.
+        """Compile pytorch loss.
 
-        Compile loss based on self._loss type, which is usually set by
-        ``__init__()`` method. Compiled loss is set to ``self.ml.loss``.
+        Compile loss based on self._loss type, which is usually set by ``__init__()`` method.
+        Compiled loss is set to ``self.ml.loss``.
         """
 
         if self._loss is None:
@@ -150,17 +143,16 @@ class PytorchBaseTask(MLBaseTask):
         self.ml.loss_weights = self._loss_weights
 
     def compile_device(self):
-        """ Compile device.
+        """Compile device.
 
-        This method is valid only for multiprocessing mode so far. Devices are
-        set based on ``pool_id``.
+        This method is valid only for multiprocessing mode so far. Devices are set based on
+        ``pool_id``.
         """
         if self._pool_id is None:
             return  # nothing to do so far
 
         if self._data_parallel:
-            raise ValueError(
-                'data_parallel is not available with pool_id mode')
+            raise ValueError('data_parallel is not available with pool_id mode')
 
         if 'cuda' in self._device.type:
             cuda_id = self._pool_id
@@ -171,14 +163,12 @@ class PytorchBaseTask(MLBaseTask):
             self._device = torch.device(f'cuda:{cuda_id}')
 
     def load_model(self):
-        """ Load pre-trained pytorch model weights.
-        """
+        """Load pre-trained pytorch model weights."""
         model_path = super().load_model()
         self.ml.model.load_state_dict(torch.load(model_path))
 
     def dump_model(self, extra_args=None):
-        """ Dump current pytorch model.
-        """
+        """Dump current pytorch model."""
         args_dump_ml = dict(ml_type='pytorch')
 
         if self._data_parallel:
@@ -192,10 +182,10 @@ class PytorchBaseTask(MLBaseTask):
         super().dump_model(args_dump_ml)
 
     def prepare_dataloader(self, data=None, phase=None):
-        """ Prepare dataloader.
+        """Prepare dataloader.
 
-        If inputs are given, tensor_dataset() is called. If inputs are None,
-        storegate_dataset with given phase is called.
+        If inputs are given, tensor_dataset() is called. If inputs are None, storegate_dataset with
+        given phase is called.
 
         Args:
             data (ndarray): data passed to tensor_dataset().
@@ -220,16 +210,12 @@ class PytorchBaseTask(MLBaseTask):
                           num_workers=self._num_workers,
                           shuffle=shuffle)
 
-    def fit(self,
-            train_data=None,
-            valid_data=None,
-            dataloaders=None,
-            valid_step=1):
-        """ Train model over epoch.
+    def fit(self, train_data=None, valid_data=None, dataloaders=None, valid_step=1):
+        """Train model over epoch.
 
-        This methods train and valid model over epochs by calling
-        ``step_epoch()`` method. train and valid need to be provided by
-        ``train_data`` and ``valid_data`` options, or ``dataloaders`` option.
+        This methods train and valid model over epochs by calling ``step_epoch()`` method.
+        train and valid need to be provided by ``train_data`` and ``valid_data`` options, or
+        ``dataloaders`` option.
 
         Args:
             train_data (ndarray): If ``train_data`` is given, data are converted
@@ -245,9 +231,8 @@ class PytorchBaseTask(MLBaseTask):
         self.ml.validate('train')
 
         if dataloaders is None:
-            dataloaders = dict(
-                train=self.prepare_dataloader(train_data, 'train'),
-                valid=self.prepare_dataloader(valid_data, 'valid'))
+            dataloaders = dict(train=self.prepare_dataloader(train_data, 'train'),
+                               valid=self.prepare_dataloader(valid_data, 'valid'))
 
         early_stopping = util.EarlyStopping(patience=self._max_patience)
         self._scaler = torch.cuda.amp.GradScaler(enabled=self._is_gpu)
@@ -272,8 +257,8 @@ class PytorchBaseTask(MLBaseTask):
                 if early_stopping(result['loss'], self.ml.model):
                     break
 
-            if self._scheduler is not None:
-                self._scheduler.step()
+            if self.ml.scheduler is not None:
+                self.ml.scheduler.step()
 
         if self._early_stopping:
             best_model = early_stopping.best_model.state_dict()
@@ -282,17 +267,16 @@ class PytorchBaseTask(MLBaseTask):
         return history
 
     def predict(self, data=None, dataloader=None, phase=None, label=False):
-        """ Predict model.
+        """Predict model.
 
-        This method predicts and returns results. Data need to be provided by
-        ```data``` option, or setting property of ``dataloaders`` directory.
+        This method predicts and returns results. Data need to be provided by ``data`` option, or
+        setting property of ``dataloaders`` directory.
 
         Args:
-            data (ndarray): If ``data`` is given, data are converted to 
+            data (ndarray): If ``data`` is given, data are converted to
                 ``TendorDataset`` and set to ``dataloaders['test']``.
             dataloader (obj): dataloader instance.
-            phase (str): 'all' or 'train' or 'valid' or 'test' to specify 
-                dataloaders.
+            phase (str): 'all' or 'train' or 'valid' or 'test' to specify dataloaders.
             label (bool): If True, returns metric results based on labels.
 
         Returns:
@@ -312,10 +296,10 @@ class PytorchBaseTask(MLBaseTask):
             return results['pred']
 
     def step_epoch(self, epoch, phase, dataloader, label=True):
-        """ Process model for given epoch and phase.
+        """Process model for given epoch and phase.
 
-        ``ml.model``, ``ml.optimizer`` and ``ml.loss`` need to be set before
-        calling this method, please see ``compile()`` method.
+        ``ml.model``, ``ml.optimizer`` and ``ml.loss`` need to be set before calling this method,
+        please see ``compile()`` method.
 
         Args:
             epoch (int): epoch numer.
@@ -326,8 +310,7 @@ class PytorchBaseTask(MLBaseTask):
         Returns:
             dict: dict of result.
         """
-        epoch_metric = metrics.EpochMetric(self._metrics, label,
-                                           self.true_var_names, self.ml)
+        epoch_metric = metrics.EpochMetric(self._metrics, label, self.true_var_names, self.ml)
         pbar_args = dict(total=len(dataloader), disable=self._disable_tqdm())
         pbar_args.update(self._pbar_args)
         pbar_desc = f'Epoch [{epoch: >4}/{self._num_epochs}] {phase.ljust(5)}'
@@ -356,7 +339,7 @@ class PytorchBaseTask(MLBaseTask):
         return results
 
     def step_batch(self, data, phase, label=True):
-        """ Process batch data and update weights.
+        """Process batch data and update weights.
 
         Args:
             data (obj): inputs and labels data.
@@ -366,7 +349,7 @@ class PytorchBaseTask(MLBaseTask):
         Returns:
             dict: dict of result.
         """
-        inputs, labels = data  #FIXME: data without labels
+        inputs, labels = data  # FIXME: data without labels
         inputs = self.add_device(inputs, self._device)
         labels = self.add_device(labels, self._device)
 
@@ -392,7 +375,7 @@ class PytorchBaseTask(MLBaseTask):
         return result
 
     def step_model(self, inputs):
-        """ Process model.
+        """Process model.
 
         Args:
             inputs (Tensor or list): inputs data passed to model.
@@ -408,7 +391,7 @@ class PytorchBaseTask(MLBaseTask):
         return outputs
 
     def step_loss(self, outputs, labels):
-        """ Process loss function. 
+        """Process loss function.
 
         Args:
             outputs (Tensor or list): predicted data by model.
@@ -420,9 +403,8 @@ class PytorchBaseTask(MLBaseTask):
         loss_result = {'loss': 0, 'subloss': []}
 
         if self.ml.multi_loss:
-            for loss_fn, loss_w, output, label in zip(self.ml.loss,
-                                                      self.ml.loss_weights,
-                                                      outputs, labels):
+            for loss_fn, loss_w, output, label in zip(self.ml.loss, self.ml.loss_weights, outputs,
+                                                      labels):
                 if loss_w:
                     loss_tmp = loss_fn(output, label) * loss_w
                     loss_result['loss'] += loss_tmp
@@ -432,13 +414,12 @@ class PytorchBaseTask(MLBaseTask):
             if self.ml.loss_weights is None:
                 loss_result['loss'] += self.ml.loss(outputs, labels)
             elif self.ml.loss_weights != 0.0:
-                loss_result['loss'] += self.ml.loss(
-                    outputs, labels) * self.ml.loss_weights
+                loss_result['loss'] += self.ml.loss(outputs, labels) * self.ml.loss_weights
 
         return loss_result
 
     def step_optimizer(self, loss):
-        """ Process optimizer. 
+        """Process optimizer.
 
         Args:
             loss (obf): loss value.
@@ -452,22 +433,20 @@ class PytorchBaseTask(MLBaseTask):
             loss.backward()
             self.ml.optimizer.step()
 
-    def get_tensor_dataset(self, data):
-        """ Returns dataset from given ndarray data. 
-        """
+    @staticmethod
+    def get_tensor_dataset(data):
+        """Returns dataset from given ndarray data."""
         return NumpyDataset(*data)
 
     def get_storegate_dataset(self, phase):
-        """ Returns storegate dataset. 
-        """
+        """Returns storegate dataset."""
         return StoreGateDataset(self.storegate,
                                 phase,
                                 input_var_names=self.input_var_names,
                                 true_var_names=self.true_var_names)
 
     def add_device(self, data, device):
-        """ Add data to device.
-        """
+        """Add data to device."""
         if isinstance(data, Tensor):
             return data.to(device)
 
@@ -479,8 +458,7 @@ class PytorchBaseTask(MLBaseTask):
         if isinstance(data, list):
             return [self.add_device(idata, device) for idata in data]
 
-        raise ValueError(
-            f'data type {type(data)} is not supported. cannot add to device')
+        raise ValueError(f'data type {type(data)} is not supported. cannot add to device')
 
     ##########################################################################
     # Internal methods

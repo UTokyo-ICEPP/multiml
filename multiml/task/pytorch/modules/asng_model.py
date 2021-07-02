@@ -7,13 +7,7 @@ import numpy as np
 
 
 class ASNGModel(ConnectionModel, Module):
-    def __init__(self,
-                 lam,
-                 delta_init_factor,
-                 alpha=1.5,
-                 range_restriction=True,
-                 *args,
-                 **kwargs):
+    def __init__(self, lam, delta_init_factor, alpha=1.5, range_restriction=True, *args, **kwargs):
         """
         Args:
             *args: Variable length argument list
@@ -46,8 +40,7 @@ class ASNGModel(ConnectionModel, Module):
             from multiml.task.pytorch.modules import AdaptiveSNG_cat
             self.asng = AdaptiveSNG_cat(categories,
                                         lam=lam,
-                                        delta_init=1.0 /
-                                        (n**delta_init_factor),
+                                        delta_init=1.0 / (n**delta_init_factor),
                                         delta_max=np.inf,
                                         alpha=alpha,
                                         range_restriction=range_restriction)
@@ -56,15 +49,13 @@ class ASNGModel(ConnectionModel, Module):
             from multiml.task.pytorch.modules import AdaptiveSNG_int
             self.asng = AdaptiveSNG_int(categories,
                                         lam=lam,
-                                        delta_init=1.0 /
-                                        (n**delta_init_factor),
+                                        delta_init=1.0 / (n**delta_init_factor),
                                         delta_max=np.inf,
                                         alpha=alpha,
                                         range_restriction=range_restriction)
 
         else:
-            raise ValueError(
-                'ASNGModel : Both categories and integers is not active...')
+            raise ValueError('ASNGModel : Both categories and integers is not active...')
 
         self.set_fix(False)
 
@@ -113,8 +104,7 @@ class ASNGModel(ConnectionModel, Module):
         caches = [None] * self._num_outputs
 
         for index, sub_model in enumerate(self._sub_models):
-            sub_model.set_prob(c_cat[index],
-                               None)  # FIXME : c_int is not implemented
+            sub_model.set_prob(c_cat[index], None)  # FIXME : c_int is not implemented
 
             # Create input tensor
             input_indexes = self._input_var_index[index]
@@ -134,8 +124,7 @@ class ASNGModel(ConnectionModel, Module):
             # If index is tuple, convert from list to tensor
             elif isinstance(input_indexes, tuple):
                 tensor_inputs = [
-                    torch.unsqueeze(tensor_input, 1)
-                    for tensor_input in tensor_inputs
+                    torch.unsqueeze(tensor_input, 1) for tensor_input in tensor_inputs
                 ]
                 tensor_inputs = torch.cat(tensor_inputs, dim=1)
 

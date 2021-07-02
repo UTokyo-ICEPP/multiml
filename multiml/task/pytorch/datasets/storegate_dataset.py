@@ -2,13 +2,8 @@ import torch.utils.data as tdata
 
 
 class StoreGateDataset(tdata.Dataset):
-    """ StoreGate dataset class
-    """
-    def __init__(self,
-                 storegate,
-                 phase,
-                 input_var_names=None,
-                 true_var_names=None):
+    """StoreGate dataset class."""
+    def __init__(self, storegate, phase, input_var_names=None, true_var_names=None):
 
         self._storegate = storegate
         self._true_var_names = true_var_names

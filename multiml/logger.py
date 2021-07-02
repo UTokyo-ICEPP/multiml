@@ -1,8 +1,7 @@
 """Logger module.
 
-In principle, modules in multiml library use this logger.
-There are some print levels: ``DEBUG``, ``INFO``, ``WARN``, ``ERROR`` and
-``DISABLED``.
+In principle, modules in multiml library use this logger. There are some print levels: ``DEBUG``,
+``INFO``, ``WARN``, ``ERROR`` and ``DISABLED``.
 
 Examples:
     >>> from multiml import logger
@@ -23,9 +22,7 @@ MIN_LEVEL = 20
 
 
 def convert(level):
-    """ convert str to int
-    
-    """
+    """convert str to int."""
     ret = INFO
     if level.upper() == 'DEBUG':
         ret = DEBUG
@@ -39,16 +36,15 @@ def convert(level):
         ret = DISABLED
     else:
         print(f'Your choice({level}) is not valid, set to INFO')
-        ret = INFO
+
     return ret
 
 
 def set_level(level):
-    """ Set log level.
+    """Set log level.
 
     Args:
-        level (int): ``DEBUG``=10, ``INFO``=20, ``WARN``=30, ``ERROR``=40,
-            ``DISABLED``=50.
+        level (str or int): ``DEBUG``=10, ``INFO``=20, ``WARN``=30, ``ERROR``=40, ``DISABLED``=50.
     """
     if type(level) == str:
         level = convert(level)
@@ -58,10 +54,10 @@ def set_level(level):
 
 
 def get_now():
-    """ Get current time with ``%Y-%m-%d %H:%M:%S`` formant.
+    """Get current time with ``%Y-%m-%d %H:%M:%S`` formant.
 
     Returns:
-        str: the current timestamp. 
+        str: the current timestamp.
     """
     dt_now = datetime.datetime.now()
 
@@ -69,37 +65,33 @@ def get_now():
 
 
 def debug(msg, *args):
-    """ Show debug [D] message.
-    """
+    """Show debug [D] message."""
     if MIN_LEVEL <= DEBUG:
         print(f'{get_now()} [D] {msg % args}')
 
 
 def info(msg, *args):
-    """ Show information [I] message.
-    """
+    """Show information [I] message."""
     if MIN_LEVEL <= INFO:
         print(f'{get_now()} [I] {msg % args}')
 
 
 def warn(msg, *args):
-    """ Show warning [W] message.
-    """
+    """Show warning [W] message."""
     if MIN_LEVEL <= WARN:
         print(f'{get_now()} [W] {msg % args}')
 
 
 def error(msg, *args):
-    """ Show error [E] message.
-    """
+    """Show error [E] message."""
     if MIN_LEVEL <= ERROR:
         print(f'{get_now()} [E] {msg % args}')
 
 
 def counter(count, max_counts, divide=1, message=None):
-    """ Show process counter as information.
+    """Show process counter as information.
 
-    >>> ({count}/{max_counts}) events processed (message)
+    >>> '({count}/{max_counts}) events processed (message)'
     """
     if count == 0:
         return
@@ -112,11 +104,11 @@ def counter(count, max_counts, divide=1, message=None):
 
 
 def header1(message, level=info):
-    """ Show the following header.
+    """Show the following header.
 
-    >>> =================================
-    >>> ============ message ============
-    >>> =================================
+    >>> '================================='
+    >>> '============ message ============'
+    >>> '================================='
     """
     if len(message) % 2 == 1:
         message += ' '
@@ -131,9 +123,9 @@ def header1(message, level=info):
 
 
 def header2(message, level=info):
-    """ Show the following header.
+    """Show the following header.
 
-    >>> ------------ message ------------
+    >>> '------------ message ------------'
     """
     if len(message) % 2 == 1:
         message += ' '
@@ -146,7 +138,7 @@ def header2(message, level=info):
 
 
 def header3(message, level=info):
-    """ Show the following header.
+    """Show the following header.
 
     >>> ============ message ============
     """
@@ -161,23 +153,23 @@ def header3(message, level=info):
 
 
 def table(names, data, header=None, footer=None, max_length=30):
-    """ Show table. All data must be str.
-   
+    """Show table. All data must be str.
+
     >>> names = ['var0', 'var1']
     >>> data = [['hoge0', 'hoge1'], ['hoge2', 'hoge3']]
     >>> header = 'header message'
     >>> footer = 'footer message'
-    >>> 
-    >>> ==============
-    >>> header message
-    >>> ==============
-    >>> var0   var1
-    >>> --------------
-    >>> hoge0  hoge1
-    >>> hoge2  hoge3
-    >>> --------------
-    >>> footer message
-    >>> ==============
+    >>>
+    >>> '=============='
+    >>> 'header message'
+    >>> '=============='
+    >>> 'var0   var1'
+    >>> '--------------'
+    >>> 'hoge0  hoge1'
+    >>> 'hoge2  hoge3'
+    >>> '--------------'
+    >>> 'footer message'
+    >>> '=============='
     """
     lengths = [5] * len(names)
 
@@ -231,9 +223,11 @@ def table(names, data, header=None, footer=None, max_length=30):
 
 
 def logging(func):
-    """ Show the header and footer indicating start and end algorithm.
+    """Show the header and footer indicating start and end algorithm.
 
     Examples:
+        >>> from multiml import logger
+        >>>
         >>> @logger.logging
         >>> def your_func(arg0, arg1):
         >>>     pass

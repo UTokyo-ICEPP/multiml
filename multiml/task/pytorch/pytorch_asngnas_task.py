@@ -74,7 +74,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
             sampler=None,
             rank=None,
             **kwargs):
-        """ Train model over epoch.
+        """Train model over epoch.
 
         This methods train and valid model over epochs by calling
         ``train_model()`` method. train and valid need to be provided by
@@ -154,8 +154,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
 
             #pbar_args = dict(total=min(len(dataloaders['train']), len(dataloaders['valid'])) + len(test_dataloader) + 1,
             pbar_args = dict(
-                total=min(len(dataloaders['train']), len(
-                    dataloaders['valid'])) + 1,
+                total=min(len(dataloaders['train']), len(dataloaders['valid'])) + 1,
                 unit=' batch',
                 ncols=250,
                 bar_format=
@@ -167,24 +166,20 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
             with tqdm(**pbar_args) as pbar:
                 pbar.set_description(pbar_desc)
 
-                for train_data, valid_data in zip(dataloaders['train'],
-                                                  dataloaders['valid']):
+                for train_data, valid_data in zip(dataloaders['train'], dataloaders['valid']):
                     ### train
                     self.ml.model.set_fix(False)
                     self.ml.model.train()
-                    loss_train, batch_result = self._step_train(
-                        True, train_data, rank)
+                    loss_train, batch_result = self._step_train(True, train_data, rank)
                     self._step_optimizer(loss_train)
-                    
+
                     results_train.update_results(batch_result)
 
                     ### validation -> theta update
                     self.ml.model.eval()
                     with torch.no_grad():
-                        loss_valid, batch_result = self._step_train(
-                            False, valid_data, rank)
-                        self.ml.model.update_theta(
-                            np.array(loss_valid) )
+                        loss_valid, batch_result = self._step_train(False, valid_data, rank)
+                        self.ml.model.update_theta(np.array(loss_valid))
                         results_valid.update_results(batch_result)
 
                     loss_train_ = results_train.get_running_loss()
@@ -193,16 +188,12 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     theta_cats, theta_ints = self.ml.model.get_thetas()
                     theta_cat0 = '/'.join(f'{v:.2f}' for v in theta_cats[0])
                     theta_cat1 = '/'.join(f'{v:.2f}' for v in theta_cats[1])
-                    subloss_train = '/'.join(
-                        f'{v:.2e}' for v in results_train.get_subloss())
-                    subloss_valid = '/'.join(
-                        f'{v:.2e}' for v in results_valid.get_subloss())
+                    subloss_train = '/'.join(f'{v:.2e}' for v in results_train.get_subloss())
+                    subloss_valid = '/'.join(f'{v:.2e}' for v in results_valid.get_subloss())
 
-                    pbar.set_postfix(
-                        loss=
-                        f'{loss_train_:.2e}/{loss_valid_:.2e} {subloss_train}',
-                        c0=theta_cat0,
-                        c1=theta_cat1)
+                    pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e} {subloss_train}',
+                                     c0=theta_cat0,
+                                     c1=theta_cat1)
                     pbar.update(1)
 
                 # # test
@@ -219,30 +210,26 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                 history['test'].append(results_valid.get_results())
 
                 if self._early_stopping:
-                    is_early_stopping = early_stopping(
-                        results_valid.get_running_loss(), self.ml.model)
+                    is_early_stopping = early_stopping(results_valid.get_running_loss(),
+                                                       self.ml.model)
                     es_counter = early_stopping.counter
 
                     is_asng_stopping = self.ml.model.asng.check_converge()
                     asng_counter = self.ml.model.asng.converge_counter()
 
-                    pbar.set_postfix(
-                        loss=
-                        f'{loss_train_:.2e}/{loss_valid_:.2e} {subloss_train}',
-                        c0=theta_cat0,
-                        c1=theta_cat1,
-                        pcnt=f'{es_counter:2d}/{asng_counter:2d}')
+                    pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e} {subloss_train}',
+                                     c0=theta_cat0,
+                                     c1=theta_cat1,
+                                     pcnt=f'{es_counter:2d}/{asng_counter:2d}')
                     pbar.update(1)
 
                     if is_early_stopping and is_asng_stopping:
 
                         break
                 else:
-                    pbar.set_postfix(
-                        loss=
-                        f'{loss_train_:.2e}/{loss_valid_:.2e} {subloss_train}',
-                        c0=theta_cat0,
-                        c1=theta_cat1)
+                    pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e} {subloss_train}',
+                                     c0=theta_cat0,
+                                     c1=theta_cat1)
                     pbar.update(1)
 
             if self._scheduler is not None:
@@ -288,8 +275,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
 
             if 'subloss' in self._metrics:
                 result['subloss'] = list(
-                    np.mean([[s.item() for s in sub] for sub in subloss],
-                            axis=0))
+                    np.mean([[s.item() for s in sub] for sub in subloss], axis=0))
 
             if 'acc' in self._metrics:
                 result['acc'] = []
@@ -325,16 +311,14 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
             del loss
             if self.clipping_value is not None:
                 self._scaler.unscale_(self.ml.optimizer)
-                torch.nn.utils.clip_grad_norm_(self.ml.model.parameters(),
-                                               self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.ml.model.parameters(), self.clipping_value)
             self._scaler.step(self.ml.optimizer)
             self._scaler.update()
         else:
             loss.backward()
             del loss
             if self.clipping_value is not None:
-                torch.nn.utils.clip_grad_norm_(self.ml.model.parameters(),
-                                               self.clipping_value)
+                torch.nn.utils.clip_grad_norm_(self.ml.model.parameters(), self.clipping_value)
             self.ml.optimizer.step()
 
     def finalize(self):
@@ -392,10 +376,8 @@ class training_results:
             self.results['subloss'] = []
             for index, subloss in enumerate(batch_result['subloss']):
                 self.epoch_subloss[index] += subloss * batch_result['batch_size']
-                self.running_subloss[
-                    index] = self.epoch_subloss[index] / self.total
-                self.results['subloss'].append(
-                    f'{self.running_subloss[index]:.2e}')
+                self.running_subloss[index] = self.epoch_subloss[index] / self.total
+                self.results['subloss'].append(f'{self.running_subloss[index]:.2e}')
 
         if 'acc' in self._metrics:
             if self.is_multi_loss:

@@ -1,5 +1,4 @@
-""" StoreGate module
-"""
+"""StoreGate module."""
 
 import numpy as np
 
@@ -10,17 +9,16 @@ from multiml.database import NumpyDatabase, ZarrDatabase, HybridDatabase
 class StoreGate:
     """Data management class for multiml execution.
 
-    StoreGate provides common interfaces to manage data between multiml
-    *agents* and *tasks* with features of:
+    StoreGate provides common interfaces to manage data between multiml *agents* and *tasks* with
+    features of:
       * Different backends are supported (*numpy* or *zarr*, and *hybrid* of them),
       * Data are split into *train*, *valid* and *test* phases for ML,
       * Data are retrieved by ``var_names``, ``phase`` and ``index`` options.
 
-    Each dataset in the storegate is keyed by unique ``data_id``. All data in
-    the dataset are identified by ``var_names`` (column names). The number of
-    samples in a phase is assumed to be the same for all variables in
-    multiml agents and tasks. The ``compile()`` method ensures the validity of
-    the dataset.
+    Each dataset in the storegate is keyed by unique ``data_id``. All data in the dataset are
+    identified by ``var_names`` (column names). The number of samples in a phase is assumed to be
+    the same for all variables in multiml agents and tasks. The ``compile()`` method ensures the
+    validity of the dataset.
 
     Examples:
         >>> from multiml.storegate import StoreGate
@@ -41,17 +39,15 @@ class StoreGate:
     def __init__(self, backend='numpy', backend_args=None, data_id=None):
         """Initialize the storegate and the backend architecture.
 
-        Initialize storegate and the backend architecture with its options.
-        ``numpy`` backend manages data in memory, ``zarr`` backend reads and
-        writes data to storage of given path. ``hybrid`` backend is combination
-        of ``numpy`` and ``zarr`` backends, which allows to  move data between
-        memory and storage.
+        Initialize storegate and the backend architecture with its options. ``numpy`` backend
+        manages data in memory, ``zarr`` backend reads and writes data to storage of given path.
+        ``hybrid`` backend is combination of ``numpy`` and ``zarr`` backends, which allows to
+        move data between memory and storage.
 
         Args:
             backend (str): *numpy* (on memory), *zarr* (on storage), *hybrid*.
-            backend_args (dict): backend options, e.g. path to zarr database.
-                Please see ``ZarrDatabase`` and ``HybridDatabase`` classes for
-                details.
+            backend_args (dict): backend options, e.g. path to zarr database. Please see
+                ``ZarrDatabase`` and ``HybridDatabase`` classes for details.
             data_id (str): set default ``data_id`` if given.
         """
         if backend_args is None:
@@ -68,8 +64,7 @@ class StoreGate:
         elif self._backend == 'hybrid':
             self._db = HybridDatabase(**backend_args)
         else:
-            raise NotImplementedError(
-                f'Backend: {backend} is not supported in the storegate')
+            raise NotImplementedError(f'Backend: {backend} is not supported in the storegate')
 
         self._data_id = None
         if data_id is not None:
@@ -88,17 +83,15 @@ class StoreGate:
     def __getitem__(self, item):
         """Retrieve data by python getitem syntax.
 
-        Retrieve data by python getitem syntax, i.e.
-        ``storegate[phase][var_names][index]``. ``data_id``, ``phase``,
-        ``var_names`` and ``index`` need to be given to return selected data.
-        If all parameters are set, selected data are returned. Otherwise, self
-        instance class wit given parameters is returned.
+        Retrieve data by python getitem syntax, i.e. ``storegate[phase][var_names][index]``.
+        ``data_id``, ``phase``, ``var_names`` and ``index`` need to be given to return selected
+        data. If all parameters are set, selected data are returned. Otherwise, self instance class
+        with given parameters is returned.
 
         Args:
-            item (str or list or int or slice): If item is str of *train* or
-                *valid* or *test*, ``phase`` is set. If item is the other str
-                or list of strs, ``var_names`` is set. If item is int or slice,
-                data with index (slice) are returned.
+            item (str or list or int or slice): If item is str of *train* or *valid* or *test*,
+                ``phase`` is set. If item is the other str or list of strs, ``var_names`` is set.
+                If item is int or slice, data with index (slice) are returned.
 
         Returns:
             self or ndarray: please see description above.
@@ -126,18 +119,15 @@ class StoreGate:
             if self._phase == 'all' and item == slice(None, None, None):
                 item = -1  # all index
 
-            return self.get_data(var_names=self._var_names,
-                                 phase=self._phase,
-                                 index=item)
+            return self.get_data(var_names=self._var_names, phase=self._phase, index=item)
 
         raise NotImplementedError(f'item {item} is not supported')
 
     def __setitem__(self, item, data):
         """Update data by python setitem syntax.
 
-        Update data by python setitem syntax, i.e.
-        ``storegate[phase][var_names][index] = data``. ``data_id``, ``phase``,
-        ``var_names`` and ``index`` need to be given to update data.
+        Update data by python setitem syntax, i.e. ``storegate[phase][var_names][index] = data``.
+        ``data_id``, ``phase``, ``var_names`` and ``index`` need to be given to update data.
 
         Args:
             item (int or slice): Index of data to be updated.
@@ -152,7 +142,7 @@ class StoreGate:
         self._check_valid_data_id()
 
         if (self._phase is None) or (self._var_names is None):
-            raise ValueError(f'Please provide phase and var_names')
+            raise ValueError('Please provide phase and var_names')
 
         if not isinstance(item, (int, slice)):
             raise ValueError(f'item {item} must be int or slice')
@@ -160,17 +150,13 @@ class StoreGate:
         if self._phase == 'all' and item == slice(None, None, None):
             item = -1  # all index
 
-        self.update_data(var_names=self._var_names,
-                         data=data,
-                         phase=self._phase,
-                         index=item)
+        self.update_data(var_names=self._var_names, data=data, phase=self._phase, index=item)
 
     def __delitem__(self, item):
         """Delete data by python delitem syntax.
 
-        Delete data by python setitem syntax, i.e.
-        ``del storegate[phase][var_names]``. ``data_id``, ``phase``,
-        ``var_names`` need to be given to delete data.
+        Delete data by python setitem syntax, i.e. ``del storegate[phase][var_names]``.
+        ``data_id``, ``phase``, ``var_names`` need to be given to delete data.
 
         Args:
             item (str or list): ``var_names`` to be deleted.
@@ -182,7 +168,7 @@ class StoreGate:
         self._check_valid_data_id()
 
         if self._phase is None:
-            raise ValueError(f'Please provide phase (train, valid, test, all)')
+            raise ValueError('Please provide phase (train, valid, test, all)')
 
         if not isinstance(item, (str, list)):
             raise ValueError(f'item {item} must be str or list')
@@ -239,14 +225,13 @@ class StoreGate:
         return self._data_id
 
     def set_data_id(self, data_id):
-        """ Set the default ``data_id`` and initialize the backend.
+        """Set the default ``data_id`` and initialize the backend.
 
-        If the default ``data_id`` is set, all methods defined in storegate,
-        e.g. ``add_data()`` use the default ``data_id`` to manage data.
+        If the default ``data_id`` is set, all methods defined in storegate, e.g. ``add_data()``
+        use the default ``data_id`` to manage data.
 
         Args:
             data_id (str): the default ``data_id``.
-
         """
         self._data_id = data_id
         self._check_valid_data_id()
@@ -261,40 +246,28 @@ class StoreGate:
         """
         return self._backend
 
-    def add_data(self,
-                 var_names,
-                 data,
-                 phase='train',
-                 shuffle=False,
-                 mode=None,
-                 do_compile=False):
+    def add_data(self, var_names, data, phase='train', shuffle=False, mode=None, do_compile=False):
         """Add data to the storegate with given options.
 
-        If ``var_names`` already exists in given ``data_id`` and ``phase``,
-        the data are appended, otherwise ``var_names`` are newly registered and
-        the data are stored.
+        If ``var_names`` already exists in given ``data_id`` and ``phase``, the data are appended,
+        otherwise ``var_names`` are newly registered and the data are stored.
 
         Args:
-            var_names (str or list): list of variable names, e.g.
-                ['var0', 'var1', 'var2']. Single string, e.g. 'var0', is also
-                allowed to add only one variable.
-            data (list or ndarray): If ``var_names`` is single string, data
-                shape must be (N, k) where N is the number of samples and k is
-                an arbitrary shape of each data. If ``var_names`` is a tuple,
-                data shape must be (N, M, k), where M is the number of variables.
-                If ``var_names`` is a list, data mustbe a list of
-                [(N, k), (N, k), (N, k)...], where diffeernt shapes of k are
-                allowed.
-            phase (str or tuple): *all (auto)*, *train*, *valid*, *test* or
-                tuple. *all* divides the data to *train*, *valid* and *test*
-                automatically, but only after the ``compile``. If tuple
-                (x, y, z) is given, the data are divided to *train*, *valid*
-                and *test*. If contents of tuple is float and sum of the tuple
-                is 1.0, the data are split to phases with fractions of
-                (x, y, z) respectively. If contents of tuple is int, the data
-                are split by given indexes.
-            shuffle (bool or int): data are shuffled if True or int. If int is
-                given, it is used as random seed of ``np.random``.
+            var_names (str or list): list of variable names, e.g. ['var0', 'var1', 'var2'].
+                Single string, e.g. 'var0', is also allowed to add only one variable.
+            data (list or ndarray): If ``var_names`` is single string, data shape must be (N, k)
+                where N is the number of samples and k is an arbitrary shape of each data.
+                If ``var_names`` is a tuple, data shape must be (N, M, k), where M is the number of
+                variables. If ``var_names`` is a list, data mustbe a list of
+                [(N, k), (N, k), (N, k)...], where diffeernt shapes of k are allowed.
+            phase (str or tuple): *all (auto)*, *train*, *valid*, *test* or tuple. *all* divides
+                the data to *train*, *valid* and *test* automatically, but only after the
+                ``compile``. If tuple (x, y, z) is given, the data are divided to *train*, *valid*
+                and *test*. If contents of tuple is float and sum of the tuple is 1.0, the data are
+                split to phases with fractions of (x, y, z) respectively. If contents of tuple is
+                int, the data are split by given indexes.
+            shuffle (bool or int): data are shuffled if True or int. If int is given, it is used as
+                random seed of ``np.random``.
             mode (str): 'numpy' or 'zarr'. Only valid for 'hybrid' backend.
             do_compile (bool): do compile if True after adding data.
 
@@ -305,8 +278,7 @@ class StoreGate:
         # recursive operation
         if isinstance(var_names, list):
             for var_name, idata in zip(var_names, data):
-                self.add_data(var_name, idata, phase, shuffle, mode,
-                              do_compile)
+                self.add_data(var_name, idata, phase, shuffle, mode, do_compile)
             return
 
         self._check_valid_data_id()
@@ -325,16 +297,11 @@ class StoreGate:
 
             indices = self._get_phase_indices(phase, len(idata))
 
-            for iphase, phase_data in zip(const.PHASES,
-                                          np.split(idata, indices)):
+            for iphase, phase_data in zip(const.PHASES, np.split(idata, indices)):
                 if len(phase_data) == 0:
                     continue
 
-                self._db.add_data(self._data_id,
-                                  var_name,
-                                  phase_data,
-                                  iphase,
-                                  mode=mode)
+                self._db.add_data(self._data_id, var_name, phase_data, iphase, mode=mode)
 
         if self._data_id in self._metadata:
             self._metadata[self._data_id]['compiled'] = False
@@ -342,27 +309,20 @@ class StoreGate:
         if do_compile:
             self.compile(reset=False)
 
-    def update_data(self,
-                    var_names,
-                    data,
-                    phase='train',
-                    index=-1,
-                    mode=None,
-                    do_compile=True):
+    def update_data(self, var_names, data, phase='train', index=-1, mode=None, do_compile=True):
         """Update data in storegate with given options.
 
-        Update (replace) data in the storegate. If ``var_names`` does not exist
-        in given ``data_id`` and ``phase``, data are newly added. Otherwise,
-        selected data are replaced with given data.
+        Update (replace) data in the storegate. If ``var_names`` does not exist in given
+        ``data_id`` and ``phase``, data are newly added. Otherwise, selected data are replaced with
+        given data.
 
         Args:
             var_names (str or list(srt)): see ``add_data()`` method.
             data (list or ndarray): see ``add_data()`` method.
             phase (str or tuple): see ``add_data()`` method.
-            index (int or tuple): If ``index`` is -1 (default), all data are
-                updated for given options. If ``index`` is int, only the data
-                with ``index`` is updated. If index is (x, y), data in the
-                range (x, y) are updated.
+            index (int or tuple): If ``index`` is -1 (default), all data are updated for given
+                options. If ``index`` is int, only the data with ``index`` is updated. If index is
+                (x, y), data in the range (x, y) are updated.
             mode (str): 'numpy' or 'zarr'. Only valid for 'hybrid' backend.
             do_compile (bool): do compile if True after updating data.
 
@@ -374,8 +334,7 @@ class StoreGate:
         # recursive operation
         if isinstance(var_names, list):
             for var_name, idata in zip(var_names, data):
-                self.update_data(var_name, idata, phase, index, mode,
-                                 do_compile)
+                self.update_data(var_name, idata, phase, index, mode, do_compile)
             return
 
         self._check_valid_data_id()
@@ -387,21 +346,14 @@ class StoreGate:
             idata = self._convert_to_np(idata)
             indices = self._get_phase_indices(phase, len(idata))
 
-            for iphase, phase_data in zip(const.PHASES,
-                                          np.split(idata, indices)):
-                metadata = self._db.get_metadata(self._data_id,
-                                                 iphase,
-                                                 mode=mode)
+            for iphase, phase_data in zip(const.PHASES, np.split(idata, indices)):
+                metadata = self._db.get_metadata(self._data_id, iphase, mode=mode)
 
                 if len(phase_data) == 0:
                     continue
 
                 if var_name not in metadata.keys():
-                    self.add_data(var_name,
-                                  phase_data,
-                                  iphase,
-                                  False,
-                                  mode=mode)
+                    self.add_data(var_name, phase_data, iphase, False, mode=mode)
 
                 else:
                     self._db.update_data(self._data_id,
@@ -420,19 +372,18 @@ class StoreGate:
     def get_data(self, var_names, phase='train', index=-1):
         """Retrieve data from storegate with given options.
 
-        Get data from the storegate. Python getitem sytax is also supported,
-        please see ``__getitem__`` method.
+        Get data from the storegate. Python getitem sytax is also supported, please see
+        ``__getitem__`` method.
 
         Args:
-            var_names (tuple or list or str): If a tuple of variable names is
-                given, e.g. ('var0', 'var1', 'var2'), data with ndarray format
-                are returned. Single string, e.g. 'var0', is also allowed.
-                Please see the matrix below for shape of data.
-                If list of variable names is given, e.g. ['var0', 'var1', 'var2'],
+            var_names (tuple or list or str): If a tuple of variable names is given,
+                e.g. ('var0', 'var1', 'var2'), data with ndarray format are returned.
+                Single string, e.g. 'var0', is also allowed. Please see the matrix below for shape
+                of data. If list of variable names is given, e.g. ['var0', 'var1', 'var2'],
                 list of ndarray data for each variable are returned.
-            phase (str or None): *all*, *train*, *valid*, *test* or *None*.
-                If ``phase`` is *all* or *None*, data in all phases are
-                returned, but it is allowed only after the ``compile``.
+            phase (str or None): *all*, *train*, *valid*, *test* or *None*. If ``phase`` is *all*
+                or *None*, data in all phases are returned, but it is allowed only after the
+                ``compile``.
             index (int or tuple): see update_data method.
 
         Returns:
@@ -462,8 +413,7 @@ class StoreGate:
             raise ValueError('get_data is supported only after compile')
 
         if all_phase and (index != -1):
-            raise ValueError(
-                'phase=all is not supported together with index option')
+            raise ValueError('phase=all is not supported together with index option')
 
         is_single_var = False
         if isinstance(var_names, str):
@@ -490,11 +440,9 @@ class StoreGate:
 
             for var_name in var_names:
                 if var_name not in metadata.keys():
-                    raise ValueError(
-                        f'var_name {var_name} does not exist in storegate.')
+                    raise ValueError(f'var_name {var_name} does not exist in storegate.')
 
-                phase_results.append(
-                    self._db.get_data(self._data_id, var_name, iphase, index))
+                phase_results.append(self._db.get_data(self._data_id, var_name, iphase, index))
 
             results.append(phase_results)
 
@@ -514,8 +462,8 @@ class StoreGate:
     def delete_data(self, var_names, phase='train', do_compile=True):
         """Delete data associated with var_names.
 
-        All data associated with ``var_names`` are deleted. Partial deletions
-        with index is not supported for now.
+        All data associated with ``var_names`` are deleted. Partial deletions with index is not
+        supported for now.
 
         Args:
             var_names (str or list): see ``add_data()`` method.
@@ -625,7 +573,7 @@ class StoreGate:
         return self._metadata[self._data_id]
 
     def astype(self, var_names, dtype, phase='train'):
-        """ Convert data type to given dtype (operation is limited by memory)
+        """Convert data type to given dtype (operation is limited by memory)
 
         Args:
             var_names (str or list): see ``add_data()`` method.
@@ -694,9 +642,7 @@ class StoreGate:
             mode (str): *numpy* or *zarr*.
         """
         if self._backend != 'hybrid':
-            logger.warn(
-                f'set_mode is valid for only hybrid database ({self._backend})'
-            )
+            logger.warn(f'set_mode is valid for only hybrid database ({self._backend})')
 
         else:
             self._db.mode = mode
@@ -711,15 +657,14 @@ class StoreGate:
         Args:
             var_names (str or list): see ``add_data()`` method.
             phase (str): *all*, *train*, *valid*, *test*.
+            callback (obj): callback function, which receives ``var_names`` and ``data`` and
+                returns new ``var_names`` and ``data``.
         """
         if self._backend != 'hybrid':
-            raise ValueError(
-                f'to_memory is valid for only hybrid database ({self._backend})'
-            )
+            raise ValueError(f'to_memory is valid for only hybrid database ({self._backend})')
 
         if self._db.mode != 'zarr':
-            raise ValueError(
-                f'to_memory is valid when the current mode is zarr.')
+            raise ValueError('to_memory is valid when the current mode is zarr.')
 
         self.compile()
 
@@ -740,21 +685,20 @@ class StoreGate:
     def to_storage(self, var_names, phase='train', callback=None):
         """Move data from storage to memory.
 
-        This method is valid for only hybrid backend. This is useful if data
-        are large, then data need to be escaped to storage.
+        This method is valid for only hybrid backend. This is useful if data are large, then data
+        need to be escaped to storage.
 
         Args:
             var_names (str or list): see ``add_data()`` method.
             phase (str): *all*, *train*, *valid*, *test*.
+            callback (obj): callback function, which receives ``var_names`` and ``data`` and
+                returns new ``var_names`` and ``data``.
         """
         if self._backend != 'hybrid':
-            raise ValueError(
-                f'to_storage is valid for only hybrid database ({self._backend})'
-            )
+            raise ValueError(f'to_storage is valid for only hybrid database ({self._backend})')
 
         if self._db.mode != 'numpy':
-            raise ValueError(
-                f'to_storage is valid when the current mode is numpy.')
+            raise ValueError('to_storage is valid when the current mode is numpy.')
 
         self.compile()
 
@@ -775,13 +719,12 @@ class StoreGate:
     def compile(self, reset=False, show_info=False):
         """Check if registered samples are valid.
 
-        It is assumed that the ``compile`` is always called after
-        ``add_data()`` or ``update_data()`` methods to validate registered data.
+        It is assumed that the ``compile`` is always called after ``add_data()`` or
+        ``update_data()`` methods to validate registered data.
 
         Args:
-            reset (bool): special variable ``active`` is (re)set if True,
-                ``active`` variable is used to indicate that samples should be
-                used or not. e.g. in the metric calculation.
+            reset (bool): special variable ``active`` is (re)set if True, ``active`` variable is
+                used to indicate that samples should be used or not. e.g. in the metric calculation.
             show_info (bool): show information after compile.
         """
         self._check_valid_data_id()
@@ -797,8 +740,7 @@ class StoreGate:
                 phase_events.append(data["total_events"])
 
             if len(set(phase_events)) > 1:
-                raise ValueError(
-                    f'Number of events are not consistent {metadata}')
+                raise ValueError(f'Number of events are not consistent {metadata}')
 
             if phase_events:
                 if reset:
@@ -824,16 +766,12 @@ class StoreGate:
             self.show_info()
 
     def show_info(self):
-        """Show information currently registered in storegate.
-        """
+        """Show information currently registered in storegate."""
         self._check_valid_data_id()
         is_compiled = self._is_compiled()
         header = f'StoreGate data_id : {self._data_id}, compiled : {is_compiled}'
 
-        names = [
-            'phase', 'backend', 'var_name', 'var_type', 'total_events',
-            'var_shape'
-        ]
+        names = ['phase', 'backend', 'var_name', 'var_type', 'total_events', 'var_shape']
 
         table_data = []
         for phase in ['train', 'valid', 'test']:
@@ -847,8 +785,7 @@ class StoreGate:
                 total_events = str(data["total_events"])
                 shape = f'{data["shape"]}'
 
-                table_data.append(
-                    [phase, backend, var_name, dtype, total_events, shape])
+                table_data.append([phase, backend, var_name, dtype, total_events, shape])
             table_data.append('-')
 
         logger.table(header=header, names=names, data=table_data)
@@ -860,12 +797,10 @@ class StoreGate:
     def _view_to_list(var_names, data):
         """(private) utility method to convert var_names.
 
-        ```var_names``` is converted to a list if it is string, and check shape
-        of data.
+        ```var_names``` is converted to a list if it is string, and check shape of data.
         """
         if not isinstance(var_names, (tuple, list, str)):
-            raise ValueError(
-                f'{type(var_names)} is not supported for var_names')
+            raise ValueError(f'{type(var_names)} is not supported for var_names')
 
         if isinstance(var_names, str):
             var_names = [var_names]
@@ -876,8 +811,9 @@ class StoreGate:
             len_data = len(data[0])
 
             if len_var_names != len_data:
-                raise ValueError(f'Shapes with bind_var are not consistent\
-                        var_names:{len_var_names} data:{len_data}')
+                raise ValueError(
+                    f'Shapes with bind_var are not consistent var_names:{len_var_names} data:{len_data}'
+                )
 
             bind_data = []
             for ivar in range(len(var_names)):
@@ -887,8 +823,8 @@ class StoreGate:
         len_var_names = len(var_names)
         len_data = len(data)
         if len_var_names != len_data:
-            raise ValueError(f'Shapes are not consistent\
-                    var_names:{len_var_names} data:{len_data}')
+            raise ValueError(
+                f'Shapes are not consistent var_names:{len_var_names} data:{len_data}')
 
         return var_names, data
 
@@ -904,8 +840,7 @@ class StoreGate:
         return data
 
     def _check_valid_data_id(self):
-        """(private) check if data_id is valid or not.
-        """
+        """(private) check if data_id is valid or not."""
         if self._data_id is None:
             raise ValueError('please set default data_id')
 
@@ -913,35 +848,30 @@ class StoreGate:
             raise ValueError('data_id must be string')
 
     def _check_valid_phase(self, phase):
-        """(private) check if given phase is valid or not.
-        """
+        """(private) check if given phase is valid or not."""
         if (phase in ('auto', 'all')) and (not self._is_compiled()):
             raise ValueError('Auto fraction is supported only after compile')
 
-        if isinstance(phase, tuple) and (not isinstance(
-                phase[0], int)) and (sum(phase) != 1.0):
+        if isinstance(phase, tuple) and (not isinstance(phase[0], int)) and (sum(phase) != 1.0):
             raise ValueError('Sum of fraction must be 1.0')
 
-        if (phase not in ('auto', 'all')) and isinstance(
-                phase, str) and (phase not in const.PHASES):
+        if (phase not in ('auto', 'all')) and isinstance(phase, str) and (phase
+                                                                          not in const.PHASES):
             raise ValueError(f'Phase {phase} is not supported')
 
     def _get_phase_indices(self, phase, ndata):
-        """(private) returns a slice based on given phase.
-        """
+        """(private) returns a slice based on given phase."""
         if phase in ('auto', 'all'):
             total_events = self._metadata[self._data_id]['total_events']
             if ndata != sum(total_events):
-                raise ValueError(
-                    'Provided events are not consistent with metadata')
+                raise ValueError('Provided events are not consistent with metadata')
             indices = [total_events[0], total_events[0] + total_events[1]]
 
         elif isinstance(phase, tuple):
             if isinstance(phase[0], int):
                 if sum(phase) != ndata:
                     raise ValueError(
-                        f'Provided phases {phase} is not consistent with total # of data {ndata}'
-                    )
+                        f'Provided phases {phase} is not consistent with total # of data {ndata}')
                 indices0 = phase[0]
                 indices1 = indices0 + phase[1]
                 indices = [int(indices0), int(indices1)]
@@ -963,8 +893,7 @@ class StoreGate:
         return indices
 
     def _is_compiled(self):
-        """(private) check if compiled or not.
-        """
+        """(private) check if compiled or not."""
         if self._data_id not in self._metadata.keys():
             return False
 

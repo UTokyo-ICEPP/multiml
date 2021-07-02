@@ -12,15 +12,14 @@ class SumTensor(tf.keras.metrics.MeanTensor):
         if not self._built:
             raise ValueError(
                 'MeanTensor does not have any result yet. Please call the MeanTensor '
-                'instance or use `.update_state(value)` before retrieving the result.'
-            )
+                'instance or use `.update_state(value)` before retrieving the result.')
         return self.total
 
 
 class DARTSModel(ConnectionModel):
     def __init__(self, optimizer_alpha, optimizer_weight, learning_rate_alpha,
                  learning_rate_weight, zeta, *args, **kwargs):
-        """ Constructor
+        """Constructor.
 
         Args:
             optimizer_alpha (str): optimizer for alpha in DARTS optimization
@@ -66,8 +65,7 @@ class DARTSModel(ConnectionModel):
         self._lambda = tf.keras.metrics.Mean(name='lambda')
         self._alpha_gradients_sum = SumTensor(name='alpha_gradients_sum')
         self._alpha_gradients_sq_sum = SumTensor(name='alpha_gradients_sq_sum')
-        self._alpha_gradients_n = tf.keras.metrics.Sum(
-            name='alpha_gradients_n')
+        self._alpha_gradients_n = tf.keras.metrics.Sum(name='alpha_gradients_n')
 
     def train_step(self, data):
         x, y = data
@@ -82,11 +80,7 @@ class DARTSModel(ConnectionModel):
         ##################
 
         # Update alpha
-        grad_alpha = self._get_alpha_grad(x_train,
-                                          y_train,
-                                          x_valid,
-                                          y_valid,
-                                          training=True)
+        grad_alpha = self._get_alpha_grad(x_train, y_train, x_valid, y_valid, training=True)
         grad_alpha, _ = tf.clip_by_global_norm(grad_alpha, clip_norm=0.1)
         self.optimizer_alpha.apply_gradients(zip(grad_alpha, self.alpha_vars))
         self._alpha_gradients_sum(grad_alpha)
@@ -188,12 +182,9 @@ class DARTSModel(ConnectionModel):
 
         # Get delta_wdash L_val for w^+-
         grad_wd = self._get_grad_weights(x_valid, y_valid, training=training)
-        epsilon_norm = sum([
-            tf.math.reduce_sum(tf.math.square(tf.keras.backend.flatten(v)))
-            for v in grad_wd
-        ])
-        epsilon = self._epsilon_L2 / (tf.keras.backend.epsilon() +
-                                      epsilon_norm)
+        epsilon_norm = sum(
+            [tf.math.reduce_sum(tf.math.square(tf.keras.backend.flatten(v))) for v in grad_wd])
+        epsilon = self._epsilon_L2 / (tf.keras.backend.epsilon() + epsilon_norm)
 
         # Get delta_alpha L_train
         # w^+
@@ -222,9 +213,7 @@ class DARTSModel(ConnectionModel):
         for var, w in zip(self.weight_vars, w_original):
             var.assign(w)
 
-        total_grad = [
-            v1 - self._zeta * v2 for v1, v2 in zip(first_term, second_term)
-        ]
+        total_grad = [v1 - self._zeta * v2 for v1, v2 in zip(first_term, second_term)]
         return total_grad
 
     def _get_hessian(self, x, y, variables, training):  # pragma: no cover

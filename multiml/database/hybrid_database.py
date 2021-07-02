@@ -1,5 +1,4 @@
-""" HybridDatabase module
-"""
+"""HybridDatabase module."""
 import tempfile
 
 from multiml import logger
@@ -9,13 +8,8 @@ from multiml.database.numpy_database import NumpyDatabase
 
 
 class HybridDatabase(Database):
-    """ Base class of Hybrid database
-    """
-    def __init__(self,
-                 output_dir=None,
-                 chunk=1000,
-                 compressor='default',
-                 mode='a'):
+    """Base class of Hybrid database."""
+    def __init__(self, output_dir=None, chunk=1000, compressor='default', mode='a'):
 
         if output_dir is None:
             output_dir = tempfile.mkdtemp()
@@ -24,8 +18,8 @@ class HybridDatabase(Database):
         self._output_dir = output_dir
         self._chunk = chunk
         self._mode = 'zarr'
-        self._db = {}
 
+        self._db = dict()
         self._db['numpy'] = NumpyDatabase()
         self._db['zarr'] = ZarrDatabase(output_dir=output_dir,
                                         chunk=chunk,
@@ -59,8 +53,7 @@ class HybridDatabase(Database):
 
     def delete_data(self, data_id, var_name, phase):
         if data_id not in self._db[self._mode].get_data_ids():
-            logger.info(
-                f'data_id:{data_id} does not exist in backend:{backend}')
+            logger.info(f'data_id:{data_id} does not exist in backend:{self._mode}')
             return
 
         self._db[self._mode].delete_data(data_id, var_name, phase)

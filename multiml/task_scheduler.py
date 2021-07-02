@@ -1,23 +1,22 @@
-""" TaskScheduler module
+"""TaskScheduler module.
 
-In the multiml framework, *task* describes each step of pipeline, and *subtask*
-describes component of *task* with different type of approarchs, e.g. different
-type of ML models. The following scheme shows the case that the multiml
-consists of two steps, and three subtasks are defined for each step:
- 
->>> task0 (subtask0, subtask1, subtask2) -> task0 (subtask3, subtask4, subtask5) 
+In the multiml framework, *task* describes each step of pipeline, and *subtask* describes component
+of *task* with different type of approarchs, e.g. different type of ML models. The following scheme
+shows the case that the multiml consists of two steps, and three subtasks are defined for each step:
 
-TaskScheduler class manages dependencies of *task*, and stoers *subtask* class
-instances and thier hyperparameters.
+>>> task0 (subtask0, subtask1, subtask2) -> task0 (subtask3, subtask4, subtask5)
+
+TaskScheduler class manages dependencies of *task*, and stoers *subtask* class instances and thier
+hyperparameters.
 
 Attributes:
-    tasktuple (namedtuple): namedtuple of *task*, which consists of ``task_id``
-        and ``subtasks``, ``task_id`` is unique identifier of *task*, and
-        ``subtasks`` is a list of ``subtasktuple`` described below.
+    tasktuple (namedtuple): namedtuple of *task*, which consists of ``task_id`` and ``subtasks``,
+        ``task_id`` is unique identifier of *task*, and ``subtasks`` is a list of ``subtasktuple``
+        described below.
     subtasktuple (namedtuple): namedtuple of *subtask*, which consists of
-        ``task_id``, ``subtask_id``, ``env`` and ``hps``. ``subtask_id`` is
-        unique identifier of *subtask*. ``env`` is class instance of *subtask*.
-        ``hps`` is class instance of Hyperparameters. 
+        ``task_id``, ``subtask_id``, ``env`` and ``hps``. ``subtask_id`` is unique identifier of
+        *subtask*. ``env`` is class instance of *subtask*. ``hps`` is class instance of
+        Hyperparameters.
 """
 import itertools
 from collections import namedtuple
@@ -28,15 +27,14 @@ from multiml import logger
 from multiml.task.basic import BaseTask
 
 tasktuple = namedtuple('tasktuple', ('task_id', 'subtasks'))
-subtasktuple = namedtuple('subtasktuple',
-                          ('task_id', 'subtask_id', 'env', 'hps'))
+subtasktuple = namedtuple('subtasktuple', ('task_id', 'subtask_id', 'env', 'hps'))
 
 
 class TaskScheduler:
     """Task management class for multiml execution.
 
-    Manage tasks and subtasks. Ordering of tasks are controlled by DAG by
-    providing parents and childs dependencies.
+    Manage tasks and subtasks. Ordering of tasks are controlled by DAG by providing parents and
+    childs dependencies.
 
     Examples:
         >>> subtask = MyTask()
@@ -48,18 +46,16 @@ class TaskScheduler:
     def __init__(self, ordered_tasks=None):
         """Initialize the TaskScheduler and reset DAG.
 
-        ``ordered_tasks`` option provides a shortcut of registering ordered
-        task and subtask. Please see ``add_ordered_tasks()`` and 
-        ``add_ordered_subtasks()`` methods for details. If task dependencies
-        are complex, please add task and subtask using ``add_task()`` and
+        ``ordered_tasks`` option provides a shortcut of registering ordered task and subtask.
+        Please see ``add_ordered_tasks()`` and ``add_ordered_subtasks()`` methods for details.
+        If task dependencies are complex, please add task and subtask using ``add_task()`` and
         ``add_subtask()`` methods.
 
         Args:
-            ordered_tasks (list): list of ordered task_ids, or list of ordered
-                subtasks. If given value is list of str,
-                ``add_ordered_tasks()`` is called to register task_ids. If
-                given value is list of other types, ``add_ordered_subtasks()``
-                is called to register subtasks.
+            ordered_tasks (list): list of ordered task_ids, or list of ordered subtasks. If given
+                value is list of str, ``add_ordered_tasks()`` is called to register task_ids. If
+                given value is list of other types, ``add_ordered_subtasks()`` is called to
+                register subtasks.
 
         Examples:
             >>> # ordered task_ids
@@ -89,7 +85,7 @@ class TaskScheduler:
         return len(list(itertools.product(*self.get_all_subtasks_with_hps())))
 
     def __getitem__(self, item):
-        """Returns ``subtasktuples`` by index.       
+        """Returns ``subtasktuples`` by index.
 
         Args:
             item (int): Index between 0 to len(task_scheduler).
@@ -102,27 +98,21 @@ class TaskScheduler:
     ##########################################################################
     # Public user APIs
     ##########################################################################
-    def add_task(self,
-                 task_id,
-                 parents=None,
-                 children=None,
-                 subtasks=None,
-                 add_to_dag=True):
-        """ Register task and add the relation between tasks.
+    def add_task(self, task_id, parents=None, children=None, subtasks=None, add_to_dag=True):
+        """Register task and add the relation between tasks.
 
-        If ``subtasks`` is provided as a list of dict, subtasks are also
-        registered to given ``task_id``. To specify dependencies of tasks, 
-        ``parents`` or/and ``children`` need to be set, and ``add_to_dag``
-        must be True.
+        If ``subtasks`` is provided as a list of dict, subtasks are also registered to given
+        ``task_id``. To specify dependencies of tasks, ``parents`` or/and ``children`` need to be
+        set, and ``add_to_dag`` must be True.
 
         Args:
             task_id (str): unique task identifier
             parents (list or str): list of parent task_ids, or str of parent task_id.
             children (list or str): list of child task_ids. or str of child task_id.
-            subtasks (list): list of dict of subtasks with format of 
+            subtasks (list): list of dict of subtasks with format of
                 {'subtask_id': subtask_id, 'env': env, 'hps': hps}
-            add_to_dag (bool): add task to DAG or not. To obtain task
-               dependencies, e.g. ordered tasks, task need to be added to DAG.
+            add_to_dag (bool): add task to DAG or not. To obtain task dependencies, e.g. ordered
+                tasks, task need to be added to DAG.
         """
         if parents is None:
             parents = []
@@ -139,8 +129,7 @@ class TaskScheduler:
             subtasks = [subtasks]
 
         for subtask in subtasks:
-            self.add_subtask(task_id, subtask['subtask_id'], subtask['env'],
-                             subtask['hps'])
+            self.add_subtask(task_id, subtask['subtask_id'], subtask['env'], subtask['hps'])
 
         if (not add_to_dag) and (parents != [] or children != []):
             raise ValueError("add_to_dag must be True to register ordering")
@@ -150,20 +139,17 @@ class TaskScheduler:
 
         for parent in parents:
             self._add_task(parent, add_to_dag)
-            self._dag.add_edge(self._dag_index[parent],
-                               self._dag_index[task_id])
+            self._dag.add_edge(self._dag_index[parent], self._dag_index[task_id])
 
         for child in children:
             self._add_task(child, add_to_dag)
-            self._dag.add_edge(self._dag_index[task_id],
-                               self._dag_index[child])
+            self._dag.add_edge(self._dag_index[task_id], self._dag_index[child])
 
     def add_ordered_tasks(self, ordered_tasks):
         """Register ordered tasks.
 
-        For example, if ``ordered_tasks`` is ['task0', 'task1'], 'task0' and
-        'task0' are registered with dependency of 'task0 (parent)' ->
-        'task1 (child)'. 
+        For example, if ``ordered_tasks`` is ['task0', 'task1'], 'task0' and 'task0' are registered
+        with dependency of 'task0 (parent)' -> 'task1 (child)'.
 
         Args:
             ordered_tasks (list): list of task_ids
@@ -179,20 +165,19 @@ class TaskScheduler:
     def add_ordered_subtasks(self, ordered_tasks):
         """Register ordered subtasks.
 
-        ``ordered_tasks`` need to be a format of [task0, task1...], where e.g. task0
-        is a list of tuples [('subtask0', env0, hps0), ('subtask1', env0, hps0)...].
-        ``task_id`` is automatically set with 'step0', 'step1'...
-        For the examples below, scheme of pipeline is:
+        ``ordered_tasks`` need to be a format of [task0, task1...], where e.g. task0 is a list of
+        tuples [('subtask0', env0, hps0), ('subtask1', env0, hps0)...]. ``task_id`` is
+        automatically set with 'step0', 'step1'... For the examples below, scheme of pipeline is:
 
-        >>> step0 (subtask0, subtask1) -> step1 (subtask2, subtask2) 
+        >>> step0 (subtask0, subtask1) -> step1 (subtask2, subtask2)
 
         Args:
             ordered_tasks (list): list of subtasks. Please see examples below.
 
         Examples:
            >>> # ordered tasks with subtask_id and hyperparameters
-           >>> step0 = [('subtask0', env0, hps0), ('subtask1', env1, hps1)] 
-           >>> step1 = [('subtask2', env2, hps2), ('subtask3', env3, hps3)] 
+           >>> step0 = [('subtask0', env0, hps0), ('subtask1', env1, hps1)]
+           >>> step1 = [('subtask2', env2, hps2), ('subtask3', env3, hps3)]
            >>> steps = [step0, step1]
            >>> task_scheduler.add_ordered_subtasks(steps)
            >>>
@@ -225,27 +210,23 @@ class TaskScheduler:
 
                 elif isinstance(subtask, tuple) and len(subtask) == 3:
                     subtask_id, env, hps = subtask
-                    self.add_subtask(task_id,
-                                     subtask_id=subtask_id,
-                                     env=env,
-                                     hps=hps)
+                    self.add_subtask(task_id, subtask_id=subtask_id, env=env, hps=hps)
 
                 else:
                     self.add_subtask(task_id, env=subtask)
 
     def add_subtask(self, task_id, subtask_id=None, env=None, hps=None):
-        """Register a subtask to given task. 
-  
+        """Register a subtask to given task.
+
         Need to register the corresponding task before calling this method.
 
         Args:
             task_id (str): unique task identifier.
             subtask_id (str): unique subtask identifier.
-            env (BaseTask): user defined subtask class instance. subtask class
-                need to inherited from BaseTask class.
-            hps (dict or Hyperparameters): user defined Hyperparameters class
-                instance or dict. If hps is dict, dict is converted to
-                Hyparparameters class instance automatically.
+            env (BaseTask): user defined subtask class instance. subtask class need to inherited
+                from BaseTask class.
+            hps (dict or Hyperparameters): user defined Hyperparameters class instance or dict.
+                If hps is dict, dict is converted to Hyperparameters class instance automatically.
         """
         from multiml import Hyperparameters
 
@@ -263,8 +244,7 @@ class TaskScheduler:
 
         for subtask in self._tasktuples[task_id].subtasks:
             if subtask.subtask_id == subtask_id:
-                raise ValueError(
-                    f"{subtask_id} is already registered in {task_id}.")
+                raise ValueError(f"{subtask_id} is already registered in {task_id}.")
 
         if hps is None:
             hps = Hyperparameters()
@@ -275,8 +255,7 @@ class TaskScheduler:
         env.task_id = task_id
         env.subtask_id = subtask_id
 
-        self._tasktuples[task_id].subtasks.append(
-            subtasktuple(task_id, subtask_id, env, hps))
+        self._tasktuples[task_id].subtasks.append(subtasktuple(task_id, subtask_id, env, hps))
 
     def get_subtasks(self, task_id):
         """Returns subtasks of tasktuple for given task_id.
@@ -368,29 +347,24 @@ class TaskScheduler:
 
         Returns:
             list:
-                list of modified subtasktuples. Modified subtasktuple format
-                is .task_id: task_id, .subtask_id: subtask_id,
-                .env: subtask class instance, .hps: *dictionary of hps*.
+                list of modified subtasktuples. Modified subtasktuple format is .task_id: task_id,
+                .subtask_id: subtask_id, .env: subtask class instance, .hps: *dictionary of hps*.
         """
         results = []
         for subtask in self.get_subtasks(task_id):
             grid_hps = subtask.hps.get_grid_hps()
 
             if not grid_hps:
-                results.append(
-                    subtasktuple(subtask.task_id, subtask.subtask_id,
-                                 subtask.env, {}))
+                results.append(subtasktuple(subtask.task_id, subtask.subtask_id, subtask.env, {}))
                 continue
 
             for hps in grid_hps:
-                results.append(
-                    subtasktuple(subtask.task_id, subtask.subtask_id,
-                                 subtask.env, hps))
+                results.append(subtasktuple(subtask.task_id, subtask.subtask_id, subtask.env, hps))
 
         return results
 
     def get_all_subtasks_with_hps(self):
-        """ Returns all combination of subtask_ids and hps for all task_ids.
+        """Returns all combination of subtask_ids and hps for all task_ids.
 
         Returns:
             list: list of ``get_subtasks_with_hps()`` for each ``task_id``.
@@ -402,7 +376,7 @@ class TaskScheduler:
         return all_combs
 
     def get_subtasks_pipeline(self, index):
-        """ Returns modified subtasktuples for given index.
+        """Returns modified subtasktuples for given index.
 
         Returns:
             list: list of modified subtasktuples.
@@ -413,8 +387,7 @@ class TaskScheduler:
         return list(itertools.product(*all_combs))[index]
 
     def show_info(self):
-        """Show information of registered tasks and subtasks.
-        """
+        """Show information of registered tasks and subtasks."""
         header = f'TaskScheduler: total combination {len(self)}'
         names = ['task_id', 'subtask_id', 'hps', 'DAG', 'parents', 'children']
         data = []
@@ -424,18 +397,14 @@ class TaskScheduler:
             parents = f'{self.get_parents_task_ids(task_id)}'
             children = f'{self.get_children_task_ids(task_id)}'
 
-            for index, subtask in enumerate(
-                    self._tasktuples[task_id].subtasks):
+            for index, subtask in enumerate(self._tasktuples[task_id].subtasks):
                 subtask_id = subtask.subtask_id
                 hp_name = f'{subtask.hps.get_hp_names()}'
 
                 if index == 0:
-                    data.append([
-                        task_id, subtask_id, hp_name, in_dag, parents, children
-                    ])
+                    data.append([task_id, subtask_id, hp_name, in_dag, parents, children])
                 else:
-                    data.append(
-                        ['', subtask_id, hp_name, in_dag, parents, children])
+                    data.append(['', subtask_id, hp_name, in_dag, parents, children])
             data.append('-')
 
         logger.table(header=header, names=names, data=data)
@@ -444,8 +413,7 @@ class TaskScheduler:
     # Internal methods
     ##########################################################################
     def _add_task(self, task_id, add_to_dag):
-        """(private) add a task to the task scheduler. 
-        """
+        """(private) add a task to the task scheduler."""
         if task_id not in self._tasktuples:
             if add_to_dag:
                 self._dag_index[task_id] = len(self._dag)
@@ -454,8 +422,7 @@ class TaskScheduler:
 
     @staticmethod
     def _str_to_list(string):
-        """(private) convert string to a list to allow common process.
-        """
+        """(private) convert string to a list to allow common process."""
         if isinstance(string, str):
             if string == '':
                 return []
@@ -463,6 +430,5 @@ class TaskScheduler:
         return string
 
     def _in_dag(self, task_id):
-        """Returns if task_id is registered in DAG or not.
-        """
+        """Returns if task_id is registered in DAG or not."""
         return bool(task_id in self._dag_index)

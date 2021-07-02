@@ -5,7 +5,7 @@ from multiml import logger
 
 
 class AlphaDumperCallback(tf.keras.callbacks.Callback):
-    """ Dump alpha values in DARTS training
+    """Dump alpha values in DARTS training.
 
     Attributes:
         alpha_history: list of alpha values on each epoch
@@ -20,7 +20,7 @@ class AlphaDumperCallback(tf.keras.callbacks.Callback):
 
     @staticmethod
     def formatting(var):
-        """ Format tensor for display
+        """Format tensor for display.
 
         Args:
             var (Tensor): Tensor
@@ -39,8 +39,7 @@ class AlphaDumperCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         logger.debug('')
         for i, var in enumerate(self.model.alpha_vars):
-            logger.debug(
-                f"epoch = {epoch}: alpha {var.name} = {self.formatting(var)}")
+            logger.debug(f"epoch = {epoch}: alpha {var.name} = {self.formatting(var)}")
             self._alpha_history[i].append(var.numpy().reshape(-1))
         logger.debug('')
         logger.debug('')
@@ -65,15 +64,14 @@ class AlphaDumperCallback(tf.keras.callbacks.Callback):
 
     def on_train_end(self, logs=None):
         for var in self.model.alpha_vars:
-            logger.debug(
-                f"DARTS final alpha {var.name} = {self.formatting(var)}")
+            logger.debug(f"DARTS final alpha {var.name} = {self.formatting(var)}")
 
     def get_alpha_history(self):
         return self._alpha_history
 
 
 class EachLossDumperCallback(tf.keras.callbacks.Callback):
-    """ Dump each loss values in DARTS training
+    """Dump each loss values in DARTS training.
 
     Attributes:
         loss_history: list of loss values on each epoch
@@ -98,8 +96,7 @@ class EachLossDumperCallback(tf.keras.callbacks.Callback):
 
 
 class NaNKillerCallback(tf.keras.callbacks.Callback):
-    """ Stop training when nan is found in alphas
-    """
+    """Stop training when nan is found in alphas."""
     def on_epoch_end(self, epoch, logs=None):
         if self._isnan(self.model.alpha_vars):
             self.stopped_epoch = epoch

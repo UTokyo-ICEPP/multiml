@@ -1,5 +1,4 @@
-""" RandomSearchAgent module.
-"""
+"""RandomSearchAgent module."""
 import random
 import multiprocessing as mp
 
@@ -8,29 +7,30 @@ from multiml.agent.basic import SequentialAgent
 
 
 class RandomSearchAgent(SequentialAgent):
-    """ Agent executing random search..
-    """
+    """Agent executing random search.."""
     def __init__(self,
-                 samplings=[0],
+                 samplings=None,
                  seed=0,
                  metric_type=None,
                  num_workers=None,
                  dump_all_results=False,
                  **kwargs):
-        """ Initialize simple agent.
+        """Initialize simple agent.
 
         Args:
-            samplings (int or list): If int, number of random samplings.
-                If list, indexes of combination. 
+            samplings (int or list): If int, number of random samplings. If list, indexes of
+                combination.
             seed (int): seed of random samplings.
-            metric_type (str): 'min' or 'max' for indicating direction of
-                metric optimization. If it is None, ``type`` is retrieved from
-                metric class instance.
+            metric_type (str): 'min' or 'max' for indicating direction of metric optimization.
+                If it is None, ``type`` is retrieved from metric class instance.
             num_workers (int): number of workers for multiprocessing. If
                 ``num_workers`` is given, multiprocessing is enabled.
             dump_all_results (bool): dump all results or not.
         """
         super().__init__(**kwargs)
+        if samplings is None:
+            samplings = [0]
+
         self._history = []
         self._samplings = samplings
         self._seed = seed
@@ -52,20 +52,17 @@ class RandomSearchAgent(SequentialAgent):
 
     @property
     def history(self):
-        """ Return history of execution.
-        """
+        """Return history of execution."""
         return self._history
 
     @history.setter
     def history(self, history):
-        """ Set history of execution.
-        """
+        """Set history of execution."""
         self._history = history
 
     @logger.logging
     def execute(self):
-        """ Execute simple agent.
-        """
+        """Execute simple agent."""
         if isinstance(self._samplings, int):
             samples = range(0, len(self.task_scheduler))
             self._samplings = random.choices(samples, k=self._samplings)
@@ -79,8 +76,7 @@ class RandomSearchAgent(SequentialAgent):
         else:  # multiprocessing
             if self._storegate.backend not in ('numpy', 'hybrid'):
                 raise NotImplementedError(
-                    'multiprocessing is supported for only numpy and hybrid backend'
-                )
+                    'multiprocessing is supported for only numpy and hybrid backend')
 
             ctx = mp.get_context('spawn')
             queue = ctx.Queue()
@@ -93,16 +89,13 @@ class RandomSearchAgent(SequentialAgent):
                 if len(args) == self._num_workers:
                     self.execute_jobs(ctx, queue, args)
                     args = []
-                    logger.counter(counter + 1,
-                                   len(self.task_scheduler),
-                                   divide=1)
+                    logger.counter(counter + 1, len(self.task_scheduler), divide=1)
 
             self.execute_jobs(ctx, queue, args)
 
     @logger.logging
     def finalize(self):
-        """ Finalize grid scan agent.
-        """
+        """Finalize grid scan agent."""
         if self._result is None:
 
             metrics = [result['metric_value'] for result in self._history]
@@ -112,8 +105,7 @@ class RandomSearchAgent(SequentialAgent):
             elif self._metric_type == 'min':
                 index = metrics.index(min(metrics))
             else:
-                raise NotImplementedError(
-                    f'{self._metric_type} is not valid option.')
+                raise NotImplementedError(f'{self._metric_type} is not valid option.')
 
             self._result = self._history[index]
 
@@ -130,8 +122,7 @@ class RandomSearchAgent(SequentialAgent):
         super().finalize()
 
     def execute_jobs(self, ctx, queue, args):
-        """ (expert method) Execute multiprocessing jobs.
-        """
+        """(expert method) Execute multiprocessing jobs."""
         jobs = []
 
         for pool_id, pargs in enumerate(args):
@@ -148,8 +139,7 @@ class RandomSearchAgent(SequentialAgent):
             self._history.append(queue.get())
 
     def execute_wrapper(self, pool_id, queue, subtasktuples, counter):
-        """ (expert method) Wrapper method to execute multiprocessing pipeline.
-        """
+        """(expert method) Wrapper method to execute multiprocessing pipeline."""
         self._saver.set_mode('dict')
         if self._storegate.backend == 'hybrid':
             self._storegate.set_mode('numpy')

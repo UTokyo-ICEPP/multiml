@@ -39,10 +39,7 @@ class ConnectionModel(ConnectionModel, BaseModel):
 
             # If index is tuple, convert from list to tensor
             elif isinstance(input_indexes, tuple):
-                tensor_inputs = [
-                    tf.expand_dims(tensor_input, 1)
-                    for tensor_input in tensor_inputs
-                ]
+                tensor_inputs = [tf.expand_dims(tensor_input, 1) for tensor_input in tensor_inputs]
                 tensor_inputs = tf.concat(tensor_inputs, axis=1)
 
             # Apply model in subtask

@@ -1,13 +1,11 @@
-""" Keras ModelConnectionTask module.
-"""
+"""Keras ModelConnectionTask module."""
 from . import KerasBaseTask
 from ..basic import ModelConnectionTask
 from .modules import ConnectionModel
 
 
 class ModelConnectionTask(ModelConnectionTask, KerasBaseTask):
-    """ Keras implementation of ModelConnectionTask.
-    """
+    """Keras implementation of ModelConnectionTask."""
     def build_model(self):
         models = [subtask.ml.model for subtask in self._subtasks]
 

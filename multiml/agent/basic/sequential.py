@@ -1,13 +1,10 @@
-""" SequentialAgent module.
-"""
-from collections import namedtuple
-
+"""SequentialAgent module."""
 from multiml import logger
 from multiml.agent.basic import BaseAgent
 
 
 class SequentialAgent(BaseAgent):
-    """ Agent execute sequential tasks.
+    """Agent execute sequential tasks.
 
     Examples:
         >>> task0 = your_task0
@@ -20,20 +17,15 @@ class SequentialAgent(BaseAgent):
         >>> agent.execute()
         >>> agent.finalize()
     """
-    def __init__(self,
-                 differentiable=None,
-                 diff_pretrain=False,
-                 diff_task_args=None,
-                 **kwargs):
-        """ Initialize sequential agent.
+    def __init__(self, differentiable=None, diff_pretrain=False, diff_task_args=None, **kwargs):
+        """Initialize sequential agent.
 
         Args:
-            differentiable (str): ``keras`` or ``pytorch``. If differentiable
-                is given, ``ConnectionTask()`` is created based on sequential
-                tasks. If differentiable is None (default), sequential tasks
-                are executed step by step.
-            diff_pretrain (bool): If True, each subtask is trained before
-                creating `ConnectionTask()``.
+            differentiable (str): ``keras`` or ``pytorch``. If differentiable is given,
+                ``ConnectionTask()`` is created based on sequential tasks. If differentiable is
+                None (default), sequential tasks are executed step by step.
+            diff_pretrain (bool): If True, each subtask is trained before creating
+                `ConnectionTask()``.
             diff_task_args (dict): arbitrary args passed to ``ConnectionTask()``.
         """
         if diff_task_args is None:
@@ -47,31 +39,26 @@ class SequentialAgent(BaseAgent):
 
     @property
     def result(self):
-        """ Return result of execution.
-        """
+        """Return result of execution."""
         return self._result
 
     @result.setter
     def result(self, result):
-        """ Set result of execution.
-        """
+        """Set result of execution."""
         self._result = result
 
     @logger.logging
     def execute(self):
-        """ Execute sequential agent.
-        """
+        """Execute sequential agent."""
         if len(self.task_scheduler) != 1:
-            raise ValueError(
-                'Multiple sutasks or hyperparameters are defined.')
+            raise ValueError('Multiple sutasks or hyperparameters are defined.')
 
         subtasktuples = self.task_scheduler[0]
         self._result = self.execute_subtasktuples(subtasktuples, 0)
 
     @logger.logging
     def finalize(self):
-        """ Finalize sequential agent.
-        """
+        """Finalize sequential agent."""
         if self._result is None:
             logger.warn(f'No result at finalize of {self.__class__.__name__}')
 
@@ -82,8 +69,7 @@ class SequentialAgent(BaseAgent):
             self.saver['result'] = self._result
 
     def execute_subtasktuples(self, subtasktuples, counter):
-        """ Execute given subtasktuples.
-        """
+        """Execute given subtasktuples."""
         if self._differentiable is None:
             return self.execute_pipeline(subtasktuples, counter)
 
@@ -91,14 +77,8 @@ class SequentialAgent(BaseAgent):
             return self.execute_differentiable(subtasktuples, counter)
 
     def execute_pipeline(self, subtasktuples, counter):
-        """ Execute pipeline.
-        """
-        result = {
-            'task_ids': [],
-            'subtask_ids': [],
-            'subtask_hps': [],
-            'metric_value': None
-        }
+        """Execute pipeline."""
+        result = {'task_ids': [], 'subtask_ids': [], 'subtask_hps': [], 'metric_value': None}
 
         for subtasktuple in subtasktuples:
             task_id = subtasktuple.task_id
@@ -122,14 +102,8 @@ class SequentialAgent(BaseAgent):
         return result
 
     def execute_differentiable(self, subtasktuples, counter):
-        """ Execute connection model.
-        """
-        result = {
-            'task_ids': [],
-            'subtask_ids': [],
-            'subtask_hps': [],
-            'metric_value': None
-        }
+        """Execute connection model."""
+        result = {'task_ids': [], 'subtask_ids': [], 'subtask_hps': [], 'metric_value': None}
 
         if self._diff_pretrain:
             for subtasktuple in subtasktuples:
@@ -168,8 +142,7 @@ class SequentialAgent(BaseAgent):
             )
 
         else:
-            raise ValueError(
-                f'differentiable: {self._differentiable} is not supported.')
+            raise ValueError(f'differentiable: {self._differentiable} is not supported.')
 
         from multiml.hyperparameter import Hyperparameters
         from multiml.task_scheduler import subtasktuple
@@ -190,8 +163,7 @@ class SequentialAgent(BaseAgent):
         return result
 
     def _execute_subtask(self, subtask, is_skip=False):
-        """ Execute subtask.
-        """
+        """Execute subtask."""
 
         subtask.env.storegate = self._storegate
         subtask.env.saver = self._saver
@@ -199,14 +171,12 @@ class SequentialAgent(BaseAgent):
         subtask.env.finalize()
 
     def _print_result(self, result):
-        """ Returns print result.
-        """
+        """Returns print result."""
         metric_name = self._metric.name
         names = ['task_id', 'subtask_id', 'hps', f'metric({metric_name})']
         data = []
 
-        for task_id, subtask_id, subtask_hp in zip(result['task_ids'],
-                                                   result['subtask_ids'],
+        for task_id, subtask_id, subtask_hp in zip(result['task_ids'], result['subtask_ids'],
                                                    result['subtask_hps']):
             if subtask_hp is None or len(subtask_hp) == 0:
                 data.append([task_id, subtask_id, 'no hyperparameters'])

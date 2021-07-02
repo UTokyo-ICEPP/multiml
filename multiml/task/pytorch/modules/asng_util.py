@@ -3,10 +3,7 @@ import numpy as np
 
 
 class asng_category:
-    def __init__(self,
-                 categories=None,
-                 init_theta=None,
-                 range_restriction=True):
+    def __init__(self, categories=None, init_theta=None, range_restriction=True):
 
         self.range_restriction = range_restriction
         self.n = np.sum(categories - 1)
@@ -35,8 +32,7 @@ class asng_category:
         self.theta = theta
 
     def get_most_likely(self):
-        """ Get most likely categorical variables (one-hot)
-        """
+        """Get most likely categorical variables (one-hot)"""
         c_cat = self.theta.argmax(axis=1)
         T = np.zeros((self.d, self.max))
         for i, c in enumerate(c_cat):
@@ -45,25 +41,21 @@ class asng_category:
 
     def sampling(self, lam):
         # Draw a sample from the categorical distribution (one-hot)
-        rand = np.random.rand(lam, self.d,
-                              1)  # range of random number is [0, 1)
+        rand = np.random.rand(lam, self.d, 1)  # range of random number is [0, 1)
         cum_theta = self.theta.cumsum(axis=1)  # (d, Cmax)
         # x[i, j] becomes 1 if cum_theta[i, j] - theta[i, j] <= rand[i] < cum_theta[i, j]
         c_cat = (cum_theta - self.theta <= rand) & (rand < cum_theta)
         return c_cat
 
     def calc_theta(self, c_cat, aru, idx):
-        self.ng = np.mean(aru[:, np.newaxis, np.newaxis] *
-                          (c_cat[idx] - self.theta),
-                          axis=0)
+        self.ng = np.mean(aru[:, np.newaxis, np.newaxis] * (c_cat[idx] - self.theta), axis=0)
         # sqrt(F) * NG for categorical distribution
         sl = []
         for i, K in enumerate(self.cat):
             theta_i = self.theta[i, :K - 1]
             theta_K = self.theta[i, K - 1]
             s_i = 1. / np.sqrt(theta_i) * self.ng[i, :K - 1]
-            s_i += np.sqrt(theta_i) * self.ng[i, :K - 1].sum() / (
-                theta_K + np.sqrt(theta_K))
+            s_i += np.sqrt(theta_i) * self.ng[i, :K - 1].sum() / (theta_K + np.sqrt(theta_K))
             sl += list(s_i)
         sl = np.array(sl)
         fnorm = np.sum(sl**2)
@@ -75,14 +67,12 @@ class asng_category:
         for i in range(self.d):
             ci = self.cat[i]
             # Constraint for theta (minimum value of theta and sum of theta = 1.0)
-            theta_min = 1. / (
-                self.d_valid *
-                (ci - 1)) if self.range_restriction and ci > 1 else 0.0
+            theta_min = 1. / (self.d_valid *
+                              (ci - 1)) if self.range_restriction and ci > 1 else 0.0
             self.theta[i, :ci] = np.maximum(self.theta[i, :ci], theta_min)
             theta_sum = self.theta[i, :ci].sum()
             tmp = theta_sum - theta_min * ci
-            self.theta[i, :ci] -= (theta_sum - 1.) * (self.theta[i, :ci] -
-                                                      theta_min) / tmp
+            self.theta[i, :ci] -= (theta_sum - 1.) * (self.theta[i, :ci] - theta_min) / tmp
             # Ensure the summation to 1
             self.theta[i, :ci] /= self.theta[i, :ci].sum()
 
@@ -132,10 +122,8 @@ class asng_integer:
 
     def calc_theta(self, c_int, aru, idx):
         # NG for normal distribution
-        ng_int1 = np.mean(aru[:, np.newaxis] * (c_int[idx] - self.theta[0]),
-                          axis=0)
-        ng_int2 = np.mean(aru[:, np.newaxis] * (c_int[idx]**2 - self.theta[1]),
-                          axis=0)
+        ng_int1 = np.mean(aru[:, np.newaxis] * (c_int[idx] - self.theta[0]), axis=0)
+        ng_int2 = np.mean(aru[:, np.newaxis] * (c_int[idx]**2 - self.theta[1]), axis=0)
         self.dpara = np.vstack((ng_int1, ng_int2))
 
         # sqrt(F) * NG for normal distribution
@@ -163,10 +151,8 @@ class asng_integer:
 
         # sqrt(F) * NG
         fdpara = np.zeros((2, self.d))  # sqrt(F) * dtheta
-        fdpara[0, :] = eigvec1[0, :] * self.dpara[0] + eigvec1[
-            1, :] * self.dpara[1]
-        fdpara[1, :] = eigvec2[0, :] * self.dpara[0] + eigvec2[
-            1, :] * self.dpara[1]
+        fdpara[0, :] = eigvec1[0, :] * self.dpara[0] + eigvec1[1, :] * self.dpara[1]
+        fdpara[1, :] = eigvec2[0, :] * self.dpara[0] + eigvec2[1, :] * self.dpara[1]
         fdpara[0, :] /= np.sqrt(eigval[0, :])
         fdpara[1, :] /= np.sqrt(eigval[1, :])
         fdpara = eigvec1 * fdpara[0] + eigvec2 * fdpara[1]
@@ -177,14 +163,12 @@ class asng_integer:
     def update_theta(self):
         self.theta += eps * self.dpara
         self.theta[0] = np.clip(self.theta[0], self.min, self.max)
-        self.theta[1] = np.clip(self.theta[1],
-                                self.theta[0]**2 + self.std_min**2,
+        self.theta[1] = np.clip(self.theta[1], self.theta[0]**2 + self.std_min**2,
                                 self.theta[0]**2 + self.std_max**2)
 
 
 def ranking_based_utility_transformation(losses, lam, rho=0.25, negative=True):
-    """
-    Ranking Based Utility Transformation
+    """Ranking Based Utility Transformation.
 
     w(f(x)) / lambda =
         1/mu  if rank(x) <= mu

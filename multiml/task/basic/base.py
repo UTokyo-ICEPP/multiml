@@ -1,18 +1,16 @@
-""" BaseTask module.
-"""
+"""BaseTask module."""
 
 from multiml import logger
 from multiml.task import Task
 
 
 class BaseTask(Task):
-    """ Base task class for the default functions. 
+    """Base task class for the default functions.
 
-    All subtasks defined by users, need to inherit this ``BaseTask``.
-    In user defined class, super.__init__() must be called in __init__()
-    method. A task class is assumed to call its methods by following sequence:
-    ``set_hps()`` -> ``execute()`` -> ``finalize()``. If task class instance
-    is registered to ``TaskScheduler`` as *subtask*, ``self._task_id`` and
+    All subtasks defined by users, need to inherit this ``BaseTask``. In user defined class,
+    super.__init__() must be called in __init__() method. A task class is assumed to call its
+    methods by following sequence: ``set_hps()`` -> ``execute()`` -> ``finalize()``. If task class
+    instance is registered to ``TaskScheduler`` as *subtask*, ``self._task_id`` and
     ``self._subtask_id`` are automatically set by ``TaskScheduler``.
 
     Examples:
@@ -28,7 +26,7 @@ class BaseTask(Task):
                  storegate=None,
                  data_id=None,
                  name=None):
-        """ Initialize base task.
+        """Initialize base task.
 
         Args:
             saver (Saver): ``Saver`` class instance to record metadata data.
@@ -63,20 +61,23 @@ class BaseTask(Task):
 
     @logger.logging
     def execute(self):
-        """ Execute base task. Users implement their algorithms.
+        """Execute base task.
+
+        Users implement their algorithms.
         """
 
     @logger.logging
     def finalize(self):
-        """ Finalize base task. Users implement their algorithms.
+        """Finalize base task.
+
+        Users implement their algorithms.
         """
 
     def set_hps(self, params):
-        """ Set hyperparameters to this task. 
+        """Set hyperparameters to this task.
 
-        Class attributes (self._XXX) are automatically set based on keys and
-        values of given dict. E.g. dict of {'key0': 0, 'key1': 1} is given,
-        self._key0 = 0 and self._key1 = 1 are created.
+        Class attributes (self._XXX) are automatically set based on keys and values of given dict.
+        E.g. dict of {'key0': 0, 'key1': 1} is given, self._key0 = 0 and self._key1 = 1 are created.
         """
         for key, value in params.items():
             if not hasattr(self, '_' + key):
@@ -92,115 +93,96 @@ class BaseTask(Task):
 
     @property
     def name(self):
-        """ Return name of task.
-        """
+        """Return name of task."""
         return self._name
 
     @name.setter
     def name(self, name):
-        """ Set name of task.
-        """
+        """Set name of task."""
         self._name = name
 
     @property
     def job_id(self):
-        """ Return job_id of task.
-        """
+        """Return job_id of task."""
         return self._job_id
 
     @job_id.setter
     def job_id(self, job_id):
-        """ Set job_id of task.
-        """
+        """Set job_id of task."""
         self._job_id = job_id
 
     @property
     def task_id(self):
-        """ Return task_id of task.
-        """
+        """Return task_id of task."""
         return self._task_id
 
     @task_id.setter
     def task_id(self, task_id):
-        """ Set task_id of task.
-        """
+        """Set task_id of task."""
         self._task_id = task_id
 
     @property
     def subtask_id(self):
-        """ Return subtask_id of task.
-        """
+        """Return subtask_id of task."""
         return self._subtask_id
 
     @subtask_id.setter
     def subtask_id(self, subtask_id):
-        """ Set subtask_id of task.
-        """
+        """Set subtask_id of task."""
         self._subtask_id = subtask_id
 
     @property
     def pool_id(self):
-        """ Return pool_id of task.
-        """
+        """Return pool_id of task."""
         return self._pool_id
 
     @pool_id.setter
     def pool_id(self, pool_id):
-        """ Set pool_id of task.
-        """
+        """Set pool_id of task."""
         self._pool_id = pool_id
 
     @property
     def storegate(self):
-        """ Return storegate of task.
-        """
+        """Return storegate of task."""
         return self._storegate
 
     @storegate.setter
     def storegate(self, storegate):
-        """ Set storegate.
-        """
+        """Set storegate."""
         self._storegate = storegate
 
     @property
     def saver(self):
-        """ Return saver of task.
-        """
+        """Return saver of task."""
         return self._saver
 
     @saver.setter
     def saver(self, saver):
-        """ Set saver.
-        """
+        """Set saver."""
         self._saver = saver
 
     @property
     def input_saver_key(self):
-        """ Return input_saver_key.
-        """
+        """Return input_saver_key."""
         return self._input_saver_key
 
     @input_saver_key.setter
     def input_saver_key(self, input_saver_key):
-        """ Set input_saver_key.
-        """
+        """Set input_saver_key."""
         self._input_saver_key = input_saver_key
 
     @property
     def output_saver_key(self):
-        """ Return output_saver_key.
-        """
+        """Return output_saver_key."""
         return self._output_saver_key
 
     @output_saver_key.setter
     def output_saver_key(self, output_saver_key):
-        """ Set output_saver_key.
-        """
+        """Set output_saver_key."""
         self._output_saver_key = output_saver_key
 
     def get_unique_id(self):
-        """ Returns unique identifier of task.
-        """
+        """Returns unique identifier of task."""
         if self._unique_id is None:
             unique_id = self._name
 

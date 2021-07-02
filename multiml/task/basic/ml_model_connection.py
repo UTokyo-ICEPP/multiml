@@ -1,26 +1,22 @@
-""" ModelConnectionTask module.
-"""
-import numpy as np
-
+"""ModelConnectionTask module."""
 from multiml import logger
 from multiml.task.basic import MLBaseTask
 
 
 class ModelConnectionTask(MLBaseTask):
-    """ Build a single task connecting with multiple tasks.
+    """Build a single task connecting with multiple tasks.
 
-    ``ModelConnectionTask`` connects multiple ML tasks considering the
-    input/output variables and dependencies of the tasks, then builds a single
-    task. ML model of component tasks are trained diferentially, thus
-    each ML model must be implemented by the same deep
-    learning library, i.e. Keras or Pytorch. Each subtask must contain
+    ``ModelConnectionTask`` connects multiple ML tasks considering the input/output variables and
+    dependencies of the tasks, then builds a single task. ML model of component tasks are trained
+    diferentially, thus each ML model must be implemented by the same deep learning library,
+    i.e. Keras or Pytorch. Each subtask must contain
       * ``input_var_names``, `output_var_names`` and `true_var_names`,
       * loss function,
-    to compile subtask dependencies and data I/O formats. The following
-    examples shows a workflow and its attributes, which are automatically
-    compiled:
+    to compile subtask dependencies and data I/O formats. The following examples shows a workflow
+    and its attributes, which are automatically compiled:
 
     Examples:
+        >>> '''
         >>> (input0, input1, input2)
         >>>      |   |        |
         >>>   [subtask0]      |
@@ -30,7 +26,8 @@ class ModelConnectionTask(MLBaseTask):
         >>>   [subtask1]------+
         >>>       |
         >>>   (output1)
-        >>> 
+        >>> '''
+        >>>
         >>> input_var_names = ['input0', 'input1', 'input2']
         >>> output_var_names = ['output0', 'output1']
         >>> input_var_index = [[0, 1], [-1, 2]]
@@ -41,21 +38,17 @@ class ModelConnectionTask(MLBaseTask):
         >>>                            optimizer='SGD')
         >>> task.execute()
     """
-    def __init__(self,
-                 subtasks,
-                 loss_weights=None,
-                 variable_mapping=None,
-                 **kwargs):
-        """ Constructor of ModelConnectionTask.
+    def __init__(self, subtasks, loss_weights=None, variable_mapping=None, **kwargs):
+        """Constructor of ModelConnectionTask.
 
         Args:
-            subtasks (list): list must contains ordered instance objects
-                inherited from ``MLBaseTask``.
-            loss_weights (list or dict or str): list of loss weights for each
-                task. ``last_loss`` and ``flat_loss`` are also allowed.
-            variable_mapping (list(str, str)): Input variables are replaced
-                following this list. Used for the case that the input variables
-                change from pre-training to main-training (with model connecting).
+            subtasks (list): list must contains ordered instance objects inherited
+                from ``MLBaseTask``.
+            loss_weights (list or dict or str): list of loss weights for each task. ``last_loss``
+                and ``flat_loss`` are also allowed.
+            variable_mapping (list(str, str)): Input variables are replaced following this list.
+                Used for the case that the input variables change from pre-training to
+                main-training (with model connecting).
             **kwargs: Arbitrary keyword arguments passed to ``MLBaseTask``.
         """
         super().__init__(**kwargs)
@@ -72,33 +65,28 @@ class ModelConnectionTask(MLBaseTask):
         self._output_var_index = None
 
         if self._input_var_names is not None:
-            logger.warn(
-                'input_var_names is given but it will be set automatically ')
+            logger.warn('input_var_names is given but it will be set automatically ')
             self._input_var_names = None
 
         if self._output_var_names is not None:
-            logger.warn(
-                'output_var_names is given but it will be set automatically ')
+            logger.warn('output_var_names is given but it will be set automatically ')
             self._output_var_names = None
 
         if self._pred_var_names is not None:
-            logger.warn(
-                'pred_var_names is given but it will be set automatically ')
+            logger.warn('pred_var_names is given but it will be set automatically ')
             self._pred_var_names = None
 
     def compile(self):
-        """ Compile subtasks and this task.
-        """
+        """Compile subtasks and this task."""
         for subtask in self._subtasks:
             subtask.compile()
 
         super().compile()
 
     def compile_loss(self):
-        """ Compile loss and loss_weights.
+        """Compile loss and loss_weights.
 
-        Loss functions are retrieved from subtasks, thus each subtask must
-        contain ``loss``.
+        Loss functions are retrieved from subtasks, thus each subtask must contain ``loss``.
         """
         self.ml.loss = []
         self.ml.loss_weights = []
@@ -115,13 +103,10 @@ class ModelConnectionTask(MLBaseTask):
             task_weights = self._loss_weights
 
         elif isinstance(self._loss_weights, dict):
-            task_weights = [
-                self._loss_weights[s.task_id] for s in self._subtasks
-            ]
+            task_weights = [self._loss_weights[s.task_id] for s in self._subtasks]
 
         else:
-            raise ValueError(
-                f'Unknown loss_weights: {self._loss_weights} is given')
+            raise ValueError(f'Unknown loss_weights: {self._loss_weights} is given')
 
         # Collect loss and weights for the loss from each subtask
         for subtask, task_weight in zip(self._subtasks, task_weights):
@@ -147,15 +132,14 @@ class ModelConnectionTask(MLBaseTask):
                     self.ml.loss_weights.append(0.0)
 
         if len(self.ml.loss) != len(self.ml.loss_weights):
-            error_log = f'loss length is inconsistent: '
+            error_log = 'loss length is inconsistent: '
             error_log += f'tasl_weights {task_weights}, '
             error_log += f'loss {self.ml.loss}, '
             error_log += f'loss_weights {self.ml.loss_weights}'
             raise ValueError(error_log)
 
     def compile_var_names(self):
-        """ Compile subtask dependencies and I/O variables.
-        """
+        """Compile subtask dependencies and I/O variables."""
         self.set_output_var_index()
         self.set_input_var_index()
 
@@ -171,8 +155,7 @@ class ModelConnectionTask(MLBaseTask):
         super().compile_var_names()
 
     def set_output_var_index(self):
-        """ Set output_var_names and output_var_index.
-        """
+        """Set output_var_names and output_var_index."""
         self._cache_var_names = []
         self._output_var_index = []
         self._output_var_names = []
@@ -211,18 +194,15 @@ class ModelConnectionTask(MLBaseTask):
 
             for output_var_name in output_var_names:
                 if output_var_name in self._cache_var_names:
-                    logger.error(
-                        f'output_var_name: {output_var_name} is duplicated.')
+                    logger.error(f'output_var_name: {output_var_name} is duplicated.')
                 else:
                     self._cache_var_names.append(output_var_name)
-                    output_index.append(
-                        self._cache_var_names.index(output_var_name))
+                    output_index.append(self._cache_var_names.index(output_var_name))
 
             self._output_var_index.append(output_index)
 
     def set_input_var_index(self):
-        """ Set input_var_names and input_var_index.
-        """
+        """Set input_var_names and input_var_index."""
         self._input_var_index = []
         self._input_var_names = []
 
@@ -247,8 +227,7 @@ class ModelConnectionTask(MLBaseTask):
             else:
                 for input_var_name in input_var_names:
                     if input_var_name in self.input_var_names:
-                        input_index.append(
-                            self.input_var_names.index(input_var_name))
+                        input_index.append(self.input_var_names.index(input_var_name))
 
                     elif input_var_name in self._cache_var_names:
                         index = self._cache_var_names.index(input_var_name)
@@ -257,8 +236,7 @@ class ModelConnectionTask(MLBaseTask):
 
                     else:
                         self.input_var_names.append(input_var_name)
-                        input_index.append(
-                            self.input_var_names.index(input_var_name))
+                        input_index.append(self.input_var_names.index(input_var_name))
 
             if isinstance(input_var_names, tuple):
                 self._input_var_index.append(tuple(input_index))
@@ -266,8 +244,7 @@ class ModelConnectionTask(MLBaseTask):
                 self._input_var_index.append(input_index)
 
     def _apply_variable_mapping(self, input_vars):
-        """ Convert variable name by given mapping.
-        """
+        """Convert variable name by given mapping."""
         if self._variable_mapping is None:
             return input_vars
 

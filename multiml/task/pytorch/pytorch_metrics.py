@@ -9,8 +9,7 @@ def dummy(*args, **kwargs):
 
 
 class BatchMetric:
-    """ Utility class to manage batch metrics.
-    """
+    """Utility class to manage batch metrics."""
     def __init__(self, metrics, enable=True):
         self.metrics = metrics
         self.enable = enable
@@ -33,7 +32,7 @@ class BatchMetric:
 
     @staticmethod
     def subloss(outputs, labels, loss):
-        return [l.item() for l in loss['subloss']]
+        return [loss.item() for loss in loss['subloss']]
 
     @staticmethod
     def acc(outputs, labels, loss):
@@ -51,8 +50,7 @@ class BatchMetric:
 
 
 class EpochMetric:
-    """ Utility class to manage epoch metrics.
-    """
+    """Utility class to manage epoch metrics."""
     def __init__(self, metrics, enable, true_var_names, ml):
         self.metrics = metrics
         self.enable = enable

@@ -5,5 +5,4 @@ from . import PytorchConnectionRandomSearchAgent
 
 class PytorchConnectionGridSearchAgent(PytorchConnectionRandomSearchAgent,
                                        ConnectionGridSearchAgent):
-    """ Pytorch implementation for ConnectionGridSearchAgent
-    """
+    """Pytorch implementation for ConnectionGridSearchAgent."""
