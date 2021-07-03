@@ -41,7 +41,7 @@ class BatchMetric:
             for output, label in zip(outputs, labels):
                 _, preds = torch.max(output, 1)
                 corrects = torch.sum(preds == label.data)
-                result.append(corrects.item())
+                result.append(corrects.detach())
         else:
             _, preds = torch.max(outputs, 1)
             corrects = torch.sum(preds == labels.data)
