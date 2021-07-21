@@ -22,7 +22,9 @@ class ASNGModel(ConnectionModel, Module):
 
         for subtask in self._models:
             self._sub_models.append(subtask)
+            
             categories += [subtask.n_subtask()]
+            
 
         categories = np.array(categories)
 

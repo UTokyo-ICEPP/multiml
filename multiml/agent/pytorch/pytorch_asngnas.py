@@ -190,7 +190,11 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
                 subtask_env = subtask.env
                 subtask_hps = subtask.hps
                 subtask_env.set_hps(subtask_hps)
-
+                
+                
+                
+                
+                
                 if self.do_pretraining:
                     logger.info(f'pretraining of {subtask_env.subtask_id} is starting...')
                     self._execute_subtask(subtask, is_pretraining=True)
@@ -207,7 +211,8 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
             logger.info(f'{l}')
             params_list = [v.hps for v in subtasktuples]
             self._saver.add(f'asng_block_{task_id}_submodel_params', params_list)
-
+            
+            
             # build asng task block
             subtasks = [v.env for v in subtasktuples]
             asng_block_subtask = self._build_block_task(subtasks, task_id, is_pretraining=False)

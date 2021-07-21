@@ -40,7 +40,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
             delta_init_factor=self.delta_init_factor,
             alpha=self.alpha,
             range_restriction=self.range_restriction,
-            models=models,
+            models = models,
             input_var_index=self._input_var_index,
             output_var_index=self._output_var_index,
         )

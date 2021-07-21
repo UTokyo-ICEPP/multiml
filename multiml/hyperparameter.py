@@ -160,6 +160,23 @@ class Hyperparameter:
             return np.arange(self._min, self._max, self._default_step)
 
         return self._data
+    
+    def make_layers(self, f) : 
+        self._layers = [ f(v) for v in self._data ]
+    
+    def set_layers(self, layers):
+        self._layers = layers
+        
+    ### TODO : following functionalities and properties are for list type hyperparameter    
+    def active(self, idx):
+        self.active = self._layers[idx]
+        self.active_data = self._data[idx]
+        
+    def active(self):
+        return self.active
+    
+    def active_data(self):
+        return self.active
 
 
 class Hyperparameters:
@@ -213,6 +230,19 @@ class Hyperparameters:
         for hp in self._hps:
             result *= len(hp)
         return result
+    
+    def _get_hp_by_index(self, index):
+        if isinstance(index, int):
+            grid_hps = self.get_grid_hps()
+            return grid_hps[item]
+        raise ValueError(f'this can be called by int(given: f{index})')
+
+    def _get_hp_by_key(self, key):
+        if isinstance(key, str):
+            for hp in self._hps:
+                if hp.name == key:
+                    return hp
+
 
     def __getitem__(self, item):
         """Returns registered Hyperparameter class instance by index.
@@ -229,13 +259,10 @@ class Hyperparameters:
             Hyperparameter or dict: please see the above description.
         """
         if isinstance(item, int):
-            grid_hps = self.get_grid_hps()
-            return grid_hps[item]
-
+            return self._get_hp_by_index(item)
+        
         if isinstance(item, str):
-            for hp in self._hps:
-                if hp.name == item:
-                    return hp
+            return self._get_hp_by_key(item)
 
         raise NotImplementedError(f'item {item} is not supported')
 
@@ -358,3 +385,30 @@ class Hyperparameters:
             list: the names of hyperparameters.
         """
         return [hp.name for hp in self._hps]
+    
+    def n_hps_parameters(self):
+        results = {}
+        
+        for key, value in self._hps.items() : 
+            if isinstance(value, list) : 
+                results[key] = len(value)
+        return results
+    
+    def set_active_hps(self, choice):
+        '''
+        choice should be dict, it must contains pair of like key : active index
+        '''
+        self._active_hps = choice
+        for hp in self._hps : 
+            if hp.name in choice.keys() :
+                hp.active( choice[hp.name] )
+            else : # this case should be no parameters
+                hp.active(0) # this should be ok ? TODO 
+        
+        
+
+
+
+
+
+

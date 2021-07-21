@@ -34,11 +34,6 @@ class PytorchASNGNASBlockTask(PytorchBaseTask):
         for subtask in self._subtasks:
             self.subtask_ids.append(subtask.subtask_id)
 
-    def build_model(self):
-        from .modules import ASNGTaskBlockModel
-        self._model = ASNGTaskBlockModel(name=self._name,
-                                         models=[v._model for v in self._subtasks])
-
     def get_input_true_data(self, phase):
         return self._proxy_model.get_input_true_data(phase)
 

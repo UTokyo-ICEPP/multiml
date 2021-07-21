@@ -106,7 +106,6 @@ class AdaptiveSNG:
         self.cat.update_theta(self.eps)
         self.int.update_theta(self.eps)
 
-
 class AdaptiveSNG_cat(AdaptiveSNG):
     def check_converge(self):
         return self.terminate(self.cat.get_theta(), None)

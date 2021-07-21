@@ -4,9 +4,10 @@ from torch.nn.modules import activation as act
 
 class LSTMBlock(Module):
     def __init__(self,
-                 layers,
-                 activation=None,
-                 batch_norm=False,
+                 hps, 
+                #  layers,
+                #  activation=None,
+                #  batch_norm=False,
                  initialize=True,
                  *args,
                  **kwargs):
@@ -21,6 +22,11 @@ class LSTMBlock(Module):
             **kwargs: Arbitrary keyword arguments
         """
         super(LSTMBlock, self).__init__(*args, **kwargs)
+        self._hps = hps
+        layers = self._hps['layers']._data
+        activation = self._hps['activation']._data
+        batch_norm = self._hps['batch_norm']._data
+        
         from collections import OrderedDict
 
         _layers = OrderedDict()
@@ -61,3 +67,62 @@ class LSTMBlock(Module):
             else:
                 x = layer(x)
         return x
+
+class LSTMBlock_HPS(Module):
+    def __init__(self, hps, initialize = True, *args, **kwargs):
+        """
+
+        Args:
+            hps : Hyperparamets, it must contain following:
+                layers (list of list): list of list of hidden layers
+                activation (list of str): list of activation function for MLP
+                batch_norm (list of bool): use batch normalization or not
+            *args: Variable length argument list
+            **kwargs: Arbitrary keyword arguments
+        """
+        super().__init__(*args, **kwargs)
+
+        self._hps = hps
+
+        self._hps['layers'].make_layers( lambda x: self._make_layer(x) )
+        self._hps['activation'].make_layers( lambda x : getattr(act, x)() )
+        
+        _batch_norm = []
+        for bn in batch_norm : 
+            if bn : 
+                _batch_norm.append( BatchNorm1d( layers[0][-1] ) ) # all layers should have same #of output
+            else : 
+                _batch_norm.append( lambda x : x )
+        
+        self._hps['batch_norm'].set_layers(_batch_norm)
+        
+        if initialize:
+            self.apply(self._init_weights)
+        
+    def _make_layer(self, layers) : 
+        _layers = []
+        for i, node in enumerate( layer ) : 
+            if i == len(layer) - 1 : 
+                break
+            else : 
+                _layers.append( LSTM(layers[i], layers[i + 1]) )
+        return _layers 
+        
+    def forward(self, x):
+        for layer in self._hps['layers'].active():
+            x, _ = layer(x)
+            
+        x = self._hps['batch_norm'].active()(x)
+        x = self._hps['activation'].active()(x)
+        return x 
+    
+    @staticmethod
+    def _init_weights(m):
+        if type(m) == LSTM:
+            for name, param in m.named_parameters():
+                if 'weight_ih' in name:
+                    init.xavier_uniform_(param.data)
+                elif 'weight_hh' in name:
+                    init.orthogonal_(param.data)
+                elif 'bias' in name:
+                    param.data.fill_(0)
