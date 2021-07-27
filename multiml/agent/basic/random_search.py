@@ -78,7 +78,7 @@ class RandomSearchAgent(SequentialAgent):
                 raise NotImplementedError(
                     'multiprocessing is supported for only numpy and hybrid backend')
 
-            ctx = mp.get_context('spawn')
+            ctx = mp.get_context('fork')
             queue = ctx.Queue()
             args = []
 

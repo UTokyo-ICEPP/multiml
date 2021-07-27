@@ -61,9 +61,6 @@ class PytorchBaseTask(MLBaseTask):
             self._device = device
 
         self._is_gpu = 'cuda' in self._device.type
-        if self._is_gpu and (not torch.cuda.is_available()):
-            raise ValueError(f'{self._device} is not available')
-
         self._data_parallel = self._is_gpu and (gpu_ids is not None)
 
         logger.info(f'{self._name}: PyTorch device: {self._device}')
@@ -93,6 +90,9 @@ class PytorchBaseTask(MLBaseTask):
         """
         if self._model is None:
             return
+
+        if self._is_gpu and (not torch.cuda.is_available()):
+            raise ValueError(f'{self._device} is not available')
 
         self.ml.model = util.compile(self._model, self._model_args, modules)
 
