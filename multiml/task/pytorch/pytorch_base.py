@@ -157,7 +157,7 @@ class PytorchBaseTask(MLBaseTask):
             raise ValueError('data_parallel is not available with pool_id mode')
 
         if 'cuda' in self._device.type:
-            cuda_id = mp.current_process()._identity[0]
+            cuda_id = mp.current_process()._identity[0] - 1
 
             if cuda_id >= torch.cuda.device_count():
                 cuda_id = cuda_id % torch.cuda.device_count()
