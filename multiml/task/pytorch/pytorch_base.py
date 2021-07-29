@@ -1,5 +1,6 @@
 """PytorchBaseTask module."""
 import copy
+import multiprocessing as mp
 
 import numpy as np
 from tqdm import tqdm
@@ -156,11 +157,11 @@ class PytorchBaseTask(MLBaseTask):
             raise ValueError('data_parallel is not available with pool_id mode')
 
         if 'cuda' in self._device.type:
-            cuda_id = self._pool_id
+            cuda_id = mp.current_process()._identity[0]
 
             if cuda_id >= torch.cuda.device_count():
                 cuda_id = cuda_id % torch.cuda.device_count()
-            logger.debug(f'Apply pool_id:{cuda_id} to pytorch device')
+            logger.info(f'Apply cuda_id:{cuda_id} ({self._pool_id[0]}/{self._pool_id[1]})')
             self._device = torch.device(f'cuda:{cuda_id}')
 
     def load_model(self):

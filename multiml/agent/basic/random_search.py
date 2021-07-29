@@ -125,10 +125,8 @@ class RandomSearchAgent(SequentialAgent):
         """(expert method) Execute multiprocessing jobs."""
         jobs = []
 
-        for pool_id, pargs in enumerate(args):
-            process = ctx.Process(target=self.execute_wrapper,
-                                  args=(pool_id, queue, *pargs),
-                                  daemon=False)
+        for pargs in args:
+            process = ctx.Process(target=self.execute_wrapper, args=(queue, *pargs), daemon=False)
             jobs.append(process)
             process.start()
 
@@ -138,14 +136,14 @@ class RandomSearchAgent(SequentialAgent):
         while not queue.empty():
             self._history.append(queue.get())
 
-    def execute_wrapper(self, pool_id, queue, subtasktuples, counter):
+    def execute_wrapper(self, queue, subtasktuples, counter):
         """(expert method) Wrapper method to execute multiprocessing pipeline."""
         self._saver.set_mode('dict')
         if self._storegate.backend == 'hybrid':
             self._storegate.set_mode('numpy')
 
         for subtasktuple in subtasktuples:
-            subtasktuple.env.pool_id = pool_id
+            subtasktuple.env.pool_id = (counter + 1, len(self.task_scheduler))
 
         result = self.execute_subtasktuples(subtasktuples, counter)
         queue.put(result)
