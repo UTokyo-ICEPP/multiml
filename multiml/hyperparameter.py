@@ -163,12 +163,15 @@ class Hyperparameter:
     
     def make_layers(self, f) : 
         self._layers = [ f(v) for v in self._data ]
+        self.set_active(0)
     
     def set_layers(self, layers):
         self._layers = layers
-        
+        self.set_active(0)
+                
     ### TODO : following functionalities and properties are for list type hyperparameter    
-    def active(self, idx):
+    def set_active(self, idx):
+        self.active_idx = idx
         self.active = self._layers[idx]
         self.active_data = self._data[idx]
         
@@ -176,7 +179,7 @@ class Hyperparameter:
         return self.active
     
     def active_data(self):
-        return self.active
+        return self.active_data
 
 
 class Hyperparameters:
@@ -216,6 +219,7 @@ class Hyperparameters:
 
         self._hps = []
         self.add_hp_from_dict(hps)
+        self._alias = False
 
     def __repr__(self):
         result = f'Hyperparameters(hps={self.get_hp_names()})'
@@ -300,7 +304,7 @@ class Hyperparameters:
                 return True
         return False
 
-    def add_hp_from_dict(self, hps):
+    def add_hp_from_dict(self, hps, is_alias = False ):
         """Add hyperparameters from dictionary.
 
         Values of the dictionary should be a list of allowed hyperparameter values. *Continuous*
@@ -313,13 +317,20 @@ class Hyperparameters:
             >>> hp_dict = dict(hp0=[0, 1, 2], hp1=[3, 4, 5])
             >>> hps.add_hp_from_dict(hp_dict)
         """
-        for key, values in hps.items():
+        for _key, values in hps.items():
+            if is_alias and _key not in self._alias.keys(): 
+                continue
+            
+            key = self._alias[_key] if is_alias else _key
+            
             if isinstance(values, list):
+                self.add_hp(key, values, is_continuous=False)
+            elif isinstance(values, tuple):
                 self.add_hp(key, values, is_continuous=False)
             else:
                 raise ValueError(
-                    'Only list of discrete values is supported for converting from dict')
-
+                    f'Only list of discrete values is supported for converting from dict : {_key}:{values}')
+    
     def add_hp(self, name, values, is_continuous=False):
         """Add hyperparameter.
 
@@ -377,6 +388,13 @@ class Hyperparameters:
                 result[key] = value[index]
             results.append(result)
         return results
+    
+    def get_all_hps(self):
+        results = {}
+        for hp in self._hps:
+            results[hp.name] = hp._data
+        return results
+        
 
     def get_hp_names(self):
         """Returns the names of hyperparameters.
@@ -386,27 +404,32 @@ class Hyperparameters:
         """
         return [hp.name for hp in self._hps]
     
-    def n_hps_parameters(self):
-        results = {}
+    def set_alias(self, alias):
+        self._alias = alias
+        self._alias_inv = { v:k for k, v in alias.items() }
         
-        for key, value in self._hps.items() : 
-            if isinstance(value, list) : 
-                results[key] = len(value)
+    def get_hps_parameters(self):
+        results = {}
+        for hp in self._hps : 
+            if isinstance(hp._data, list) or isinstance(hp._data, tuple) :
+                if len(hp._data) > 1 : 
+                    results[hp.name] = len(hp._data)
         return results
     
     def set_active_hps(self, choice):
         '''
         choice should be dict, it must contains pair of like key : active index
         '''
-        self._active_hps = choice
+        
         for hp in self._hps : 
-            if hp.name in choice.keys() :
-                hp.active( choice[hp.name] )
-            else : # this case should be no parameters
-                hp.active(0) # this should be ok ? TODO 
+            choice_name = self._alias_inv[hp.name]
+            if choice_name in choice.keys() : 
+                hp.set_active( choice[choice_name] )
+            else : 
+                hp.set_active( 0 )
+            
         
         
-
 
 
 

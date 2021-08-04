@@ -1,10 +1,124 @@
 import numpy as np
 """ ASNG category part """
 
+"""
+class asng_categories:
+    def __init__(self, categories=None, init_theta=None, range_restriction=True):
+        
+        self.range_restriction = range_restriction
+        
+        # categories is like [3, [[3,2,4], [3], 1], 1, [3,4,5], [[4,3], [3,6,2]]] --> [3, 1, 1, 3, 2]
+        _categories = []
+        mini_asng = []
+        for category in categories : # 
+            if isinstance( category, int) : 
+                _categories.append( category )
+                mini_asng.append( None )
+            elif isinstance( category, list) : 
+                _categories.append( len(category) )
+                _cat = []
+                
+                for cat in category : 
+                    if isinstance(cat, list) : 
+                        _cat.append( asng_category( cat, None, True ) )
+                    elif isinstance(cat, int) : 
+                        _cat.append( None )
+                    else : 
+                        raise ValueError(f'categories has invalid elements f{cat}')
+                mini_asng.append( _cat )
+            else : 
+                raise ValueError(f'categories has invalid elements f{category}')
+        
+        self.mini_asng = np.array(mini_asng)
+        _categories = np.array( _categories )
+        
+        self.n = np.sum(_categories - 1)
+        self.d = len(_categories)
+        self.cat = _categories
+        self.max = np.max(_categories)
+        self.theta = np.zeros((self.d, self.max))
+        
+        # initialize theta by 1/C for each dimensions
+        for i in range(self.d):
+            self.theta[i, :self.cat[i]] = 1. / self.cat[i]
+        # pad zeros to unused elements
+        for i in range(self.d):
+            self.theta[i, self.cat[i]:] = 0.
+        # valid dimension size
+        self.d_valid = len(self.cat[self.cat > 1])
+
+
+        for i in range(self.flat_d):
+            self.flat_theta[i, :self.flat_cat[i]] = 1. / self.flat_cat[i]
+        # pad zeros to unused elements
+        for i in range(self.flat_d):
+            self.flat_theta[i, self.flat_cat[i]:] = 0.
+        # valid dimension size
+        self.flat_d_valid = len(self.flat_cat[self.flat_cat > 1])
+
+
+
+        if init_theta is not None:
+            self.theta = init_theta[0]
+        
+
+    def get_n(self):
+        return self.n
+
+    def get_theta(self):
+        return self.theta.copy()
+
+    def set_theta(self, theta):
+        self.theta = theta
+
+    def get_most_likely(self):
+        # Get most likely categorical variables (one-hot)
+        c_cat = self.theta.argmax(axis=1)
+        T = np.zeros((self.d, self.max))
+        for i, c in enumerate(c_cat):
+            T[i, c] = 1
+        return T
+
+    def sampling(self, lam):
+        # Draw a sample from the categorical distribution (one-hot)
+        rand = np.random.rand(lam, self.d, 1)  # range of random number is [0, 1)
+        cum_theta = self.theta.cumsum(axis=1)  # (d, Cmax)
+        # x[i, j] becomes 1 if cum_theta[i, j] - theta[i, j] <= rand[i] < cum_theta[i, j]
+        c_cat = (cum_theta - self.theta <= rand) & (rand < cum_theta)
+        return c_cat
+
+    def calc_theta(self, c_cat, aru, idx):
+        self.ng = np.mean(aru[:, np.newaxis, np.newaxis] * (c_cat[idx] - self.theta), axis=0)
+        # sqrt(F) * NG for categorical distribution
+        sl = []
+        for i, K in enumerate(self.cat):
+            theta_i = self.theta[i, :K - 1]
+            theta_K = self.theta[i, K - 1]
+            s_i = 1. / np.sqrt(theta_i) * self.ng[i, :K - 1]
+            s_i += np.sqrt(theta_i) * self.ng[i, :K - 1].sum() / (theta_K + np.sqrt(theta_K))
+            sl += list(s_i)
+        sl = np.array(sl)
+        fnorm = np.sum(sl**2)
+        return fnorm, sl
+
+    def update_theta(self, eps):
+        self.theta += eps * self.ng
+        # range restriction
+        for i in range(self.d):
+            ci = self.cat[i]
+            # Constraint for theta (minimum value of theta and sum of theta = 1.0)
+            theta_min = 1. / (self.d_valid *(ci - 1)) if self.range_restriction and ci > 1 else 0.0
+            self.theta[i, :ci] = np.maximum(self.theta[i, :ci], theta_min)
+            theta_sum = self.theta[i, :ci].sum()
+            tmp = theta_sum - theta_min * ci
+            self.theta[i, :ci] -= (theta_sum - 1.) * (self.theta[i, :ci] - theta_min) / tmp
+            # Ensure the summation to 1
+            self.theta[i, :ci] /= self.theta[i, :ci].sum()
+"""
 
 class asng_category:
     def __init__(self, categories=None, init_theta=None, range_restriction=True):
-
+        
         self.range_restriction = range_restriction
         self.n = np.sum(categories - 1)
         self.d = len(categories)

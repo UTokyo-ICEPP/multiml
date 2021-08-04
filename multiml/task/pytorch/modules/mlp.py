@@ -96,22 +96,73 @@ class MLPBlock_HPS(Module):
         """
         super().__init__(*args, **kwargs)
         self._hps = hps
-        self._hps['layers'].make_layers( lambda x : self._make_layer(x, input_shape, output_shape) )
-        self._hps['activation'].make_layers( lambda x : getattr(act, x)() )
-        self._hps['activation_last'].make_layers( lambda x : getattr(act, x)() )
+        from torch.nn import ModuleList
         
-        _batch_norm = []
-        for bn in self._hps['batch_norm']._data : 
-            if bn : 
-                _batch_norm.append( [ [ BatchNorm1d( l[-1] ) for l in layer] for layer in layers ] ) # all layers should have same #of output
+        self._layers = ModuleList([])
+        self._activation = ModuleList([])
+        self._activation_last = ModuleList([])
+        
+        # 
+        for layer in self._hps['layers']._data : 
+            self._layers.append( ModuleList( self._make_layer(layer, input_shape, output_shape) ) )
+        self._hps['layers'].set_layers( self._layers )
+        
+        #
+        for activation in self._hps['activation']._data : 
+            if 'Softmax' in activation : 
+                self._activation.append( getattr(act, activation)( dim = 1 ) )
+                
+            elif 'Identity' in activation : 
+                self._activation.append( Identity() )
+                
+            else :
+                self._activation.append( getattr(act, activation)( ) )
+        
+        self._hps['activation'].set_layers(self._activation)
+        
+        #
+        for activation_last in self._hps['activation_last']._data : 
+            if 'Softmax' in activation_last : 
+                self._activation_last.append( getattr(act, activation_last)( dim = 1 ) )
+                
+            elif 'Identity' in activation_last : 
+                self._activation_last.append( Identity() )
+                
             else : 
-                _batch_norm.append( [ [ lambda x : x for l in layer] for layer in layers ] )
-        self._hps['batch_norm'].set_layers( _batch_norm )
+                self._activation_last.append( getattr(act, activation_last)() )
+        self._hps['activation_last'].set_layers(self._activation_last)
+        
+        #
+        self._batch_norm = ModuleList()
+        for bn in self._hps['batch_norm']._data : 
+            
+            _batch_norms = ModuleList()
+            
+            for layer in self._hps['layers']._data : 
+                _batch_norm = ModuleList([ BatchNorm1d( l ) if bn else Identity() for l in layer[1:] ])
+                _batch_norms.append(_batch_norm) 
+            
+            self._batch_norm.append( _batch_norms )
+        
+        
+        self._hps['batch_norm'].set_layers( self._batch_norm )
         
         if initialize:
             self.apply(self._init_weights)
+        
+        
+        self._hps_layers =self._hps['layers']
+        self._hps_activation = self._hps['activation']
+        self._hps_activation_last = self._hps['activation_last']
+        self._hps_batch_norm = self._hps['batch_norm']
+        
     
+    def set_active_hps(self, choice):
+        self._hps.set_active_hps( choice )
+
+
     def _make_layer(self, layers, input_shape, output_shape ) : 
+        
         if input_shape is not None:
             layers = [input_shape] + layers
 
@@ -124,16 +175,22 @@ class MLPBlock_HPS(Module):
                 break
             else:
                 _layers.append(Linear(layers[i], layers[i + 1]))
+        
         return _layers 
     
         
-    def forward(self, x):
-        
-        for layer, batch_norm in zip(self._hps['layers'].active(), self._hps['batch_norm'].active() ): 
+    def forward(self, x): 
+
+        batch_norm_idx = self._hps_layers.active_idx
+        last = len(self._hps_layers.active) - 1
+        for i, (layer, batch_norm) in enumerate(zip(self._hps_layers.active, self._hps_batch_norm.active[batch_norm_idx] )):
             x = layer(x)
             x = batch_norm(x)
-            x = self._hps['activation'].active()(x)
-        x = self._hps['activation_last'].active()(x)
+            if i != last : 
+                x = self._hps_activation.active(x)
+            
+        x = self._hps_activation_last.active(x)
+
         return x
 
     @staticmethod
@@ -141,3 +198,9 @@ class MLPBlock_HPS(Module):
         if type(m) == Linear:
             init.xavier_uniform_(m.weight)
             init.zeros_(m.bias)
+            
+            
+            
+            
+            
+            

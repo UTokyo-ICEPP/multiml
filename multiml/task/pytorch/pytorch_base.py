@@ -117,17 +117,19 @@ class PytorchBaseTask(MLBaseTask):
         """
         if self._optimizer is None:
             return
-
+        
         optimizer_args = copy.copy(self._optimizer_args)
+
         if 'params' not in optimizer_args:
             optimizer_args['params'] = list(self.ml.model.parameters())
-
+        
         self.ml.optimizer = util.compile(self._optimizer, optimizer_args, optim)
-
+        
+        
         if self._scheduler is not None:
             scheduler_args = copy.copy(self._scheduler_args)
             scheduler_args['optimizer'] = self.ml.optimizer
-            self.ml.scheduler = util.compile(self._scheduler, scheduler_args, optim)
+            self.ml.scheduler = util.compile(self._scheduler, scheduler_args, optim.lr_scheduler )
 
     def compile_loss(self):
         """Compile pytorch loss.
@@ -368,7 +370,7 @@ class PytorchBaseTask(MLBaseTask):
 
             elif phase == 'test':
                 result['pred'] = outputs
-
+            
             batch_metric = metrics.BatchMetric(self._metrics, label)
             result.update(batch_metric(outputs, labels, loss_result))
 
@@ -384,7 +386,6 @@ class PytorchBaseTask(MLBaseTask):
             Tensor or list: outputs of model.
         """
         outputs = self.ml.model(inputs)
-
         if self._pred_index is not None:
             outputs = self._select_pred_data(outputs)
 
@@ -410,12 +411,12 @@ class PytorchBaseTask(MLBaseTask):
                     loss_result['loss'] += loss_tmp
                     loss_result['subloss'].append(loss_tmp)
 
+
         else:
             if self.ml.loss_weights is None:
                 loss_result['loss'] += self.ml.loss(outputs, labels)
             elif self.ml.loss_weights != 0.0:
                 loss_result['loss'] += self.ml.loss(outputs, labels) * self.ml.loss_weights
-
         return loss_result
 
     def step_optimizer(self, loss):

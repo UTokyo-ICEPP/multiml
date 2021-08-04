@@ -1,24 +1,25 @@
-from .choice_block_model import ChoiceBlockModel
+from .choice_block_model import SPOSChoiceBlockModel, ASNGChoiceBlockModel
 from .connection_model import ConnectionModel
-from .conv2d import Conv2DBlock
-from .lstm import LSTMBlock
-from .mlp import MLPBlock
-from .asng_model import ASNGModel
+from .conv2d import Conv2DBlock, Conv2DBlock_HPS
+from .lstm import LSTMBlock, LSTMBlock_HPS
+from .mlp import MLPBlock, MLPBlock_HPS
+from .asng_task_model import ASNGModel
 from .asng import AdaptiveSNG
 from .asng import AdaptiveSNG_cat
 from .asng import AdaptiveSNG_int
-
-from .asng_task_block_model import ASNGTaskBlockModel
 
 __all__ = [
     'AdaptiveSNG',
     'AdaptiveSNG_cat',
     'AdaptiveSNG_int',
     'ASNGModel',
-    'ChoiceBlockModel',
+    'SPOSChoiceBlockModel',
     'ConnectionModel',
     'Conv2DBlock',
     'LSTMBlock',
     'MLPBlock',
-    'ASNGTaskBlockModel',
+    'Conv2DBlock_HPS',
+    'LSTMBlock_HPS',
+    'MLPBlock_HPS',
+    'ASNGChoiceBlockModel',
 ]

@@ -19,6 +19,7 @@ def compile(obj, obj_args, modules):
     else:
         if obj_args != {}:
             logger.warn('instance object is given but args is also provided')
+        
         return copy.copy(obj)
 
 
