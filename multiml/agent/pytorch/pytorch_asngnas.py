@@ -9,28 +9,27 @@ import numpy as np
 
 class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
     """Agent packing subtasks using Pytorch ASNG-NAS Model."""
-    def __init__(
-            self,
-            verbose=1,
-            num_epochs=1000,
-            max_patience=5,
-            batch_size={
-                'type': 'equal_length',
-                'length': 500,
-                'test': 100
-            },
-            asng_args={
-                'lam': 2,
-                'delta': 0.0,
-                'alpha': 1.5,
-                'clipping_value': None,
-                'range_restriction': True
-            },
-            optimizer=None,
-            optimizer_args=None,
-            scheduler=None,
-            scheduler_args=None,
-            **kwargs):
+    def __init__(self,
+                 verbose=1,
+                 num_epochs=1000,
+                 max_patience=5,
+                 batch_size={
+                     'type': 'equal_length',
+                     'length': 500,
+                     'test': 100
+                 },
+                 asng_args={
+                     'lam': 2,
+                     'delta': 0.0,
+                     'alpha': 1.5,
+                     'clipping_value': None,
+                     'range_restriction': True
+                 },
+                 optimizer=None,
+                 optimizer_args=None,
+                 scheduler=None,
+                 scheduler_args=None,
+                 **kwargs):
         """
 
         Args:
@@ -60,7 +59,7 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         """Execute Currently, only categorical ASNG NAS is implemented."""
 
         asng_block_list, task_ids = self._build_task_block_list()
-        
+
         asng_task = PytorchASNGNASTask(
             asng_args=self.asng_args,
             subtasks=asng_block_list,
@@ -101,63 +100,73 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
 
         # re-train
         best_choice = asng_task.best_choice()
-        best_theta  = asng_task.get_thetas()
-        
+        best_theta = asng_task.get_thetas()
+
         print(best_theta)
         best_subtasks = []
-        
+
         best_subtask_ids = []
         for task_id, value in best_choice.items():
             idx = 0 if len(task_ids[task_id]) == 1 else value[task_id]
-            best_subtasks.append( self._task_scheduler.get_subtask(task_id, task_ids[task_id][idx] ) )
-            best_subtask_ids.append( [task_id, task_ids[task_id][idx]] )
-        
+            best_subtasks.append(self._task_scheduler.get_subtask(task_id, task_ids[task_id][idx]))
+            best_subtask_ids.append([task_id, task_ids[task_id][idx]])
+
         best_combination_task = self._build_connected_models(
             subtasks=[t.env for t in best_subtasks],
             job_id='ASNG-NAS-Final',
-            use_task_scheduler=True
-            )
+            use_task_scheduler=True)
         best_combination_task.env._phases = ['train', 'valid']
         self._execute_subtask(best_combination_task, is_pretraining=False)
-        
+
         ### evaluate
         # make results for json output
         # seed, nevents, walltime will be set at outside
-        
-        pred_result = best_combination_task.env.predict( label = True )
 
-        best_combination_task.env._storegate.update_data(data = pred_result['pred'],
-            var_names = best_combination_task.env._output_var_names,
-            phase = 'auto')
+        pred_result = best_combination_task.env.predict(label=True)
+
+        best_combination_task.env._storegate.update_data(
+            data=pred_result['pred'],
+            var_names=best_combination_task.env._output_var_names,
+            phase='auto')
         self._metric._storegate = best_combination_task.env._storegate
         test_metric = self._metric.calculate()
-        
-        
-        self.result = dict(task_ids=[v1 for v1, v2 in best_subtask_ids], 
-                           subtask_ids=[v2 for v1, v2 in best_subtask_ids], 
-                           subtask_hps=[ best_choice[v1] for v1, v2 in best_subtask_ids ],
+
+        self.result = dict(task_ids=[v1 for v1, v2 in best_subtask_ids],
+                           subtask_ids=[v2 for v1, v2 in best_subtask_ids],
+                           subtask_hps=[best_choice[v1] for v1, v2 in best_subtask_ids],
                            metric_value=test_metric)
 
-        test_result = dict(model_name='ASNG-NAS-Final', best_theta = best_theta, metric=test_metric)
+        test_result = dict(model_name='ASNG-NAS-Final', best_theta=best_theta, metric=test_metric)
         self._saver.add(f"results.ASNG-NAS-Final", test_result)
-        
-        results_json = {'agent': 'ASNG-NAS', 'tasks': {}, 'loss_test' : pred_result['loss'], 
-                        'subloss_test' : pred_result['subloss'], 'metric_test' : test_metric }
-        
+
+        results_json = {
+            'agent': 'ASNG-NAS',
+            'tasks': {},
+            'loss_test': pred_result['loss'],
+            'subloss_test': pred_result['subloss'],
+            'metric_test': test_metric
+        }
+
         for task_idx, (task_id, value) in enumerate(best_choice.items()):
-            results_json['tasks'][task_id] = { }
-            results_json['tasks'][task_id]['weight'] = best_combination_task.env.ml.loss_weights[task_idx]
-            
-            if len(task_ids[task_id]) == 1 : 
-                subtasktuples = self._task_scheduler.get_subtasks_with_hps(task_id, is_grid_hps = False)
+            results_json['tasks'][task_id] = {}
+            results_json['tasks'][task_id]['weight'] = best_combination_task.env.ml.loss_weights[
+                task_idx]
 
-                results_json['tasks'][task_id]['hps'] = subtasktuples[0].hps 
-                results_json['tasks'][task_id]['hps_selected'] = { key : val[value[key]] for key, val in subtasktuples[0].hps.items() if key in value.keys()}
+            if len(task_ids[task_id]) == 1:
+                subtasktuples = self._task_scheduler.get_subtasks_with_hps(task_id,
+                                                                           is_grid_hps=False)
 
-            else : 
-                results_json['tasks'][task_id]['models'] = task_ids[task_id] 
-                results_json['tasks'][task_id]['model_selected'] = task_ids[task_id][value[task_id]]
-        
+                results_json['tasks'][task_id]['hps'] = subtasktuples[0].hps
+                results_json['tasks'][task_id]['hps_selected'] = {
+                    key: val[value[key]]
+                    for key, val in subtasktuples[0].hps.items() if key in value.keys()
+                }
+
+            else:
+                results_json['tasks'][task_id]['models'] = task_ids[task_id]
+                results_json['tasks'][task_id]['model_selected'] = task_ids[task_id][
+                    value[task_id]]
+
         logger.info(f'best combination is {best_subtask_ids}')
 
         self.results_json = results_json
@@ -165,18 +174,15 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
     def _build_task_block_list(self):
         task_ids = {}
         asng_block_list = []
-        
-        
+
         for task_idx, task_id in enumerate(self._task_scheduler.get_sorted_task_ids()):
-            subtasktuples = self._task_scheduler.get_subtasks_with_hps(task_id, is_grid_hps = False)
-            
-            
+            subtasktuples = self._task_scheduler.get_subtasks_with_hps(task_id, is_grid_hps=False)
+
             for subtask_idx, subtask in enumerate(subtasktuples):
                 subtask_env = subtask.env
                 subtask_hps = subtask.hps
-                subtask_env.set_hps( {'hps' : subtask_hps } )
-                
-                
+                subtask_env.set_hps({'hps': subtask_hps})
+
                 if self.do_pretraining:
                     logger.info(f'pretraining of {subtask_env.subtask_id} is starting...')
                     self._execute_subtask(subtask, is_pretraining=True)
@@ -193,24 +199,24 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
             logger.info(f'{l}')
             params_list = [v.hps for v in subtasktuples]
             self._saver.add(f'asng_block_{task_id}_submodel_params', params_list)
-            
-            
+
             # build asng task block
             subtasks = [v.env for v in subtasktuples]
             task_ids[task_id] = [v.env.subtask_id for v in subtasktuples]
-            
-            if len(subtasks) == 1 : 
+
+            if len(subtasks) == 1:
                 asng_block_subtask = subtasktuples[0]
-                
-            else : 
-                asng_block_subtask = self._build_block_task(subtasks, task_id, is_pretraining=False)
-            
-            asng_task_id = asng_block_subtask.task_id 
+
+            else:
+                asng_block_subtask = self._build_block_task(subtasks,
+                                                            task_id,
+                                                            is_pretraining=False)
+
+            asng_task_id = asng_block_subtask.task_id
             self._loss_weights[asng_task_id] = self._connectiontask_args['loss_weights'][task_id]
-            
+
             asng_block_list.append(asng_block_subtask.env)
-            
-            
+
         return asng_block_list, task_ids
 
     def _build_block_task(self, subtasks, task_id, is_pretraining):
@@ -221,7 +227,7 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
             saver=self._saver,
             device=self._connectiontask_args['device'],
             load_weights=self._connectiontask_args['load_weights'],
-            
+
             # gpu_ids=None,
             # amp=False,  # expert option
             # metrics=self._connectiontask_args["metrics"],
@@ -237,7 +243,7 @@ class PytorchASNGNASAgent(PytorchConnectionRandomSearchAgent):
         )
         # asng_task_id = 'ASNG-NAS-' + task_id
         asng_task_id = task_id
-        
+
         self._task_scheduler.add_task(task_id=asng_task_id)
         self._task_scheduler.add_subtask(asng_task_id, 'BlockTask', env=asng_block)
         asng_block_subtask = self._task_scheduler.get_subtask(asng_task_id, 'BlockTask')

@@ -339,7 +339,7 @@ class TaskScheduler:
         tasks = [self._dag.nodes[task]['name'] for task in tasks]
         return tasks
 
-    def get_subtasks_with_hps(self, task_id, is_grid_hps = True):
+    def get_subtasks_with_hps(self, task_id, is_grid_hps=True):
         """Returns all combination of subtask_ids and hps for given task_id.
 
         Args:
@@ -352,16 +352,18 @@ class TaskScheduler:
         """
         results = []
         for subtask in self.get_subtasks(task_id):
-            if is_grid_hps : 
+            if is_grid_hps:
                 grid_hps = subtask.hps.get_grid_hps()
 
                 if not grid_hps:
-                    results.append(subtasktuple(subtask.task_id, subtask.subtask_id, subtask.env, {}))
+                    results.append(
+                        subtasktuple(subtask.task_id, subtask.subtask_id, subtask.env, {}))
                     continue
 
                 for hps in grid_hps:
-                    results.append(subtasktuple(subtask.task_id, subtask.subtask_id, subtask.env, hps))
-            else : 
+                    results.append(
+                        subtasktuple(subtask.task_id, subtask.subtask_id, subtask.env, hps))
+            else:
                 hps = subtask.hps.get_all_hps()
                 results.append(subtasktuple(subtask.task_id, subtask.subtask_id, subtask.env, hps))
 

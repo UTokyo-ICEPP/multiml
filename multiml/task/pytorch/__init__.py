@@ -5,7 +5,6 @@ from .pytorch_model_connection import ModelConnectionTask
 from .pytorch_choice_block import PytorchChoiceBlockTask, PytorchSPOSChoiceBlockTask, PytorchASNGChoiceBlockTask
 from .pytorch_asngnas_task import PytorchASNGNASTask
 
-
 __all__ = [
     'ModelConnectionTask',
     'PytorchChoiceBlockTask',

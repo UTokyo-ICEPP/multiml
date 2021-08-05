@@ -160,24 +160,24 @@ class Hyperparameter:
             return np.arange(self._min, self._max, self._default_step)
 
         return self._data
-    
-    def make_layers(self, f) : 
-        self._layers = [ f(v) for v in self._data ]
+
+    def make_layers(self, f):
+        self._layers = [f(v) for v in self._data]
         self.set_active(0)
-    
+
     def set_layers(self, layers):
         self._layers = layers
         self.set_active(0)
-                
-    ### TODO : following functionalities and properties are for list type hyperparameter    
+
+    ### TODO : following functionalities and properties are for list type hyperparameter
     def set_active(self, idx):
         self.active_idx = idx
         self.active = self._layers[idx]
         self.active_data = self._data[idx]
-        
+
     def active(self):
         return self.active
-    
+
     def active_data(self):
         return self.active_data
 
@@ -234,7 +234,7 @@ class Hyperparameters:
         for hp in self._hps:
             result *= len(hp)
         return result
-    
+
     def _get_hp_by_index(self, index):
         if isinstance(index, int):
             grid_hps = self.get_grid_hps()
@@ -246,7 +246,6 @@ class Hyperparameters:
             for hp in self._hps:
                 if hp.name == key:
                     return hp
-
 
     def __getitem__(self, item):
         """Returns registered Hyperparameter class instance by index.
@@ -264,7 +263,7 @@ class Hyperparameters:
         """
         if isinstance(item, int):
             return self._get_hp_by_index(item)
-        
+
         if isinstance(item, str):
             return self._get_hp_by_key(item)
 
@@ -304,7 +303,7 @@ class Hyperparameters:
                 return True
         return False
 
-    def add_hp_from_dict(self, hps, is_alias = False ):
+    def add_hp_from_dict(self, hps, is_alias=False):
         """Add hyperparameters from dictionary.
 
         Values of the dictionary should be a list of allowed hyperparameter values. *Continuous*
@@ -318,19 +317,20 @@ class Hyperparameters:
             >>> hps.add_hp_from_dict(hp_dict)
         """
         for _key, values in hps.items():
-            if is_alias and _key not in self._alias.keys(): 
+            if is_alias and _key not in self._alias.keys():
                 continue
-            
+
             key = self._alias[_key] if is_alias else _key
-            
+
             if isinstance(values, list):
                 self.add_hp(key, values, is_continuous=False)
             elif isinstance(values, tuple):
                 self.add_hp(key, values, is_continuous=False)
             else:
                 raise ValueError(
-                    f'Only list of discrete values is supported for converting from dict : {_key}:{values}')
-    
+                    f'Only list of discrete values is supported for converting from dict : {_key}:{values}'
+                )
+
     def add_hp(self, name, values, is_continuous=False):
         """Add hyperparameter.
 
@@ -388,13 +388,12 @@ class Hyperparameters:
                 result[key] = value[index]
             results.append(result)
         return results
-    
+
     def get_all_hps(self):
         results = {}
         for hp in self._hps:
             results[hp.name] = hp._data
         return results
-        
 
     def get_hp_names(self):
         """Returns the names of hyperparameters.
@@ -403,35 +402,27 @@ class Hyperparameters:
             list: the names of hyperparameters.
         """
         return [hp.name for hp in self._hps]
-    
+
     def set_alias(self, alias):
         self._alias = alias
-        self._alias_inv = { v:k for k, v in alias.items() }
-        
+        self._alias_inv = {v: k for k, v in alias.items()}
+
     def get_hps_parameters(self):
         results = {}
-        for hp in self._hps : 
-            if isinstance(hp._data, list) or isinstance(hp._data, tuple) :
-                if len(hp._data) > 1 : 
+        for hp in self._hps:
+            if isinstance(hp._data, list) or isinstance(hp._data, tuple):
+                if len(hp._data) > 1:
                     results[hp.name] = len(hp._data)
         return results
-    
+
     def set_active_hps(self, choice):
         '''
         choice should be dict, it must contains pair of like key : active index
         '''
-        
-        for hp in self._hps : 
+
+        for hp in self._hps:
             choice_name = self._alias_inv[hp.name]
-            if choice_name in choice.keys() : 
-                hp.set_active( choice[choice_name] )
-            else : 
-                hp.set_active( 0 )
-            
-        
-        
-
-
-
-
-
+            if choice_name in choice.keys():
+                hp.set_active(choice[choice_name])
+            else:
+                hp.set_active(0)

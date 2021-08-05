@@ -1,6 +1,5 @@
 import numpy as np
 """ ASNG category part """
-
 """
 class asng_categories:
     def __init__(self, categories=None, init_theta=None, range_restriction=True):
@@ -116,9 +115,10 @@ class asng_categories:
             self.theta[i, :ci] /= self.theta[i, :ci].sum()
 """
 
+
 class asng_category:
     def __init__(self, categories=None, init_theta=None, range_restriction=True):
-        
+
         self.range_restriction = range_restriction
         self.n = np.sum(categories - 1)
         self.d = len(categories)

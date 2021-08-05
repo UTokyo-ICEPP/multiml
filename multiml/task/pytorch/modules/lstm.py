@@ -3,14 +3,15 @@ from torch.nn.modules import activation as act
 
 
 class LSTMBlock(Module):
-    def __init__(self,
-                 hps, 
-                #  layers,
-                #  activation=None,
-                #  batch_norm=False,
-                 initialize=True,
-                 *args,
-                 **kwargs):
+    def __init__(
+            self,
+            hps,
+            #  layers,
+            #  activation=None,
+            #  batch_norm=False,
+            initialize=True,
+            *args,
+            **kwargs):
         """
 
         Args:
@@ -26,7 +27,7 @@ class LSTMBlock(Module):
         layers = self._hps['layers']._data
         activation = self._hps['activation']._data
         batch_norm = self._hps['batch_norm']._data
-        
+
         from collections import OrderedDict
 
         _layers = OrderedDict()
@@ -68,8 +69,9 @@ class LSTMBlock(Module):
                 x = layer(x)
         return x
 
+
 class LSTMBlock_HPS(Module):
-    def __init__(self, hps, initialize = True, *args, **kwargs):
+    def __init__(self, hps, initialize=True, *args, **kwargs):
         """
 
         Args:
@@ -83,71 +85,70 @@ class LSTMBlock_HPS(Module):
         super().__init__(*args, **kwargs)
 
         self._hps = hps
-        
+
         from torch.nn import ModuleList
         self._layers = ModuleList([])
         self._activation = ModuleList([])
-        
+
         #
-        for layer in self._hps['layers']._data : 
-            self._layers.append( ModuleList( self._make_layer(layer) ) )
-        self._hps['layers'].set_layers( self._layers )
-        
+        for layer in self._hps['layers']._data:
+            self._layers.append(ModuleList(self._make_layer(layer)))
+        self._hps['layers'].set_layers(self._layers)
+
         #
-        for activation in self._hps['activation']._data : 
-            if 'Softmax' in activation : 
-                self._activation.append( getattr(act, activation)( dim = 1 ) )
-                
-            elif 'Identity' in activation : 
-                self._activation.append( Identity() )
-                
-            else :
-                self._activation.append( getattr(act, activation)( ) )
+        for activation in self._hps['activation']._data:
+            if 'Softmax' in activation:
+                self._activation.append(getattr(act, activation)(dim=1))
+
+            elif 'Identity' in activation:
+                self._activation.append(Identity())
+
+            else:
+                self._activation.append(getattr(act, activation)())
 
         self._hps['activation'].set_layers(self._activation)
-        
-        # 
+
+        #
         last_layer = self._hps['layers']._data[0][-1]
         self._batch_norm = ModuleList([])
-        for bn in self._hps['batch_norm']._data : 
-            if bn : 
-                self._batch_norm.append( BatchNorm1d( last_layer ) ) # all layers should have same #of output
-            else : 
-                self._batch_norm.append( Identity() )
-        
+        for bn in self._hps['batch_norm']._data:
+            if bn:
+                self._batch_norm.append(
+                    BatchNorm1d(last_layer))  # all layers should have same #of output
+            else:
+                self._batch_norm.append(Identity())
+
         self._hps['batch_norm'].set_layers(self._batch_norm)
-        
+
         if initialize:
             self.apply(self._init_weights)
-        
+
         self._hps_layers = self._hps['layers']
         self._hps_activation = self._hps['activation']
-        self._hps_batch_norm = self._hps['batch_norm'] 
-        
+        self._hps_batch_norm = self._hps['batch_norm']
+
     def set_active_hps(self, choice):
-        self._hps.set_active_hps( choice )
-        
-    def _make_layer(self, layers) : 
+        self._hps.set_active_hps(choice)
+
+    def _make_layer(self, layers):
         _layers = []
-        for i, layer in enumerate( layers ) : 
-            if i == len(layers) - 1 : 
+        for i, layer in enumerate(layers):
+            if i == len(layers) - 1:
                 break
-            else : 
-                _layers.append( LSTM(layers[i], layers[i + 1]) )
-        return _layers 
-        
+            else:
+                _layers.append(LSTM(layers[i], layers[i + 1]))
+        return _layers
+
     def forward(self, x):
-        
+
         for layer in self._hps_layers.active:
             x, _ = layer(x)
-        
+
         x = self._hps_batch_norm.active(x)
         x = self._hps_activation.active(x)
-        
-        
-        
-        return x 
-    
+
+        return x
+
     @staticmethod
     def _init_weights(m):
         if type(m) == LSTM:
@@ -158,9 +159,3 @@ class LSTMBlock_HPS(Module):
                     init.orthogonal_(param.data)
                 elif 'bias' in name:
                     param.data.fill_(0)
-    
-    
-    
-    
-    
-    

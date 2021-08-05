@@ -22,7 +22,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         """
         super().__init__(**kwargs)
         self._task_id = 'ASNG-NAS'
-        
+
         self.lam = asng_args['lam']
         self.delta_init_factor = asng_args['delta']
         self.alpha = asng_args['alpha']
@@ -34,13 +34,13 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         from multiml.task.pytorch.modules import ASNGModel
         models = [subtask.ml.model for subtask in self._subtasks]
 
-        self._model = ASNGModel( 
-                                task_ids = [subtask.task_id for subtask in self._subtasks],
+        self._model = ASNGModel(
+            task_ids=[subtask.task_id for subtask in self._subtasks],
             lam=self.lam,
             delta_init_factor=self.delta_init_factor,
             alpha=self.alpha,
             range_restriction=self.range_restriction,
-            models = models,
+            models=models,
             input_var_index=self._input_var_index,
             output_var_index=self._output_var_index,
         )
@@ -109,8 +109,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         logger.info(f'self._metrics        is   {self._metrics}')
         logger.info(f'self.ml.scheduler    is   {self.ml.scheduler}')
         logger.info(f'self.ml.optimizer    is   {self.ml.optimizer}')
-        
-        
+
         history = {'train': [], 'valid': [], 'test': []}
         losses = np.zeros(self.asng().get_lambda())
 
@@ -135,12 +134,14 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
         self._n_burn_in = 0
 
         for epoch in range(1, self._num_epochs + 1):
-            results_train = training_results(self._metrics, self.ml.multi_loss,len(self.true_var_names))
-            results_valid = training_results(self._metrics, self.ml.multi_loss,len(self.true_var_names))
+            results_train = training_results(self._metrics, self.ml.multi_loss,
+                                             len(self.true_var_names))
+            results_valid = training_results(self._metrics, self.ml.multi_loss,
+                                             len(self.true_var_names))
 
             if sampler is not None:
                 sampler.set_epoch(epoch)
-            
+
             pbar_args = dict(
                 total=min(len(dataloaders['train']), len(dataloaders['valid'])) + 1,
                 unit=' batch',
@@ -160,7 +161,6 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     self.ml.model.train()
                     loss_train, batch_result = self._step_train(True, train_data)
                     self._step_optimizer(loss_train)
-                    
 
                     results_train.update_results(batch_result)
 
@@ -170,53 +170,55 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                         loss_valid, batch_result = self._step_train(False, valid_data)
                         self.ml.model.update_theta(np.array(loss_valid))
                         results_valid.update_results(batch_result)
-                    
+
                     loss_train_ = results_train.get_running_loss()
                     loss_valid_ = results_valid.get_running_loss()
                     theta_cats, theta_ints = self.ml.model.get_thetas()
-                    theta_max = theta_cats.max(axis = 1 )
+                    theta_max = theta_cats.max(axis=1)
                     theta_cat = f'{theta_max.min():.2f}/{theta_max.mean():.2f}/{theta_max.max():.2f}'
-                    #theta_cat = '/'.join(f'{v:.2f}' for v in theta_cats[0]) + ' ' +  '/'.join(f'{v:.2f}' for v in theta_cats[1]) 
-                    
-                    pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e}', cat = theta_cat)
+                    #theta_cat = '/'.join(f'{v:.2f}' for v in theta_cats[0]) + ' ' +  '/'.join(f'{v:.2f}' for v in theta_cats[1])
+
+                    pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e}', cat=theta_cat)
                     pbar.update(1)
-                
+
                 history['train'].append(results_train.get_results())
                 history['valid'].append(results_valid.get_results())
 
                 if self._early_stopping:
-                    is_early_stopping = early_stopping(results_valid.get_running_loss(),self.ml.model)
+                    is_early_stopping = early_stopping(results_valid.get_running_loss(),
+                                                       self.ml.model)
                     es_counter = early_stopping.counter
 
                     is_asng_stopping = self.ml.model.asng.check_converge()
                     asng_counter = self.ml.model.asng.converge_counter()
 
-                    pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e}', cat = theta_cat, pcnt=f'{es_counter:2d}/{asng_counter:2d}')
+                    pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e}',
+                                     cat=theta_cat,
+                                     pcnt=f'{es_counter:2d}/{asng_counter:2d}')
                     pbar.update(1)
 
                     if is_early_stopping and is_asng_stopping:
 
                         break
                 else:
-                    pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e}', cat = theta_cat)
+                    pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e}', cat=theta_cat)
                     pbar.update(1)
 
             if self._scheduler is not None:
                 self.ml.scheduler.step()
-                
-            
+
         if self._early_stopping:
             logger.info(f'early stopping... at epoch = {epoch}')
             best_model = early_stopping.best_model.state_dict()
             theta_cat, theta_int = early_stopping.get_thetas()
             self.ml.model.load_state_dict(copy.deepcopy(best_model))
-            
+
             self.ml.model.set_thetas(theta_cat, theta_int)
             self.ml.model.set_most_likely()
 
         return history
 
-    def _step_train(self, is_train, data): 
+    def _step_train(self, is_train, data):
         self.ml.model.train()
         inputs_data, labels_data = data
         inputs = self.add_device(inputs_data, self._device)
@@ -264,7 +266,6 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     results['acc'] = np.mean(results['acc'])
         return loss, result
 
-
     def _step_optimizer(self, losses):
         loss = 0.
         for l in losses:
@@ -287,7 +288,7 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
 
     def finalize(self):
         pass
-    
+
     def get_submodel_names(self):
         return [v.subtask_id for v in self._subtasks]
 

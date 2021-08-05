@@ -99,18 +99,18 @@ class ModelConnectionTask(MLBaseTask):
 
         elif self._loss_weights == 'flat_loss':
             task_weights = [1.0] * n_subtasks
-            
+
         elif isinstance(self._loss_weights, list):
             task_weights = self._loss_weights
-            
+
         elif isinstance(self._loss_weights, dict):
             task_weights = [self._loss_weights[s.task_id] for s in self._subtasks]
-            
+
         else:
             raise ValueError(f'Unknown loss_weights: {self._loss_weights} is given')
 
         # Collect loss and weights for the loss from each subtask
-        
+
         for subtask, task_weight in zip(self._subtasks, task_weights):
             if task_weight > 0.:
                 lws = subtask.ml.loss_weights
@@ -155,7 +155,7 @@ class ModelConnectionTask(MLBaseTask):
                 self.true_var_names.append(true_var_names)
 
         super().compile_var_names()
-        
+
     def set_output_var_index(self):
         """Set output_var_names and output_var_index."""
         self._cache_var_names = []
@@ -207,7 +207,7 @@ class ModelConnectionTask(MLBaseTask):
         """Set input_var_names and input_var_index."""
         self._input_var_index = []
         self._input_var_names = []
-        
+
         for subtask in self._subtasks:
             input_index = []
             input_var_names = subtask.input_var_names
@@ -244,10 +244,7 @@ class ModelConnectionTask(MLBaseTask):
                 self._input_var_index.append(tuple(input_index))
             else:
                 self._input_var_index.append(input_index)
-        
-        
-        
-        
+
     def _apply_variable_mapping(self, input_vars):
         """Convert variable name by given mapping."""
         if self._variable_mapping is None:

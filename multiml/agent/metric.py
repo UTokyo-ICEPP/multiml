@@ -244,5 +244,5 @@ class AUCMetric(BaseMetric):
         fpr, tpr, _ = roc_curve(y_true, y_pred)
         from sklearn.metrics import auc
         roc_auc = auc(fpr, tpr)
-        
+
         return roc_auc
