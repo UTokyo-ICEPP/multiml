@@ -1,5 +1,6 @@
 """PytorchBaseTask module."""
 import copy
+import multiprocessing as mp
 
 import numpy as np
 from tqdm import tqdm
@@ -61,9 +62,6 @@ class PytorchBaseTask(MLBaseTask):
             self._device = device
 
         self._is_gpu = 'cuda' in self._device.type
-        if self._is_gpu and (not torch.cuda.is_available()):
-            raise ValueError(f'{self._device} is not available')
-
         self._data_parallel = self._is_gpu and (gpu_ids is not None)
 
         logger.info(f'{self._name}: PyTorch device: {self._device}')
@@ -72,6 +70,7 @@ class PytorchBaseTask(MLBaseTask):
         self._amp = amp
 
         self._pbar_args = const.PBAR_ARGS
+        self._running_step = 1
         self._pred_index = None
         self._early_stopping = False
         self._sampler = None
@@ -92,6 +91,9 @@ class PytorchBaseTask(MLBaseTask):
         """
         if self._model is None:
             return
+
+        if self._is_gpu and (not torch.cuda.is_available()):
+            raise ValueError(f'{self._device} is not available')
 
         self.ml.model = util.compile(self._model, self._model_args, modules)
 
@@ -157,11 +159,11 @@ class PytorchBaseTask(MLBaseTask):
             raise ValueError('data_parallel is not available with pool_id mode')
 
         if 'cuda' in self._device.type:
-            cuda_id = self._pool_id
+            cuda_id = mp.current_process()._identity[0] - 1
 
             if cuda_id >= torch.cuda.device_count():
                 cuda_id = cuda_id % torch.cuda.device_count()
-            logger.debug(f'Apply pool_id:{cuda_id} to pytorch device')
+            logger.info(f'Apply cuda_id:{cuda_id} ({self._pool_id[0]}/{self._pool_id[1]})')
             self._device = torch.device(f'cuda:{cuda_id}')
 
     def load_model(self):
@@ -313,7 +315,8 @@ class PytorchBaseTask(MLBaseTask):
             dict: dict of result.
         """
         epoch_metric = metrics.EpochMetric(self._metrics, label, self.true_var_names, self.ml)
-        pbar_args = dict(total=len(dataloader), disable=self._disable_tqdm())
+        num_batches = len(dataloader)
+        pbar_args = dict(total=num_batches, disable=self._disable_tqdm())
         pbar_args.update(self._pbar_args)
         pbar_desc = f'Epoch [{epoch: >4}/{self._num_epochs}] {phase.ljust(5)}'
 
@@ -321,15 +324,17 @@ class PytorchBaseTask(MLBaseTask):
         with tqdm(**pbar_args) as pbar:
             pbar.set_description(pbar_desc)
 
-            for data in dataloader:
+            for ii, data in enumerate(dataloader):
                 batch_result = self.step_batch(data, phase, label)
                 results.update(epoch_metric(batch_result))
 
                 if phase == 'test':
                     epoch_metric.pred(batch_result)
 
-                pbar_metrics = metrics.get_pbar_metric(results)
-                pbar.set_postfix(pbar_metrics)
+                if (ii % self._running_step == 0) or (ii == num_batches - 1):
+                    results = metrics.sync_gpu_data(results)
+                    pbar_metrics = metrics.get_pbar_metric(results)
+                    pbar.set_postfix(pbar_metrics)
                 pbar.update(1)
 
         if self._verbose == 2:

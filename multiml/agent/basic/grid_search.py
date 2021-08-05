@@ -35,7 +35,7 @@ class GridSearchAgent(RandomSearchAgent):
                 raise NotImplementedError(
                     'multiprocessing is supported for only numpy and hybrid backend')
 
-            ctx = mp.get_context('spawn')
+            ctx = mp.get_context('fork')
             queue = ctx.Queue()
             args = []
 
@@ -45,6 +45,6 @@ class GridSearchAgent(RandomSearchAgent):
                 if len(args) == self._num_workers:
                     self.execute_jobs(ctx, queue, args)
                     args = []
-                    logger.counter(counter + 1, len(self.task_scheduler), divide=1)
 
-            self.execute_jobs(ctx, queue, args)
+            if len(args) > 0:
+                self.execute_jobs(ctx, queue, args)

@@ -17,7 +17,12 @@ class SequentialAgent(BaseAgent):
         >>> agent.execute()
         >>> agent.finalize()
     """
-    def __init__(self, differentiable=None, diff_pretrain=False, diff_task_args=None, **kwargs):
+    def __init__(self,
+                 differentiable=None,
+                 diff_pretrain=False,
+                 diff_task_args=None,
+                 num_trials=None,
+                 **kwargs):
         """Initialize sequential agent.
 
         Args:
@@ -27,6 +32,7 @@ class SequentialAgent(BaseAgent):
             diff_pretrain (bool): If True, each subtask is trained before creating
                 `ConnectionTask()``.
             diff_task_args (dict): arbitrary args passed to ``ConnectionTask()``.
+            num_trials (ine): number of trials. Average value of trials is used as final metric.
         """
         if diff_task_args is None:
             diff_task_args = {}
@@ -36,6 +42,7 @@ class SequentialAgent(BaseAgent):
         self._differentiable = differentiable
         self._diff_pretrain = diff_pretrain
         self._diff_task_args = diff_task_args
+        self._num_trials = num_trials
 
     @property
     def result(self):
@@ -71,10 +78,22 @@ class SequentialAgent(BaseAgent):
     def execute_subtasktuples(self, subtasktuples, counter):
         """Execute given subtasktuples."""
         if self._differentiable is None:
-            return self.execute_pipeline(subtasktuples, counter)
-
+            fn_execute = self.execute_pipeline
         else:
-            return self.execute_differentiable(subtasktuples, counter)
+            fn_execute = self.execute_differentiable
+
+        if self._num_trials is None:
+            return fn_execute(subtasktuples, counter)
+        else:
+            metric_values = []
+            for ii in range(self._num_trials):
+                result = fn_execute(subtasktuples, counter)
+                metric_values.append(result['metric_value'])
+
+            result['metric_values'] = metric_values
+            result['metric_value'] = sum(metric_values) / len(metric_values)
+
+            return result
 
     def execute_pipeline(self, subtasktuples, counter):
         """Execute pipeline."""

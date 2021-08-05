@@ -246,7 +246,7 @@ class StoreGate:
         """
         return self._backend
 
-    def add_data(self, var_names, data, phase='train', shuffle=False, mode=None, do_compile=False):
+    def add_data(self, var_names, data, phase='train', shuffle=False, do_compile=False):
         """Add data to the storegate with given options.
 
         If ``var_names`` already exists in given ``data_id`` and ``phase``, the data are appended,
@@ -268,7 +268,6 @@ class StoreGate:
                 int, the data are split by given indexes.
             shuffle (bool or int): data are shuffled if True or int. If int is given, it is used as
                 random seed of ``np.random``.
-            mode (str): 'numpy' or 'zarr'. Only valid for 'hybrid' backend.
             do_compile (bool): do compile if True after adding data.
 
         Examples:
@@ -278,7 +277,7 @@ class StoreGate:
         # recursive operation
         if isinstance(var_names, list):
             for var_name, idata in zip(var_names, data):
-                self.add_data(var_name, idata, phase, shuffle, mode, do_compile)
+                self.add_data(var_name, idata, phase, shuffle, do_compile)
             return
 
         self._check_valid_data_id()
@@ -301,7 +300,7 @@ class StoreGate:
                 if len(phase_data) == 0:
                     continue
 
-                self._db.add_data(self._data_id, var_name, phase_data, iphase, mode=mode)
+                self._db.add_data(self._data_id, var_name, phase_data, iphase)
 
         if self._data_id in self._metadata:
             self._metadata[self._data_id]['compiled'] = False
@@ -309,7 +308,7 @@ class StoreGate:
         if do_compile:
             self.compile(reset=False)
 
-    def update_data(self, var_names, data, phase='train', index=-1, mode=None, do_compile=True):
+    def update_data(self, var_names, data, phase='train', index=-1, do_compile=True):
         """Update data in storegate with given options.
 
         Update (replace) data in the storegate. If ``var_names`` does not exist in given
@@ -323,7 +322,6 @@ class StoreGate:
             index (int or tuple): If ``index`` is -1 (default), all data are updated for given
                 options. If ``index`` is int, only the data with ``index`` is updated. If index is
                 (x, y), data in the range (x, y) are updated.
-            mode (str): 'numpy' or 'zarr'. Only valid for 'hybrid' backend.
             do_compile (bool): do compile if True after updating data.
 
         Examples:
@@ -334,7 +332,7 @@ class StoreGate:
         # recursive operation
         if isinstance(var_names, list):
             for var_name, idata in zip(var_names, data):
-                self.update_data(var_name, idata, phase, index, mode, do_compile)
+                self.update_data(var_name, idata, phase, index, do_compile)
             return
 
         self._check_valid_data_id()
@@ -347,21 +345,16 @@ class StoreGate:
             indices = self._get_phase_indices(phase, len(idata))
 
             for iphase, phase_data in zip(const.PHASES, np.split(idata, indices)):
-                metadata = self._db.get_metadata(self._data_id, iphase, mode=mode)
+                metadata = self._db.get_metadata(self._data_id, iphase)
 
                 if len(phase_data) == 0:
                     continue
 
                 if var_name not in metadata.keys():
-                    self.add_data(var_name, phase_data, iphase, False, mode=mode)
+                    self.add_data(var_name, phase_data, iphase, False)
 
                 else:
-                    self._db.update_data(self._data_id,
-                                         var_name,
-                                         phase_data,
-                                         iphase,
-                                         index,
-                                         mode=mode)
+                    self._db.update_data(self._data_id, var_name, phase_data, iphase, index)
 
         if self._data_id in self._metadata:
             self._metadata[self._data_id]['compiled'] = False
@@ -493,6 +486,12 @@ class StoreGate:
 
         if do_compile:
             self.compile(reset=False)
+
+    def clear_data(self):
+        """Delete all data in the current data_id and backend"""
+        for phase in const.PHASES:
+            var_names = self.get_var_names(phase)
+            self.delete_data(var_names, phase)
 
     def get_data_ids(self):
         """Returns registered data_ids in the backend.
@@ -631,6 +630,29 @@ class StoreGate:
 
             self.update_data(var_names=var_name, data=tmp_data, phase=phase)
 
+    def shuffle(self, phase='all', seed=0):
+        """Shulle data in given phase.
+
+        Args:
+            phase (str): *all*, *train*, *valid*, *test*.
+            seed (int ): seed of numpy.random
+        """
+        if phase == 'all':
+            phases = const.PHASES
+        else:
+            phases = [phase]
+
+        for phase in phases:
+
+            var_names = self.get_var_names(phase)
+            for var_name in var_names:
+                cur_seed = np.random.get_state()
+                np.random.seed(seed)
+                data = self.get_data(var_name, phase)
+                np.random.shuffle(data)
+                self.update_data(var_name, data, phase)
+                np.random.set_state(cur_seed)
+
     def set_mode(self, mode):
         """Set backend mode of hybrid architecture.
 
@@ -663,10 +685,7 @@ class StoreGate:
         if self._backend != 'hybrid':
             raise ValueError(f'to_memory is valid for only hybrid database ({self._backend})')
 
-        if self._db.mode != 'zarr':
-            raise ValueError('to_memory is valid when the current mode is zarr.')
-
-        self.compile()
+        mode = self._db.mode
 
         if phase == 'all':
             phase = const.PHASES
@@ -674,13 +693,19 @@ class StoreGate:
             phase = [phase]
 
         for iphase in phase:
+            self.set_mode('zarr')
+            self.compile()
+
             tmp_var_names = var_names
             tmp_data = self.get_data(var_names, phase=iphase, index=-1)
 
             if callback is not None:
                 tmp_var_names, tmp_data = callback(tmp_var_names, tmp_data)
 
-            self.update_data(tmp_var_names, tmp_data, iphase, mode='numpy')
+            self.set_mode('numpy')
+            self.update_data(tmp_var_names, tmp_data, iphase)
+
+        self.set_mode(mode)
 
     def to_storage(self, var_names, phase='train', callback=None):
         """Move data from storage to memory.
@@ -697,10 +722,7 @@ class StoreGate:
         if self._backend != 'hybrid':
             raise ValueError(f'to_storage is valid for only hybrid database ({self._backend})')
 
-        if self._db.mode != 'numpy':
-            raise ValueError('to_storage is valid when the current mode is numpy.')
-
-        self.compile()
+        mode = self._db.mode
 
         if phase == 'all':
             phase = const.PHASES
@@ -708,13 +730,19 @@ class StoreGate:
             phase = [phase]
 
         for iphase in phase:
+            self.set_mode('numpy')
+            self.compile()
+
             tmp_var_names = var_names
             tmp_data = self.get_data(var_names, phase=iphase, index=-1)
 
             if callback is not None:
                 tmp_var_names, tmp_data = callback(var_names, tmp_data)
 
-            self.update_data(tmp_var_names, tmp_data, iphase, mode='zarr')
+            self.set_mode('zarr')
+            self.update_data(tmp_var_names, tmp_data, iphase)
+
+        self.set_mode(mode)
 
     def compile(self, reset=False, show_info=False):
         """Check if registered samples are valid.

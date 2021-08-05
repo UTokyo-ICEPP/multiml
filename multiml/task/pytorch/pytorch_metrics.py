@@ -28,11 +28,11 @@ class BatchMetric:
 
     @staticmethod
     def loss(outputs, labels, loss):
-        return loss['loss'].item()
+        return loss['loss'].detach()
 
     @staticmethod
     def subloss(outputs, labels, loss):
-        return [loss.item() for loss in loss['subloss']]
+        return [loss.detach() for loss in loss['subloss']]
 
     @staticmethod
     def acc(outputs, labels, loss):
@@ -41,11 +41,11 @@ class BatchMetric:
             for output, label in zip(outputs, labels):
                 _, preds = torch.max(output, 1)
                 corrects = torch.sum(preds == label.data)
-                result.append(corrects.item())
+                result.append(corrects.detach())
         else:
             _, preds = torch.max(outputs, 1)
             corrects = torch.sum(preds == labels.data)
-            result = corrects.item()
+            result = corrects.detach()
         return result
 
 
@@ -131,9 +131,26 @@ class EpochMetric:
         return results
 
 
+def sync_gpu_data(results):
+    if 'loss' in results:
+        results['loss'] = results['loss'].item()
+
+    if 'subloss' in results:
+        results['subloss'] = [loss.item() for loss in results['subloss']]
+
+    if 'acc' in results:
+        if isinstance(results['acc'], list):
+            results['acc'] = [acc.item() for acc in results['acc']]
+        else:
+            results['acc'] = results['acc'].item()
+
+    return results
+
+
 def get_pbar_metric(epoch_result):
     result = {}
     for key, value in epoch_result.items():
+
         if isinstance(value, list):
             result[key] = [f'{v:.2e}' for v in value]
         elif isinstance(value, float):
