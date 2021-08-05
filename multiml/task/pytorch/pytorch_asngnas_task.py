@@ -175,8 +175,8 @@ class PytorchASNGNASTask(ModelConnectionTask, PytorchBaseTask):
                     loss_valid_ = results_valid.get_running_loss()
                     theta_cats, theta_ints = self.ml.model.get_thetas()
                     theta_max = theta_cats.max(axis = 1 )
-                    #theta_cat = f'{theta_max.min():.2f}/{theta_max.mean():.2f}/{theta_max.max():.2f}'
-                    theta_cat = '/'.join(f'{v:.2f}' for v in theta_cats[0]) + ' ' +  '/'.join(f'{v:.2f}' for v in theta_cats[1]) 
+                    theta_cat = f'{theta_max.min():.2f}/{theta_max.mean():.2f}/{theta_max.max():.2f}'
+                    #theta_cat = '/'.join(f'{v:.2f}' for v in theta_cats[0]) + ' ' +  '/'.join(f'{v:.2f}' for v in theta_cats[1]) 
                     
                     pbar.set_postfix(loss=f'{loss_train_:.2e}/{loss_valid_:.2e}', cat = theta_cat)
                     pbar.update(1)
