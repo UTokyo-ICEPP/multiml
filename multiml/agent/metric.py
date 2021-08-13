@@ -230,7 +230,6 @@ class AUCMetric(BaseMetric):
 
     def calculate(self):
         """Calculate AUC."""
-        print('AUCMetric::calculate()')
         y_true, y_pred = self.get_true_pred_data()
 
         if len(y_pred.shape) != 1:

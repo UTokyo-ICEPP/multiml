@@ -3,15 +3,8 @@ from torch.nn.modules import activation as act
 
 
 class Conv2DBlock(Module):
-    def __init__(
-            self,
-            hps,
-            # layers_conv2d = None,
-            initialize=True,
-            *args,
-            **kwargs):
+    def __init__( self, hps, initialize=True, *args, **kwargs):
         """
-
             Args:
                 layers_conv2d (list(tuple(str, dict))): configs of conv2d layer. list of tuple(op_name, op_args).
                 *args: Variable length argument list

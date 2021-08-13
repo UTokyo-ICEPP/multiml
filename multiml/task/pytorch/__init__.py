@@ -4,6 +4,7 @@ from multiml.task.pytorch.pytorch_classification import PytorchClassificationTas
 from .pytorch_model_connection import ModelConnectionTask
 from .pytorch_choice_block import PytorchChoiceBlockTask, PytorchSPOSChoiceBlockTask, PytorchASNGChoiceBlockTask
 from .pytorch_asngnas_task import PytorchASNGNASTask
+from .pytorch_yoto_connection_task import PytorchYotoConnectionTask
 
 __all__ = [
     'ModelConnectionTask',
@@ -14,4 +15,5 @@ __all__ = [
     'PytorchDDPTask',
     'PytorchClassificationTask',
     'PytorchASNGNASTask',
+    'PytorchYotoConnectionTask',
 ]

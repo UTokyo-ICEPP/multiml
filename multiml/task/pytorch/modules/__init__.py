@@ -7,6 +7,7 @@ from .asng_task_model import ASNGModel
 from .asng import AdaptiveSNG
 from .asng import AdaptiveSNG_cat
 from .asng import AdaptiveSNG_int
+from .yoto_connection_model import YotoConnectionModel
 
 __all__ = [
     'AdaptiveSNG',
@@ -22,4 +23,5 @@ __all__ = [
     'LSTMBlock_HPS',
     'MLPBlock_HPS',
     'ASNGChoiceBlockModel',
+    'YotoConnectionModel',
 ]

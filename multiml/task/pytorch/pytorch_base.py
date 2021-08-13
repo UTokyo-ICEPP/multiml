@@ -45,7 +45,7 @@ class PytorchBaseTask(MLBaseTask):
         >>> task.execute()
         >>> task.finalize()
     """
-    def __init__(self, device='cpu', gpu_ids=None, amp=False, **kwargs):
+    def __init__(self, device='cpu', gpu_ids=None, amp=False, pin_memory = False, **kwargs):
         """Initialize the pytorch base task.
 
         Args:
@@ -68,6 +68,7 @@ class PytorchBaseTask(MLBaseTask):
 
         self._gpu_ids = gpu_ids
         self._amp = amp
+        self._pin_memory = pin_memory
 
         self._pbar_args = const.PBAR_ARGS
         self._running_step = 1
@@ -141,7 +142,8 @@ class PytorchBaseTask(MLBaseTask):
 
         if self._loss is None:
             return
-
+        
+        print(f'compile_loss : {self._loss_args}')
         self.ml.loss = util.compile(self._loss, self._loss_args, tl)
         self.ml.loss_weights = self._loss_weights
 
@@ -211,6 +213,7 @@ class PytorchBaseTask(MLBaseTask):
         return DataLoader(dataset,
                           batch_size=self._get_batch_size(phase, len(dataset)),
                           num_workers=self._num_workers,
+                          pin_memory=self._pin_memory,
                           shuffle=shuffle)
 
     def fit(self, train_data=None, valid_data=None, dataloaders=None, valid_step=1):
@@ -411,7 +414,9 @@ class PytorchBaseTask(MLBaseTask):
             for loss_fn, loss_w, output, label in zip(self.ml.loss, self.ml.loss_weights, outputs,
                                                       labels):
                 if loss_w:
-                    loss_tmp = loss_fn(output, label) * loss_w
+                    l = loss_fn(output, label)
+                    loss_tmp =  l * loss_w
+                    print(output.size(), label.size(), l.size())
                     loss_result['loss'] += loss_tmp
                     loss_result['subloss'].append(loss_tmp)
 
