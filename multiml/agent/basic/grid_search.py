@@ -42,7 +42,7 @@ class GridSearchAgent(RandomSearchAgent):
             for counter, subtasktuples in enumerate(self.task_scheduler):
                 args.append([subtasktuples, counter])
 
-                if len(args) == self._num_workers:
+                if len(args) == len(self._num_workers):
                     self.execute_jobs(ctx, queue, args)
                     args = []
 

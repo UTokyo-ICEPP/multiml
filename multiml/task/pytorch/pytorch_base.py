@@ -157,11 +157,13 @@ class PytorchBaseTask(MLBaseTask):
             raise ValueError('data_parallel is not available with pool_id mode')
 
         if 'cuda' in self._device.type:
+            counter, num_workers, num_jobs = self._pool_id
             cuda_id = mp.current_process()._identity[0] - 1
 
-            if cuda_id >= torch.cuda.device_count():
-                cuda_id = cuda_id % torch.cuda.device_count()
-            logger.info(f'Apply cuda_id:{cuda_id} ({self._pool_id[0]}/{self._pool_id[1]})')
+            if cuda_id >= len(num_workers):
+                cuda_id = cuda_id % len(num_workers)
+            cuda_id = num_workers[cuda_id]
+            logger.info(f'Apply cuda_id:{cuda_id} ({counter}/{num_jobs})')
             self._device = torch.device(f'cuda:{cuda_id}')
 
     def load_model(self):

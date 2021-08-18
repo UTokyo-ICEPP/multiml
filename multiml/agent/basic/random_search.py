@@ -23,8 +23,8 @@ class RandomSearchAgent(SequentialAgent):
             seed (int): seed of random samplings.
             metric_type (str): 'min' or 'max' for indicating direction of metric optimization.
                 If it is None, ``type`` is retrieved from metric class instance.
-            num_workers (int): number of workers for multiprocessing. If
-                ``num_workers`` is given, multiprocessing is enabled.
+            num_workers (int or list): number of workers for multiprocessing or lsit of GPU ids.
+                If ``num_workers`` is given, multiprocessing is enabled.
             dump_all_results (bool): dump all results or not.
         """
         super().__init__(**kwargs)
@@ -42,6 +42,9 @@ class RandomSearchAgent(SequentialAgent):
 
         if self._num_workers is not None:
             self._multiprocessing = True
+
+            if isinstance(self._num_workers, int):
+                self._num_workers = list(range(self._num_workers))
 
         if metric_type is None:
             self._metric_type = self._metric.type
@@ -86,7 +89,7 @@ class RandomSearchAgent(SequentialAgent):
                 subtasktuples = self.task_scheduler[index]
                 args.append([subtasktuples, counter])
 
-                if len(args) == self._num_workers:
+                if len(args) == len(self._num_workers):
                     self.execute_jobs(ctx, queue, args)
                     args = []
                     logger.counter(counter + 1, len(self.task_scheduler), divide=1)
@@ -143,7 +146,7 @@ class RandomSearchAgent(SequentialAgent):
             self._storegate.set_mode('numpy')
 
         for subtasktuple in subtasktuples:
-            subtasktuple.env.pool_id = (counter + 1, len(self.task_scheduler))
+            subtasktuple.env.pool_id = (counter + 1, self._num_workers, len(self.task_scheduler))
 
         result = self.execute_subtasktuples(subtasktuples, counter)
         queue.put(result)
