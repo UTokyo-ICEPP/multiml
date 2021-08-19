@@ -50,6 +50,7 @@ class BaseTask(Task):
         self._subtask_id = None
         self._unique_id = None
         self._job_id = None
+        self._trial_id = None
         self._pool_id = None
 
     def __repr__(self):
@@ -110,6 +111,16 @@ class BaseTask(Task):
     def job_id(self, job_id):
         """Set job_id of task."""
         self._job_id = job_id
+
+    @property
+    def trial_id(self):
+        """Return trial_id of task."""
+        return self._trial_id
+
+    @trial_id.setter
+    def trial_id(self, trial_id):
+        """Set trial_id of task."""
+        self._trial_id = trial_id
 
     @property
     def task_id(self):
@@ -194,6 +205,9 @@ class BaseTask(Task):
 
             if self._job_id is not None:
                 unique_id += f'_{self._job_id}'
+
+            if self._trial_id is not None:
+                unique_id += f'_{self._trial_id}'
 
             return unique_id
 

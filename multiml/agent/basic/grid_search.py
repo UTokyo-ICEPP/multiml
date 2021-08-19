@@ -22,7 +22,7 @@ class GridSearchAgent(RandomSearchAgent):
         if not self._multiprocessing:
             for counter, subtasktuples in enumerate(self.task_scheduler):
                 self._storegate.compile()
-                result = self.execute_pipeline(subtasktuples, counter)
+                result = self.execute_subtasktuples(subtasktuples, counter)
                 self._history.append(result)
 
                 logger.counter(counter + 1,

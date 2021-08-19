@@ -431,7 +431,7 @@ class PytorchBaseTask(MLBaseTask):
         Args:
             loss (obf): loss value.
         """
-        self.ml.optimizer.zero_grad()
+        self.ml.optimizer.zero_grad(set_to_none=True)
         if self._is_gpu and self._amp:
             self._scaler.scale(loss).backward()
             self._scaler.step(self.ml.optimizer)

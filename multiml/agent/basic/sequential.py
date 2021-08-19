@@ -87,7 +87,7 @@ class SequentialAgent(BaseAgent):
         else:
             metric_values = []
             for ii in range(self._num_trials):
-                result = fn_execute(subtasktuples, counter)
+                result = fn_execute(subtasktuples, counter, ii)
                 metric_values.append(result['metric_value'])
 
             result['metric_values'] = metric_values
@@ -95,7 +95,7 @@ class SequentialAgent(BaseAgent):
 
             return result
 
-    def execute_pipeline(self, subtasktuples, counter):
+    def execute_pipeline(self, subtasktuples, counter, trial=None):
         """Execute pipeline."""
         result = {'task_ids': [], 'subtask_ids': [], 'subtask_hps': [], 'metric_value': None}
 
@@ -108,6 +108,7 @@ class SequentialAgent(BaseAgent):
             subtask_env.saver = self._saver
             subtask_env.storegate = self._storegate
             subtask_env.job_id = counter
+            subtask_env.trial_id = trial
             subtask_env.set_hps(subtask_hps)
             self._execute_subtask(subtasktuple)
 
@@ -120,7 +121,7 @@ class SequentialAgent(BaseAgent):
 
         return result
 
-    def execute_differentiable(self, subtasktuples, counter):
+    def execute_differentiable(self, subtasktuples, counter, trial=None):
         """Execute connection model."""
         result = {'task_ids': [], 'subtask_ids': [], 'subtask_hps': [], 'metric_value': None}
 
@@ -134,6 +135,7 @@ class SequentialAgent(BaseAgent):
                 subtask_env.saver = self._saver
                 subtask_env.storegate = self._storegate
                 subtask_env.job_id = counter
+                subtask_env.trial_id = trial
                 subtask_env.set_hps(subtask_hps)
                 self._execute_subtask(subtasktuple)
 
