@@ -260,7 +260,7 @@ class StoreGate:
                 If ``var_names`` is a tuple, data shape must be (N, M, k), where M is the number of
                 variables. If ``var_names`` is a list, data mustbe a list of
                 [(N, k), (N, k), (N, k)...], where diffeernt shapes of k are allowed.
-            phase (str or tuple): *all (auto)*, *train*, *valid*, *test* or tuple. *all* divides
+            phase (str or tuple or list): *all (auto)*, *train*, *valid*, *test* or tuple. *all* divides
                 the data to *train*, *valid* and *test* automatically, but only after the
                 ``compile``. If tuple (x, y, z) is given, the data are divided to *train*, *valid*
                 and *test*. If contents of tuple is float and sum of the tuple is 1.0, the data are
@@ -895,7 +895,7 @@ class StoreGate:
                 raise ValueError('Provided events are not consistent with metadata')
             indices = [total_events[0], total_events[0] + total_events[1]]
 
-        elif isinstance(phase, tuple):
+        elif isinstance(phase, (tuple, list)):
             if isinstance(phase[0], int):
                 if sum(phase) != ndata:
                     raise ValueError(
