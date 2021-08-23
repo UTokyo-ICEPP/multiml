@@ -162,6 +162,9 @@ class PytorchBaseTask(MLBaseTask):
 
             if cuda_id >= len(num_workers):
                 cuda_id = cuda_id % len(num_workers)
+            if cuda_id >= torch.cuda.device_count():
+                cuda_id = cuda_id % torch.cuda.device_count()
+
             cuda_id = num_workers[cuda_id]
             logger.info(f'Apply cuda_id:{cuda_id} ({counter}/{num_jobs})')
             self._device = torch.device(f'cuda:{cuda_id}')
