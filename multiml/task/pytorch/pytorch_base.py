@@ -366,7 +366,12 @@ class PytorchBaseTask(MLBaseTask):
         result = {'batch_size': util.inputs_size(inputs)}
         with torch.set_grad_enabled(phase == 'train'):
             with torch.cuda.amp.autocast(self._is_gpu and self._amp):
-                outputs = self.step_model(inputs)
+                outputs_all = self.step_model(inputs)
+
+                if self._pred_index is not None:
+                    outputs = self._select_pred_data(outputs_all)
+                else:
+                    outputs = outputs_all
 
                 if label:
                     loss_result = self.step_loss(outputs, labels)
@@ -377,7 +382,7 @@ class PytorchBaseTask(MLBaseTask):
                 self.step_optimizer(loss_result['loss'])
 
             elif phase == 'test':
-                result['pred'] = outputs
+                result['pred'] = outputs_all
 
             batch_metric = metrics.BatchMetric(self._metrics, label)
             result.update(batch_metric(outputs, labels, loss_result))
@@ -394,9 +399,6 @@ class PytorchBaseTask(MLBaseTask):
             Tensor or list: outputs of model.
         """
         outputs = self.ml.model(inputs)
-
-        if self._pred_index is not None:
-            outputs = self._select_pred_data(outputs)
 
         return outputs
 

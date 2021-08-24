@@ -51,7 +51,7 @@ class ConnectionModel(ConnectionModel, Module):
             output_indexes = self._output_var_index[index]
 
             # TODO: If outputs is list, special treatment
-            if isinstance(tensor_outputs, list):
+            if isinstance(tensor_outputs, (list, tuple)):
                 outputs += tensor_outputs
                 for ii, output_index in enumerate(output_indexes):
                     caches[output_index] = tensor_outputs[ii]
