@@ -154,7 +154,8 @@ class PytorchBaseTask(MLBaseTask):
             return  # nothing to do so far
 
         if self._data_parallel:
-            raise ValueError('data_parallel is not available with pool_id mode')
+            logger.warn(f'data_parallel with pool_id mode: gpu_ids {self._gpu_ids}')
+            return
 
         if 'cuda' in self._device.type:
             counter, num_workers, num_jobs = self._pool_id
