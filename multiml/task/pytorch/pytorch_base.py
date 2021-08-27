@@ -45,13 +45,14 @@ class PytorchBaseTask(MLBaseTask):
         >>> task.execute()
         >>> task.finalize()
     """
-    def __init__(self, device='cpu', gpu_ids=None, amp=False, **kwargs):
+    def __init__(self, device='cpu', gpu_ids=None, torchinfo=False, amp=False, **kwargs):
         """Initialize the pytorch base task.
 
         Args:
             device (str or obj): pytorch device, e.g. 'cpu', 'cuda'.
             gpu_ids (list): GPU identifiers, e.g. [0, 1, 2]. ``data_parallel`` mode is enabled if
                 ``gpu_ids`` is given.
+            torchinfo (bool): show torchinfo summary after model compile.
             amp (bool): *(expert option)* enable amp mode.
         """
         super().__init__(**kwargs)
@@ -67,6 +68,7 @@ class PytorchBaseTask(MLBaseTask):
         logger.info(f'{self._name}: PyTorch device: {self._device}')
 
         self._gpu_ids = gpu_ids
+        self._torchinfo = torchinfo
         self._amp = amp
 
         self._pbar_args = const.PBAR_ARGS
@@ -111,6 +113,10 @@ class PytorchBaseTask(MLBaseTask):
         else:
             self.ml.model.to(self._device)
 
+        if self._torchinfo:
+            from torchinfo import summary
+            summary(self.ml.model)
+
     def compile_optimizer(self):
         """Compile pytorch optimizer and scheduler.
 
@@ -123,6 +129,19 @@ class PytorchBaseTask(MLBaseTask):
         optimizer_args = copy.copy(self._optimizer_args)
         if 'params' not in optimizer_args:
             optimizer_args['params'] = list(self.ml.model.parameters())
+
+        if 'per_params' in optimizer_args:
+            optimizer_args['params'] = []
+            for per_param in optimizer_args['per_params']:
+                if getattr(self.ml.model, 'module', False):
+                    params = getattr(self.ml.model.module, per_param['params']).parameters()
+                    per_param['params'] = params
+                else:
+                    params = getattr(self.ml.model, per_param['params']).parameters()
+                    per_param['params'] = params
+
+                optimizer_args['params'].append(per_param)
+            del optimizer_args['per_params']
 
         self.ml.optimizer = util.compile(self._optimizer, optimizer_args, optim)
 
@@ -269,8 +288,7 @@ class PytorchBaseTask(MLBaseTask):
                 self.ml.scheduler.step()
 
         if self._early_stopping:
-            best_model = early_stopping.best_model.state_dict()
-            self.ml.model.load_state_dict(copy.deepcopy(best_model))
+            self.ml.model.load_state_dict(early_stopping.best_model)
 
         return history
 

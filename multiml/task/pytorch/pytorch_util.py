@@ -2,6 +2,7 @@ import inspect
 import copy
 
 import torch
+import torch.distributed as dist
 
 from multiml import logger
 
@@ -30,6 +31,14 @@ def inputs_size(inputs):
     return result
 
 
+def is_master_process(rank=0):
+    if not dist.is_initialized():
+        return True
+    if rank == dist.get_rank():
+        return True
+    return False
+
+
 class EarlyStopping:
     def __init__(self, patience=None, save=False, path=None):
         self.patience = patience
@@ -53,6 +62,7 @@ class EarlyStopping:
         if self.best_score is None:
             self.best_score = score
             self.best_model = self.save_checkpoint(val_loss, model)
+
         elif score <= self.best_score:
             self.counter += 1
             logger.debug(f'EarlyStopping counter: {self.counter} out of {self.patience}')
@@ -80,7 +90,8 @@ class EarlyStopping:
                 save_path = self.path
             save(model.state_dict(), save_path)
         self.val_loss_min = val_loss
-        return deepcopy(model)
+
+        return model.state_dict()
 
 
 class ASNG_EarlyStopping(EarlyStopping):
