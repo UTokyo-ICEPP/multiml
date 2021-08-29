@@ -24,11 +24,16 @@ class PytorchDDPTask(PytorchBaseTask):
         self._data_parallel = False
 
     def compile_model(self, rank=None, world_size=None):
-        """ Build model
+        """ Build model.
         """
         super().compile_model()
         if self._ddp and dist.is_initialized():
             self.ml.model = DDP(self.ml.model, device_ids=[self._device])
+
+    def compile_device(self):
+        """ Compile device.
+        """
+        pass
 
     def dump_model(self, extra_args=None):
         """ Dump current pytorch model.
@@ -79,6 +84,10 @@ class PytorchDDPTask(PytorchBaseTask):
         """Setup multi processing."""
         if not self._ddp:
             return
+
+        if self._pool_id is not None:
+            counter, num_workers, num_jobs = self._pool_id
+            self._port = str(int(self._port) + counter)
 
         os.environ['MASTER_ADDR'] = self._addr
         os.environ['MASTER_PORT'] = self._port

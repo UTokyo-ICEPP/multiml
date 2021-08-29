@@ -141,10 +141,6 @@ class RandomSearchAgent(SequentialAgent):
 
     def execute_wrapper(self, queue, subtasktuples, counter):
         """(expert method) Wrapper method to execute multiprocessing pipeline."""
-        self._saver.set_mode('dict')
-        if self._storegate.backend == 'hybrid':
-            self._storegate.set_mode('numpy')
-
         for subtasktuple in subtasktuples:
             subtasktuple.env.pool_id = (counter + 1, self._num_workers, len(self.task_scheduler))
 

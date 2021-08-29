@@ -52,7 +52,7 @@ class EarlyStopping:
         self.theta_cat = None
         self.theta_int = None
         if self.patience is not None:
-            logger.info(f'EarlyStopping with {self.patience}')
+            logger.debug(f'EarlyStopping with {self.patience}')
 
     def __call__(self, val_loss, model):
         if self.patience is None:

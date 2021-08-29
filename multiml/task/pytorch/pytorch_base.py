@@ -340,11 +340,10 @@ class PytorchBaseTask(MLBaseTask):
         num_batches = len(dataloader)
         pbar_args = dict(total=num_batches, disable=self._disable_tqdm())
         pbar_args.update(self._pbar_args)
-        pbar_desc = f'Epoch [{epoch: >4}/{self._num_epochs}] {phase.ljust(5)}'
 
         results = {}
         with tqdm(**pbar_args) as pbar:
-            pbar.set_description(pbar_desc)
+            pbar.set_description(self._get_pbar_description(epoch, phase))
 
             for ii, data in enumerate(dataloader):
                 batch_result = self.step_batch(data, phase, label)
@@ -499,6 +498,12 @@ class PytorchBaseTask(MLBaseTask):
             return y_pred[self._pred_index[0]]
         else:
             return [y_pred[index] for index in self._pred_index]
+
+    def _get_pbar_description(self, epoch, phase):
+        if self.trial_id is None:
+            return f'Epoch [{epoch: >4}/{self._num_epochs}] {phase.ljust(5)}'
+        else:
+            return f'Epoch [{epoch: >4}/{self._num_epochs},{self.trial_id+1: >2}] {phase.ljust(5)}'
 
     def _disable_tqdm(self):
         disable_tqdm = True
