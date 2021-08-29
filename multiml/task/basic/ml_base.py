@@ -351,7 +351,8 @@ class MLBaseTask(BaseTask):
         self.compile_model()
         self.compile_optimizer()
 
-        self.storegate.compile()
+        if self.storegate is not None:
+            self.storegate.compile()
         # self.show_info()
 
     def build_model(self):
