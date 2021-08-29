@@ -126,7 +126,7 @@ class PytorchBaseTask(MLBaseTask):
         if self._optimizer is None:
             return
 
-        optimizer_args = copy.copy(self._optimizer_args)
+        optimizer_args = copy.deepcopy(self._optimizer_args)
         if 'params' not in optimizer_args:
             optimizer_args['params'] = list(self.ml.model.parameters())
 
@@ -464,16 +464,18 @@ class PytorchBaseTask(MLBaseTask):
             self.ml.optimizer.step()
 
     @staticmethod
-    def get_tensor_dataset(data):
+    def get_tensor_dataset(data, callbacks=None):
         """Returns dataset from given ndarray data."""
-        return NumpyDataset(*data)
+        return NumpyDataset(*data, callbacks=callbacks)
 
-    def get_storegate_dataset(self, phase):
+    def get_storegate_dataset(self, phase, preload=False, callbacks=None):
         """Returns storegate dataset."""
         return StoreGateDataset(self.storegate,
                                 phase,
                                 input_var_names=self.input_var_names,
-                                true_var_names=self.true_var_names)
+                                true_var_names=self.true_var_names,
+                                preload=preload,
+                                callbacks=callbacks)
 
     def add_device(self, data, device):
         """Add data to device."""

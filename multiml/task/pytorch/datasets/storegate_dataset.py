@@ -3,7 +3,13 @@ import torch.utils.data as tdata
 
 class StoreGateDataset(tdata.Dataset):
     """StoreGate dataset class."""
-    def __init__(self, storegate, phase, preload=False, input_var_names=None, true_var_names=None, callbacks=None):
+    def __init__(self,
+                 storegate,
+                 phase,
+                 preload=False,
+                 input_var_names=None,
+                 true_var_names=None,
+                 callbacks=None):
 
         self._storegate = storegate
         self._true_var_names = true_var_names
@@ -34,14 +40,13 @@ class StoreGateDataset(tdata.Dataset):
 
         else:
             data = self._storegate.get_data(var_names=self._input_var_names,
-                                        phase=self._phase,
-                                        index=index)
+                                            phase=self._phase,
+                                            index=index)
             target = self._storegate.get_data(var_names=self._true_var_names,
-                                          phase=self._phase,
-                                          index=index)
+                                              phase=self._phase,
+                                              index=index)
 
         for callback in self._callbacks:
-            data, target = callback(data, target)    
-
+            data, target = callback(data, target)
 
         return data, target
