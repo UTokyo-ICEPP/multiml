@@ -477,6 +477,18 @@ class PytorchBaseTask(MLBaseTask):
                                 preload=preload,
                                 callbacks=callbacks)
 
+    def get_batch_sampler(self, phase, dataset):
+        """Returns batch sampler."""
+        sampler_args = dict(drop_last=False, batch_size=self._get_batch_size(phase))
+
+        if phase in ('train', 'valid'):
+            sampler = torch.utils.data.sampler.BatchSampler(
+                torch.utils.data.sampler.RandomSampler(dataset), **sampler_args)
+        else:
+            sampler = torch.utils.data.sampler.BatchSampler(
+                torch.utils.data.sampler.SequentialSampler(dataset), **sampler_args)
+        return sampler
+
     def add_device(self, data, device):
         """Add data to device."""
         if isinstance(data, Tensor):

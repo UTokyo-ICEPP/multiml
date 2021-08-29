@@ -53,6 +53,19 @@ class PytorchDDPTask(PytorchBaseTask):
         args_dump_ml['model'] = self.ml.model.module
         super().dump_model(args_dump_ml)
 
+    def get_distributed_sampler(self, phase, dataset, rank, world_size, batch=False):
+        """ Get batch sampler.
+        """
+        if batch:
+            from torchnlp.samplers import DistributedBatchSampler
+            sampler = self.get_batch_sampler(phase, dataset)
+            sampler = DistributedBatchSampler(sampler, num_replicas=world_size, rank=rank)
+        else:
+            sampler = torch.utils.data.distributed.DistributedSampler(dataset,
+                                                                      num_replicas=world_size,
+                                                                      rank=rank)
+        return sampler
+
     @logger.logging
     def execute(self):
         """Execute the pytorch DDP task.
