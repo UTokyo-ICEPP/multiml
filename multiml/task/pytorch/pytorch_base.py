@@ -208,7 +208,32 @@ class PytorchBaseTask(MLBaseTask):
 
         super().dump_model(args_dump_ml)
 
-    def prepare_dataloader(self, data=None, phase=None):
+    def prepare_dataloaders(self, callbacks=None, **kwargs):
+        """Prepare dataloaders for all phases.
+
+        Args:
+            callbacks (dict): dict of data augmentation functions. 
+                Format must be {'train': [], 'valid': [], 'test': []}.
+            kwargs (dict): args passed to prepare_dataloader.
+        """
+        if callbacks is None:
+            callbacks = dict(train=[], valid=[], test=[])
+
+        dataloaders = {}
+        for phase in const.PHASES:
+            dataloaders[phase] = self.prepare_dataloader(phase=phase,
+                                                         callbacks=callbacks[phase],
+                                                         **kwargs)
+
+        return dataloaders
+
+    def prepare_dataloader(self,
+                           data=None,
+                           phase=None,
+                           batch=False,
+                           pin_memory=True,
+                           preload=False,
+                           callbacks=None):
         """Prepare dataloader.
 
         If inputs are given, tensor_dataset() is called. If inputs are None, storegate_dataset with
@@ -217,25 +242,28 @@ class PytorchBaseTask(MLBaseTask):
         Args:
             data (ndarray): data passed to tensor_dataset().
             phase (str): phase passed to storegate_dataset().
+            batch (bool):  If True is given, BatchSampler is enabled.
+            pin_memory (bool): pin_memory for DataLoader.
+            preload (bool): If True, all data are preloaded in the initialization of Dataset
+                class.
+            callbacks (list): list of data augmentation functions.
 
         Returns:
             DataLoader: Pytorch dataloader instance.
         """
-        if data is None:
-            if phase is None:
-                data = self.get_input_true_data(phase)
-                dataset = self.get_tensor_dataset(data)
-            else:
-                dataset = self.get_storegate_dataset(phase)
+        dataset = self.get_dataset(data=data, phase=phase, preload=preload, callbacks=callbacks)
+        dataloader_args = dict(dataset=dataset,
+                               pin_memory=pin_memory,
+                               num_workers=self._num_workers)
+
+        if not batch:
+            shuffle = True if phase in ('train', 'valid') else False
+            return DataLoader(batch_size=self._get_batch_size(phase, len(dataset)),
+                              shuffle=shuffle,
+                              **dataloader_args)
         else:
-            dataset = self.get_tensor_dataset(data)
-
-        shuffle = True if phase in ('train', 'valid') else False
-
-        return DataLoader(dataset,
-                          batch_size=self._get_batch_size(phase, len(dataset)),
-                          num_workers=self._num_workers,
-                          shuffle=shuffle)
+            sampler = self.get_batch_sampler(phase, dataset)
+            return DataLoader(batch_size=None, sampler=sampler, **dataloader_args)
 
     def fit(self, train_data=None, valid_data=None, dataloaders=None, valid_step=1):
         """Train model over epoch.
@@ -463,9 +491,22 @@ class PytorchBaseTask(MLBaseTask):
             loss.backward()
             self.ml.optimizer.step()
 
+    def get_dataset(self, data=None, phase=None, preload=False, callbacks=None):
+        """Returns dataset from given ndarray data."""
+        if data is None:
+            if phase is None:
+                data = self.get_input_true_data(phase)
+                dataset = self.get_tensor_dataset(data)
+            else:
+                dataset = self.get_storegate_dataset(phase, preload=preload, callbacks=callbacks)
+        else:
+            dataset = self.get_tensor_dataset(data, callbacks=callbacks)
+
+        return dataset
+
     @staticmethod
     def get_tensor_dataset(data, callbacks=None):
-        """Returns dataset from given ndarray data."""
+        """Returns tensor dataset from given ndarray data."""
         return NumpyDataset(*data, callbacks=callbacks)
 
     def get_storegate_dataset(self, phase, preload=False, callbacks=None):

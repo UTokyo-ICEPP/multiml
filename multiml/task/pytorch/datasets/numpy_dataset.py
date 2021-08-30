@@ -8,6 +8,7 @@ class NumpyDataset(tdata.Dataset):
         self._inputs = inputs
         self._targets = targets
         self._size = self.get_size(inputs)
+        self._callbacks = callbacks
 
         if self._callbacks is None:
             self._callbacks = []

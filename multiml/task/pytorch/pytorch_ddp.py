@@ -5,6 +5,7 @@ from abc import abstractmethod
 
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from torch.utils.data import DataLoader
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from multiml import logger
@@ -52,6 +53,46 @@ class PytorchDDPTask(PytorchBaseTask):
 
         args_dump_ml['model'] = self.ml.model.module
         super().dump_model(args_dump_ml)
+
+    def prepare_dataloader(self,
+                           rank,
+                           world_size,
+                           data=None,
+                           phase=None,
+                           batch=False,
+                           pin_memory=True,
+                           preload=False,
+                           callbacks=None):
+        """Prepare dataloader.
+        """
+        if not self._ddp:
+            return super().prepare_dataloader(data, phase, batch, pin_memory, preload, callbacks)
+
+        dataset = self.get_dataset(data=data, phase=phase, preload=preload, callbacks=callbacks)
+        dataloader_args = dict(dataset=dataset,
+                               pin_memory=pin_memory,
+                               num_workers=self._num_workers)
+
+        if not batch:
+            shuffle = True if phase in ('train', 'valid') else False
+
+            if phase == 'train':
+                self._sampler = self.get_distributed_sampler(phase, dataset, rank, world_size,
+                                                             batch)
+                return DataLoader(batch_size=self._get_batch_size(phase),
+                                  sampler=self._sampler,
+                                  **dataloader_args)
+            else:
+                return DataLoader(batch_size=self._get_batch_size(phase),
+                                  shuffle=shuffle,
+                                  **dataloader_args)
+        else:
+            if phase == 'train':
+                sampler = self.get_distributed_sampler(phase, dataset, rank, world_size, batch)
+                return DataLoader(sampler=sampler, batch_size=None, **dataloader_args)
+            else:
+                sampler = self.get_batch_sampler(phase, dataset)
+                return DataLoader(sampler=sampler, batch_size=None, **dataloader_args)
 
     def get_distributed_sampler(self, phase, dataset, rank, world_size, batch=False):
         """ Get batch sampler.
@@ -107,6 +148,9 @@ class PytorchDDPTask(PytorchBaseTask):
         dist.init_process_group(self._backend, rank=rank, world_size=world_size)
 
         self._device = rank
+
+        # FIXME
+        os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
 
     def cleanup(self):
         """Cleanup multi processing."""
