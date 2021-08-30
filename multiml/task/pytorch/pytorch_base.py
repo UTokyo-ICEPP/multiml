@@ -148,7 +148,7 @@ class PytorchBaseTask(MLBaseTask):
         if self._scheduler is not None:
             scheduler_args = copy.copy(self._scheduler_args)
             scheduler_args['optimizer'] = self.ml.optimizer
-            self.ml.scheduler = util.compile(self._scheduler, scheduler_args, optim)
+            self.ml.scheduler = util.compile(self._scheduler, scheduler_args, optim.lr_scheduler)
 
     def compile_loss(self):
         """Compile pytorch loss.
@@ -190,9 +190,26 @@ class PytorchBaseTask(MLBaseTask):
             self._device = torch.device(f'cuda:{cuda_id}')
 
     def load_model(self):
-        """Load pre-trained pytorch model weights."""
+        """Load pre-trained pytorch model weights.
+        
+        If model_path is given with ``:`` delimiter, e.g. my_model_path:features, only partial 
+        weights are loaded.
+        """
         model_path = super().load_model()
-        self.ml.model.load_state_dict(torch.load(model_path))
+
+        # partial weights
+        if ':' in model_path:
+            model_path, partial = model_path.split(':')
+            model_dict = self.ml.model.state_dict()
+            state_dict = torch.load(model_path)
+            new_state_dict = {}
+            for key, value in state_dict.items():
+                if partial in key:
+                    new_state_dict[key] = value
+            model_dict.update(new_state_dict)
+            self.ml.model.load_state_dict(model_dict)
+        else:
+            self.ml.model.load_state_dict(torch.load(model_path))
 
     def dump_model(self, extra_args=None):
         """Dump current pytorch model."""

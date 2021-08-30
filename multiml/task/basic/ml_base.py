@@ -227,6 +227,15 @@ class MLBaseTask(BaseTask):
         """
         pass
 
+    def update(self, data, phase='auto'):
+        """Update data in storegate.
+
+        Args:
+            data (ndarray): new data.
+            pahse (str): ``train``, ``valid``, ``test``, ``auto``.
+        """
+        self.storegate.update_data(data=data, var_names=self._output_var_names, phase=phase)
+
     def fit_predict(self, fit_args=None, predict_args=None):
         """Fit and predict model.
 
@@ -253,9 +262,8 @@ class MLBaseTask(BaseTask):
         Args:
             data (ndarray): data passed to ``predict()`` method.
         """
-        self.storegate.update_data(data=self.predict(data=data),
-                                   var_names=self._output_var_names,
-                                   phase='auto')
+        pred = self.predict(data=data)
+        self.update(data=pred)
 
     @property
     def phases(self):

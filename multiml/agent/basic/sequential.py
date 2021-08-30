@@ -1,4 +1,5 @@
 """SequentialAgent module."""
+import copy
 from multiml import logger
 from multiml.agent.basic import BaseAgent
 
@@ -103,7 +104,7 @@ class SequentialAgent(BaseAgent):
             task_id = subtasktuple.task_id
             subtask_id = subtasktuple.subtask_id
             subtask_env = subtasktuple.env
-            subtask_hps = subtasktuple.hps.copy()
+            subtask_hps = copy.deepcopy(subtasktuple.hps)
 
             subtask_env.saver = self._saver
             subtask_env.storegate = self._storegate
@@ -130,7 +131,7 @@ class SequentialAgent(BaseAgent):
                 task_id = subtasktuple.task_id
                 subtask_id = subtasktuple.subtask_id
                 subtask_env = subtasktuple.env
-                subtask_hps = subtasktuple.hps.copy()
+                subtask_hps = copy.deepcopy(subtasktuple.hps)
 
                 subtask_env.saver = self._saver
                 subtask_env.storegate = self._storegate
