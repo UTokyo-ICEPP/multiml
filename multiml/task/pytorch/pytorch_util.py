@@ -70,6 +70,7 @@ class EarlyStopping:
         """Saves model when validation loss decrease."""
 
         from torch import save
+        import copy
         logger.debug(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  ' +
                      'updating model ...')
         if self.save:
@@ -81,7 +82,7 @@ class EarlyStopping:
             save(model.state_dict(), save_path)
         self.val_loss_min = val_loss
 
-        return model.state_dict()
+        return copy.deepcopy(model.state_dict())
 
 
 class ASNG_EarlyStopping(EarlyStopping):
