@@ -282,7 +282,7 @@ class PytorchBaseTask(MLBaseTask):
             sampler = self.get_batch_sampler(phase, dataset)
             return DataLoader(batch_size=None, sampler=sampler, **dataloader_args)
 
-    def fit(self, train_data=None, valid_data=None, dataloaders=None, valid_step=1):
+    def fit(self, train_data=None, valid_data=None, dataloaders=None, valid_step=1, dump=False):
         """Train model over epoch.
 
         This methods train and valid model over epochs by calling ``step_epoch()`` method.
@@ -296,6 +296,7 @@ class PytorchBaseTask(MLBaseTask):
                 to ``TendorDataset`` and set to ``dataloaders['valid']``.
             dataloaders (dict): dict of dataloaders, dict(train=xxx, valid=yyy).
             valid_step (int): step to process validation.
+            dump (bool): If True, results are dumped together with model.
 
         Returns:
             list: history data of train and valid.
@@ -334,6 +335,9 @@ class PytorchBaseTask(MLBaseTask):
 
         if self._early_stopping:
             self.ml.model.load_state_dict(early_stopping.best_model)
+
+        if dump:
+            self.dump_model(dict(result=history))
 
         return history
 

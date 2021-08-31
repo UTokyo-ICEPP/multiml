@@ -509,6 +509,18 @@ class MLBaseTask(BaseTask):
 
         return pred_index
 
+    def do_train(self):
+        """Perform train phase or not."""
+        return const.TRAIN in self.phases
+
+    def do_valid(self):
+        """Perform valid phase or not."""
+        return const.VALID in self.phases
+
+    def do_test(self):
+        """Perform test phase or not."""
+        return const.TEST in self.phases
+
     def show_info(self):
         """Print information."""
         logger.header2(f'{self.name} information', level=logger.debug)

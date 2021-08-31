@@ -18,8 +18,9 @@ class BaseAgent(Agent):
         """Initialize base agent.
 
         Args:
-            saver (Saver): ``Saver`` class instance. If ``saver`` is None, ``Saver`` class instance
-                is created without any args.
+            saver (Saver or str): ``Saver`` class instance. If ``saver`` is None, ``Saver`` class
+                instance is created without any args. If If ``saver`` is str, `Saver`` class
+                instance is created with given ``save_dir``.
             storegate (Storegate): ``Storegate`` class instance.
             task_scheduler (TaskScheduler or list): ``TaskScheduler`` class instance. If *ordered
                 tasks* (list) are given, ``TaskScheduler`` is initialized with *ordered tasks*.
@@ -34,6 +35,8 @@ class BaseAgent(Agent):
 
         if saver is None:
             saver = Saver()
+        elif isinstance(saver, str):
+            saver = Saver(save_dir=saver)
 
         if isinstance(metric, str):
             if not metric.endswith('Metric'):

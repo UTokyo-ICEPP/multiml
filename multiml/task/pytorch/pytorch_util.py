@@ -2,7 +2,6 @@ import inspect
 import copy
 
 import torch
-import torch.distributed as dist
 
 from multiml import logger
 
@@ -29,14 +28,6 @@ def inputs_size(inputs):
     else:
         result = inputs[0].size(0)
     return result
-
-
-def is_master_process(rank=0):
-    if not dist.is_initialized():
-        return True
-    if rank == dist.get_rank():
-        return True
-    return False
 
 
 class EarlyStopping:
