@@ -631,7 +631,7 @@ class StoreGate:
             self.update_data(var_names=var_name, data=tmp_data, phase=phase)
 
     def shuffle(self, phase='all', seed=0):
-        """Shulle data in given phase.
+        """Shuffle data in given phase.
 
         Args:
             phase (str): *all*, *train*, *valid*, *test*.

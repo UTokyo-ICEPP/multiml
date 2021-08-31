@@ -232,7 +232,7 @@ class MLBaseTask(BaseTask):
 
         Args:
             data (ndarray): new data.
-            pahse (str): ``train``, ``valid``, ``test``, ``auto``.
+            phase (str): ``train``, ``valid``, ``test``, ``auto``.
         """
         self.storegate.update_data(data=data, var_names=self._output_var_names, phase=phase)
 

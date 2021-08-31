@@ -385,10 +385,11 @@ class PytorchBaseTask(MLBaseTask):
         num_batches = len(dataloader)
         pbar_args = dict(total=num_batches, disable=self._disable_tqdm())
         pbar_args.update(self._pbar_args)
+        pbar_desc = self._get_pbar_description(epoch, phase)
 
         results = {}
         with tqdm(**pbar_args) as pbar:
-            pbar.set_description(self._get_pbar_description(epoch, phase))
+            pbar.set_description(pbar_desc)
 
             for ii, data in enumerate(dataloader):
                 batch_result = self.step_batch(data, phase, label)

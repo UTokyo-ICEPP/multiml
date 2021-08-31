@@ -77,7 +77,6 @@ class EarlyStopping:
 
     def save_checkpoint(self, val_loss, model):
         """Saves model when validation loss decrease."""
-        from copy import deepcopy
 
         from torch import save
         logger.debug(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  ' +

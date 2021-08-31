@@ -3,6 +3,7 @@
 import os
 from abc import abstractmethod
 
+import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
@@ -124,7 +125,7 @@ class PytorchDDPTask(PytorchBaseTask):
         mp.spawn(self.execute_mp, args=(world_size, ), nprocs=world_size, join=True)
 
     @abstractmethod
-    def execute_mp(self, rank, world_size):
+    def execute_mp(self, rank=None, world_size=None):
         """User defined algorithms.
 
         Examples:
