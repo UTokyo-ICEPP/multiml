@@ -159,11 +159,3 @@ class PytorchDDPTask(PytorchBaseTask):
             return
 
         dist.destroy_process_group()
-
-    def is_master_process(rank=0):
-        """Check if master process or not.."""
-        if not dist.is_initialized():
-            return True
-        if rank == dist.get_rank():
-            return True
-        return False
