@@ -84,6 +84,11 @@ class PytorchBaseTask(MLBaseTask):
         if self._max_patience is not None:
             self._early_stopping = True
 
+    def compile(self):
+        """Compile pytorch ml objects."""
+        self.compile_device()
+        super().compile()
+
     def compile_model(self):
         """Compile pytorch model.
 

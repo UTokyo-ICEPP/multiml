@@ -35,7 +35,8 @@ class PytorchDDPTask(PytorchBaseTask):
     def compile_device(self):
         """ Compile device.
         """
-        pass
+        if not self._ddp:
+            super().compile_device()
 
     def dump_model(self, extra_args=None):
         """ Dump current pytorch model.
