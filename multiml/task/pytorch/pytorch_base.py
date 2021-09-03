@@ -570,7 +570,8 @@ class PytorchBaseTask(MLBaseTask):
         if isinstance(data, list):
             return [self.add_device(idata, device) for idata in data]
 
-        raise ValueError(f'data type {type(data)} is not supported. cannot add to device')
+        logger.debug(f'Unexpected data type: {type(data) is added to device.')
+        return data.to(device)
 
     ##########################################################################
     # Internal methods
