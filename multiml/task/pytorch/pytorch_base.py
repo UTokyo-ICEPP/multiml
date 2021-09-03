@@ -570,7 +570,7 @@ class PytorchBaseTask(MLBaseTask):
         if isinstance(data, list):
             return [self.add_device(idata, device) for idata in data]
 
-        logger.debug(f'Unexpected data type: {type(data) is added to device.')
+        logger.debug(f'Unexpected data type: {type(data)} is added to device.')
         return data.to(device)
 
     ##########################################################################
