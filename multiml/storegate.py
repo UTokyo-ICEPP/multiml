@@ -670,7 +670,7 @@ class StoreGate:
             self._db.mode = mode
             self.compile()
 
-    def to_memory(self, var_names, phase='train', callback=None):
+    def to_memory(self, var_names, phase='train', output_var_names=None, callback=None):
         """Move data from storage to memory.
 
         This method is valid for only hybrid backend. This should be effective
@@ -679,6 +679,7 @@ class StoreGate:
         Args:
             var_names (str or list): see ``add_data()`` method.
             phase (str): *all*, *train*, *valid*, *test*.
+            output_var_names (str or list): new var_names in numpy mode.
             callback (obj): callback function, which receives ``var_names`` and ``data`` and
                 returns new ``var_names`` and ``data``.
         """
@@ -697,6 +698,10 @@ class StoreGate:
             self.compile()
 
             tmp_var_names = var_names
+
+            if output_var_names is not None:
+                tmp_var_names = output_var_names
+
             tmp_data = self.get_data(var_names, phase=iphase, index=-1)
 
             if callback is not None:
@@ -707,7 +712,7 @@ class StoreGate:
 
         self.set_mode(mode)
 
-    def to_storage(self, var_names, phase='train', callback=None):
+    def to_storage(self, var_names, phase='train', output_var_names=None, callback=None):
         """Move data from storage to memory.
 
         This method is valid for only hybrid backend. This is useful if data are large, then data
@@ -716,6 +721,7 @@ class StoreGate:
         Args:
             var_names (str or list): see ``add_data()`` method.
             phase (str): *all*, *train*, *valid*, *test*.
+            output_var_names (str or list): new var_names in zarr mode.
             callback (obj): callback function, which receives ``var_names`` and ``data`` and
                 returns new ``var_names`` and ``data``.
         """
@@ -734,6 +740,10 @@ class StoreGate:
             self.compile()
 
             tmp_var_names = var_names
+
+            if output_var_names is not None:
+                tmp_var_names = output_var_names
+
             tmp_data = self.get_data(var_names, phase=iphase, index=-1)
 
             if callback is not None:

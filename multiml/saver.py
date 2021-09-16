@@ -219,7 +219,7 @@ class Saver:
 
         return shelve_keys + dict_keys
 
-    def add(self, key, obj, mode=None, check=True):
+    def add(self, key, obj, mode=None, check=False):
         """Add object to given backend by key.
 
         If given ``key`` already exists in the given backend, object is overwritten. If the ``key``
