@@ -1,7 +1,7 @@
 import glob
 import numpy as np
 
-from multiml import logger
+from multiml import StoreGate, logger
 
 
 def load_iris(storegate,
@@ -42,7 +42,10 @@ def load_boston(storegate, target_var_name='true', phase='train', shuffle=True):
     storegate.compile()
 
 
-def load_numpy(storegate, file_path, var_names=None, phase='train', dtype=None, shuffle=True):
+def load_numpy(storegate, file_path, var_names=None, phase='train', dtype=None, shuffle=False):
+    if isinstance(storegate, dict):
+        storegate = StoreGate(**storegate)
+
     input_files = glob.glob(file_path)
 
     for input_file in input_files:
@@ -67,3 +70,5 @@ def load_numpy(storegate, file_path, var_names=None, phase='train', dtype=None, 
     if shuffle:
         storegate.compile()
         storegate.shuffle()
+
+    storegate.show_info()

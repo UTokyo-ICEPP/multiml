@@ -1,6 +1,6 @@
 """BaseAgent module."""
 
-from multiml import Saver, TaskScheduler, logger
+from multiml import StoreGate, Saver, TaskScheduler, logger
 from multiml.agent import Agent
 
 
@@ -21,7 +21,8 @@ class BaseAgent(Agent):
             saver (Saver or str): ``Saver`` class instance. If ``saver`` is None, ``Saver`` class
                 instance is created without any args. If If ``saver`` is str, `Saver`` class
                 instance is created with given ``save_dir``.
-            storegate (Storegate): ``Storegate`` class instance.
+            storegate (StoreGate or dict): ``StoreGate`` class instance. If dict is given,
+                ``StoreGate`` class instance is created with given dict args.
             task_scheduler (TaskScheduler or list): ``TaskScheduler`` class instance. If *ordered
                 tasks* (list) are given, ``TaskScheduler`` is initialized with *ordered tasks*.
                 Please see ``TaskScheduler`` class for details.
@@ -37,6 +38,9 @@ class BaseAgent(Agent):
             saver = Saver()
         elif isinstance(saver, str):
             saver = Saver(save_dir=saver)
+
+        if isinstance(storegate, dict):
+            storegate = StoreGate(**storegate)
 
         if isinstance(metric, str):
             if not metric.endswith('Metric'):

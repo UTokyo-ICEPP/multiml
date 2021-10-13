@@ -16,13 +16,20 @@ from multiml.task.pytorch import pytorch_util as util
 
 class PytorchDDPTask(PytorchBaseTask):
     """Distributed data parallel (DDP) task for PyTorch model."""
-    def __init__(self, ddp=True, addr='localhost', port='12355', backend='nccl', **kwargs):
+    def __init__(self,
+                 ddp=True,
+                 addr='localhost',
+                 port='12355',
+                 backend='nccl',
+                 find_unused_parameters=False,
+                 **kwargs):
         """Initialize the pytorch DDP task."""
         super().__init__(**kwargs)
         self._ddp = ddp
         self._addr = addr
         self._port = port
         self._backend = backend
+        self._find_unused_parameters = find_unused_parameters
         self._data_parallel = False
 
     def compile_model(self, rank=None, world_size=None):
@@ -30,7 +37,9 @@ class PytorchDDPTask(PytorchBaseTask):
         """
         super().compile_model()
         if self._ddp and dist.is_initialized():
-            self.ml.model = DDP(self.ml.model, device_ids=[self._device])
+            self.ml.model = DDP(self.ml.model,
+                                device_ids=[self._device],
+                                find_unused_parameters=self._find_unused_parameters)
 
     def compile_device(self):
         """ Compile device.
@@ -108,6 +117,16 @@ class PytorchDDPTask(PytorchBaseTask):
                                                                       num_replicas=world_size,
                                                                       rank=rank)
         return sampler
+
+    def fix_submodule(self, target):
+        """ Fix given parameters of model.
+        """
+        if self._ddp:
+            for param in self.ml.model.get_submodule('module.' + target).parameters():
+                param.requires_grad = False
+        else:
+            for param in self.ml.model.get_submodule(target).parameters():
+                param.requires_grad = False
 
     @logger.logging
     def execute(self):

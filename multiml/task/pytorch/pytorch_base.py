@@ -573,6 +573,11 @@ class PytorchBaseTask(MLBaseTask):
         logger.debug(f'Unexpected data type: {type(data)} is added to device.')
         return data.to(device)
 
+    def fix_submodule(self, target):
+        """ Fix given parameters of model."""
+        for param in self.ml.model.get_submodule(target).parameters():
+            param.requires_grad = False
+
     ##########################################################################
     # Internal methods
     ##########################################################################
