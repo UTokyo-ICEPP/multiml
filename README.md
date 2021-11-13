@@ -43,3 +43,6 @@ See the example directory. The following example is to run two-step machine lear
 ```bash
 $ python run_iris_classification.py
 ```
+
+## Application
+  * [Event Classification with Multi-step Machine Learning](https://www.epj-conferences.org/articles/epjconf/abs/2021/05/epjconf_chep2021_03036/epjconf_chep2021_03036.html)([arxiv](https://arxiv.org/abs/2106.02301))
