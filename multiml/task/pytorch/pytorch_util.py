@@ -24,12 +24,15 @@ def compile(obj, obj_args, modules):
 
 
 def inputs_size(inputs):
+    if isinstance(inputs, (list, tuple)):
+        inputs = inputs[0]
+
     if isinstance(inputs, torch.Tensor):
         result = inputs.size(0)
     elif getattr(inputs, 'batch_size', False):
         result = inputs.batch_size
     else:
-        result = inputs[0].size(0)
+        result = len(inputs)
     return result
 
 
