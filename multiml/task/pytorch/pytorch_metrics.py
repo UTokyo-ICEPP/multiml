@@ -8,105 +8,82 @@ def dummy(*args, **kwargs):
     return None
 
 
-class BatchMetric:
-    """Utility class to manage batch metrics."""
-    def __init__(self, metrics, enable=True):
-        self.metrics = metrics
-        self.enable = enable
-
-    def __call__(self, outputs, labels, loss):
-        result = {}
-
-        if not self.enable:
-            return result
-
-        for metric in self.metrics:
-            metric_fn = getattr(self, metric, dummy)
-            result[metric] = metric_fn(outputs, labels, loss)
-
-        return result
-
-    @staticmethod
-    def loss(outputs, labels, loss):
-        return loss['loss'].detach()
-
-    @staticmethod
-    def subloss(outputs, labels, loss):
-        return [loss.detach() for loss in loss['subloss']]
-
-    @staticmethod
-    def acc(outputs, labels, loss):
-        if isinstance(outputs, list):
-            result = []
-            for output, label in zip(outputs, labels):
-                _, preds = torch.max(output, 1)
-                corrects = torch.sum(preds == label.data)
-                result.append(corrects.detach())
-        else:
-            _, preds = torch.max(outputs, 1)
-            corrects = torch.sum(preds == labels.data)
-            result = corrects.detach()
-        return result
-
-
 class EpochMetric:
     """Utility class to manage epoch metrics."""
-    def __init__(self, metrics, enable, true_var_names, ml):
+    def __init__(self, metrics, enable, ml):
         self.metrics = metrics
         self.enable = enable
         self.ml = ml
         self.total = 0
+        self.buffs = []
         self.preds = []
-        self.epoch_loss = 0.0
-        self.epoch_corrects = 0.0
-
-        if isinstance(true_var_names, list):
-            num_subtasks = len(true_var_names)
-            self.epoch_subloss = [0.0] * num_subtasks
-            self.epoch_corrects = [0] * num_subtasks
 
     def __call__(self, batch_result):
         result = {}
         if not self.enable:
             return result
 
-        self.total += batch_result['batch_size']
+        batch_size = batch_result['batch_size']
+        self.total += batch_size
 
-        for metric in self.metrics:
-            metric_fn = getattr(self, metric, dummy)
-            result[metric] = metric_fn(batch_result)
+        for ii, metric in enumerate(self.metrics):
+            if isinstance(metric, str):
+                metric_fn = getattr(self, metric, dummy)
+            else:
+                metric_fn = metric
+                metric = metric_fn.__name__
+
+            metric_result = metric_fn(batch_result)
+
+            if self.total == batch_size:  # first batch
+                if isinstance(metric_result, list):
+                    self.buffs.append([jmetric * batch_size for jmetric in metric_result])
+                else:
+                    self.buffs.append(metric_result * batch_size)
+                result[metric] = metric_result
+
+            else:
+                if isinstance(metric_result, list):
+                    for jj, jmetric in enumerate(metric_result):
+                        self.buffs[ii][jj] += jmetric * batch_size
+                    result[metric] = [jmetric / self.total for jmetric in self.buffs[ii]]
+
+                else:
+                    self.buffs[ii] += metric_result * batch_size
+                    result[metric] = self.buffs[ii] / self.total
 
         return result
 
+    # metrics
     def loss(self, batch_result):
-        self.epoch_loss += batch_result['loss'] * batch_result['batch_size']
-        running_loss = self.epoch_loss / self.total
-        return running_loss
+        return batch_result['loss']['loss'].detach().item()
 
     def subloss(self, batch_result):
         result = []
         for index, subloss in enumerate(batch_result['subloss']):
-            self.epoch_subloss[index] += subloss * batch_result['batch_size']
-            running_subloss = self.epoch_subloss[index] / self.total
-            result.append(running_subloss)
+            result.append(batch_result['loss']['subloss'].detach().item())
         return result
 
     def acc(self, batch_result):
-        if isinstance(batch_result['acc'], list):
-            results = []
-            for index, acc in enumerate(batch_result['acc']):
-                self.epoch_corrects[index] += acc
-                accuracy = self.epoch_corrects[index] / self.total
-                results.append(accuracy)
-            return results
+        outputs = batch_result['outputs']
+        labels = batch_result['labels']
 
+        if isinstance(outputs, list):
+            result = []
+            for output, label in zip(outputs, labels):
+                _, preds = torch.max(output, 1)
+                corrects = torch.sum(preds == label.data)
+                result.append(corrects.detach().item())
         else:
-            self.epoch_corrects += batch_result['acc']
-            accuracy = self.epoch_corrects / self.total
-            return accuracy
+            _, preds = torch.max(outputs, 1)
+            corrects = torch.sum(preds == labels.data)
+            result = corrects.detach().item()
+        return result / len(labels)
 
     def lr(self, batch_result):
         return [p['lr'] for p in self.ml.optimizer.param_groups]
+
+    # ---
 
     def pred(self, batch_result):
         outputs = batch_result['pred']
@@ -129,22 +106,6 @@ class EpochMetric:
             results = np.concatenate(self.preds, 0)
 
         return results
-
-
-def sync_gpu_data(results):
-    if 'loss' in results:
-        results['loss'] = results['loss'].item()
-
-    if 'subloss' in results:
-        results['subloss'] = [loss.item() for loss in results['subloss']]
-
-    if 'acc' in results:
-        if isinstance(results['acc'], list):
-            results['acc'] = [acc.item() for acc in results['acc']]
-        else:
-            results['acc'] = results['acc'].item()
-
-    return results
 
 
 def get_pbar_metric(epoch_result):

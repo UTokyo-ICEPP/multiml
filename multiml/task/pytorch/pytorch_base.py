@@ -390,7 +390,7 @@ class PytorchBaseTask(MLBaseTask):
         Returns:
             dict: dict of result.
         """
-        epoch_metric = metrics.EpochMetric(self._metrics, label, self.true_var_names, self.ml)
+        epoch_metric = metrics.EpochMetric(self._metrics, label, self.ml)
         num_batches = len(dataloader)
         pbar_args = dict(total=num_batches, disable=self._disable_tqdm())
         pbar_args.update(self._pbar_args)
@@ -408,7 +408,6 @@ class PytorchBaseTask(MLBaseTask):
                     epoch_metric.pred(batch_result)
 
                 if (ii % self._running_step == 0) or (ii == num_batches - 1):
-                    results = metrics.sync_gpu_data(results)
                     pbar_metrics = metrics.get_pbar_metric(results)
                     pbar.set_postfix(pbar_metrics)
                 pbar.update(1)
@@ -457,8 +456,7 @@ class PytorchBaseTask(MLBaseTask):
             elif phase == 'test':
                 result['pred'] = outputs_all
 
-            batch_metric = metrics.BatchMetric(self._metrics, label)
-            result.update(batch_metric(outputs, labels, loss_result))
+            result.update(dict(outputs=outputs, labels=labels, loss=loss_result))
 
         return result
 
