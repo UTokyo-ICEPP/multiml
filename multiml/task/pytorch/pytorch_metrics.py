@@ -73,12 +73,12 @@ class EpochMetric:
             for output, label in zip(outputs, labels):
                 _, preds = torch.max(output, 1)
                 corrects = torch.sum(preds == label.data)
-                result.append(corrects.detach().item())
+                result.append(corrects.detach().item() / len(labels))
         else:
             _, preds = torch.max(outputs, 1)
             corrects = torch.sum(preds == labels.data)
-            result = corrects.detach().item()
-        return result / len(labels)
+            result = corrects.detach().item() / len(labels)
+        return result
 
     def lr(self, batch_result):
         return [p['lr'] for p in self.ml.optimizer.param_groups]

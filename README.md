@@ -10,7 +10,7 @@ multiml is a prototype framework for developing multi-step machine learnings. Th
 ## Installation
 Requiremnets:
   * CentOS 7.6+
-  * Python 3.6+
+  * Python 3.7+
  
 ### minimum setup
 ```bash
