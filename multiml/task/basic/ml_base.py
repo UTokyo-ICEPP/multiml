@@ -208,7 +208,7 @@ class MLBaseTask(BaseTask):
             self.dump_model(dict(result=result))
 
         if const.TEST in self.phases:
-            self.predict_update()
+            self.predict_update(phase='test')
 
     def fit(self, train_data=None, valid_data=None):
         """Fit model.
@@ -219,7 +219,7 @@ class MLBaseTask(BaseTask):
         """
         pass
 
-    def predict(self, data=None):
+    def predict(self, data=None, phase=None):
         """Predict model.
 
         Args:
@@ -256,14 +256,14 @@ class MLBaseTask(BaseTask):
 
         return self.predict(**predict_args)
 
-    def predict_update(self, data=None):
+    def predict_update(self, data=None, phase=None):
         """Predict and update data in StoreGate.
 
         Args:
             data (ndarray): data passed to ``predict()`` method.
         """
-        pred = self.predict(data=data)
-        self.update(data=pred)
+        pred = self.predict(data=data, phase=phase)
+        self.update(data=pred, phase=phase)
 
     @property
     def phases(self):
