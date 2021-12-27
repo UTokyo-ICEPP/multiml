@@ -70,40 +70,43 @@ class PytorchDDPTask(PytorchBaseTask):
                            world_size,
                            data=None,
                            phase=None,
-                           batch=False,
-                           pin_memory=True,
-                           preload=False,
-                           callbacks=None):
+                           dataset_args=None,
+                           dataloader_args=None):
         """Prepare dataloader.
         """
         if not self._ddp:
-            return super().prepare_dataloader(data, phase, batch, pin_memory, preload, callbacks)
+            return super().prepare_dataloader(data, phase, dataset_args, dataloader_args)
 
-        dataset = self.get_dataset(data=data, phase=phase, preload=preload, callbacks=callbacks)
-        dataloader_args = dict(dataset=dataset,
-                               pin_memory=pin_memory,
-                               num_workers=self._num_workers)
+        dataset_args_tmp = dict(preload=False, callbacks=[])
+        dataset_args_tmp.update(dataset_args)
+        dataset = self.get_dataset(data=data, phase=phase, **dataset_args_tmp)
 
-        if not batch:
+        dataloader_args_tmp = dict(dataset=dataset, pin_memory=True, num_workers=self._num_workers)
+        dataloader_args_tmp.update(dataloader_args)
+
+        dataset = self.get_dataset(data=data, phase=phase, **dataset_args_tmp)
+
+        if not self._batch_sampler:
             shuffle = True if phase in ('train', 'valid') else False
 
             if phase == 'train':
                 self._sampler = self.get_distributed_sampler(phase, dataset, rank, world_size,
-                                                             batch)
+                                                             self._batch_sampler)
                 return DataLoader(batch_size=self._get_batch_size(phase),
                                   sampler=self._sampler,
-                                  **dataloader_args)
+                                  **dataloader_args_tmp)
             else:
                 return DataLoader(batch_size=self._get_batch_size(phase),
                                   shuffle=shuffle,
-                                  **dataloader_args)
+                                  **dataloader_args_tmp)
         else:
             if phase == 'train':
-                sampler = self.get_distributed_sampler(phase, dataset, rank, world_size, batch)
-                return DataLoader(sampler=sampler, batch_size=None, **dataloader_args)
+                sampler = self.get_distributed_sampler(phase, dataset, rank, world_size,
+                                                       self._batch_sampler)
+                return DataLoader(sampler=sampler, batch_size=None, **dataloader_args_tmp)
             else:
                 sampler = self.get_batch_sampler(phase, dataset)
-                return DataLoader(sampler=sampler, batch_size=None, **dataloader_args)
+                return DataLoader(sampler=sampler, batch_size=None, **dataloader_args_tmp)
 
     def get_distributed_sampler(self, phase, dataset, rank, world_size, batch=False):
         """ Get batch sampler.

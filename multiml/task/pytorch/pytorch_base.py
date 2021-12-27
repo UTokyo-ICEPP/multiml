@@ -45,7 +45,15 @@ class PytorchBaseTask(MLBaseTask):
         >>> task.execute()
         >>> task.finalize()
     """
-    def __init__(self, device='cpu', gpu_ids=None, torchinfo=False, amp=False, **kwargs):
+    def __init__(self,
+                 device='cpu',
+                 gpu_ids=None,
+                 torchinfo=False,
+                 amp=False,
+                 dataset_args=None,
+                 dataloader_args=None,
+                 batch_sampler=False,
+                 **kwargs):
         """Initialize the pytorch base task.
 
         Args:
@@ -54,6 +62,9 @@ class PytorchBaseTask(MLBaseTask):
                 ``gpu_ids`` is given.
             torchinfo (bool): show torchinfo summary after model compile.
             amp (bool): *(expert option)* enable amp mode.
+            dataset_args (dict): args passed to default DataSet creation.
+            dataloader_args (dict): args passed to default DataLoader creation.
+            batch_sampler (bool): user batch_sampler or not.
         """
         super().__init__(**kwargs)
 
@@ -70,6 +81,9 @@ class PytorchBaseTask(MLBaseTask):
         self._gpu_ids = gpu_ids
         self._torchinfo = torchinfo
         self._amp = amp
+        self._dataset_args = dataset_args
+        self._dataloader_args = dataloader_args
+        self._batch_sampler = batch_sampler
 
         self._pbar_args = const.PBAR_ARGS
         self._running_step = 1
@@ -83,6 +97,20 @@ class PytorchBaseTask(MLBaseTask):
 
         if self._max_patience is not None:
             self._early_stopping = True
+
+        if isinstance(self._dataset_args, dict) and ('train' not in self._dataset_args):
+            self._dataset_args = dict(train=dataset_args, valid=dataset_args, test=dataset_args)
+
+        if self._dataset_args is None:
+            self._dataset_args = dict(train={}, valid={}, test={})
+
+        if isinstance(self._dataloader_args, dict) and ('train' not in self._dataloader_args):
+            self._dataloader_args = dict(train=dataloader_args,
+                                         valid=dataloader_args,
+                                         test=dataloader_args)
+
+        if self._dataloader_args is None:
+            self._dataloader_args = dict(train={}, valid={}, test={})
 
     def compile(self):
         """Compile pytorch ml objects."""
@@ -230,32 +258,36 @@ class PytorchBaseTask(MLBaseTask):
 
         super().dump_model(args_dump_ml)
 
-    def prepare_dataloaders(self, callbacks=None, **kwargs):
+    def prepare_dataloaders(self, phases=None, dataset_args=None, dataloader_args=None, **kwargs):
         """Prepare dataloaders for all phases.
 
         Args:
-            callbacks (dict): dict of data augmentation functions. 
-                Format must be {'train': [], 'valid': [], 'test': []}.
-            kwargs (dict): args passed to prepare_dataloader.
+            dataset_args (dict): args passed to get_dataset. Dict format must be
+                {'train': {...}, 'valid': {...}, 'test': {...}}.
+            dataloader_args (dict): args passed to prepare_dataloader. Dict format must be
+                {'train': {...}, 'valid': {...}, 'test': {...}}.
+            kwargs (dict): arbitrary args.
         """
-        if callbacks is None:
-            callbacks = dict(train=[], valid=[], test=[])
+        if dataset_args is None:
+            dataset_args = self._dataset_args
+
+        if dataloader_args is None:
+            dataloader_args = self._dataloader_args
 
         dataloaders = {}
-        for phase in const.PHASES:
+
+        if phases is None:
+            phases = const.PHASES
+
+        for phase in phases:
             dataloaders[phase] = self.prepare_dataloader(phase=phase,
-                                                         callbacks=callbacks[phase],
+                                                         dataset_args=dataset_args[phase],
+                                                         dataloader_args=dataloader_args[phase],
                                                          **kwargs)
 
         return dataloaders
 
-    def prepare_dataloader(self,
-                           data=None,
-                           phase=None,
-                           batch=False,
-                           pin_memory=True,
-                           preload=False,
-                           callbacks=None):
+    def prepare_dataloader(self, data=None, phase=None, dataset_args=None, dataloader_args=None):
         """Prepare dataloader.
 
         If inputs are given, tensor_dataset() is called. If inputs are None, storegate_dataset with
@@ -264,28 +296,31 @@ class PytorchBaseTask(MLBaseTask):
         Args:
             data (ndarray): data passed to tensor_dataset().
             phase (str): phase passed to storegate_dataset().
-            batch (bool):  If True is given, BatchSampler is enabled.
-            pin_memory (bool): pin_memory for DataLoader.
-            preload (bool): If True, all data are preloaded in the initialization of Dataset
-                class.
-            callbacks (list): list of data augmentation functions.
+            dataset_args(dict):
+                preload (bool): If True, all data are preloaded in the initialization of Dataset class.
+                callbacks (list): list of data augmentation functions.
+            dataloader_args(dict):
+                pin_memory (bool): pin_memory for DataLoader.
+                batch (bool): batch sampler or not..
 
         Returns:
             DataLoader: Pytorch dataloader instance.
         """
-        dataset = self.get_dataset(data=data, phase=phase, preload=preload, callbacks=callbacks)
-        dataloader_args = dict(dataset=dataset,
-                               pin_memory=pin_memory,
-                               num_workers=self._num_workers)
+        dataset_args_tmp = dict(preload=False, callbacks=[])
+        dataset_args_tmp.update(dataset_args)
+        dataset = self.get_dataset(data=data, phase=phase, **dataset_args_tmp)
 
-        if not batch:
+        dataloader_args_tmp = dict(dataset=dataset, pin_memory=True, num_workers=self._num_workers)
+        dataloader_args_tmp.update(dataloader_args)
+
+        if not self._batch_sampler:
             shuffle = True if phase in ('train', 'valid') else False
             return DataLoader(batch_size=self._get_batch_size(phase, len(dataset)),
                               shuffle=shuffle,
-                              **dataloader_args)
+                              **dataloader_args_tmp)
         else:
             sampler = self.get_batch_sampler(phase, dataset)
-            return DataLoader(batch_size=None, sampler=sampler, **dataloader_args)
+            return DataLoader(batch_size=None, sampler=sampler, **dataloader_args_tmp)
 
     def fit(self, train_data=None, valid_data=None, dataloaders=None, valid_step=1, dump=False):
         """Train model over epoch.
@@ -309,8 +344,12 @@ class PytorchBaseTask(MLBaseTask):
         self.ml.validate('train')
 
         if dataloaders is None:
-            dataloaders = dict(train=self.prepare_dataloader(train_data, 'train'),
-                               valid=self.prepare_dataloader(valid_data, 'valid'))
+            dataloaders = dict(train=self.prepare_dataloader(train_data, 'train',
+                                                             self._dataset_args['train'],
+                                                             self._dataloader_args['train']),
+                               valid=self.prepare_dataloader(valid_data, 'valid',
+                                                             self._dataset_args['valid'],
+                                                             self._dataloader_args['valid']))
 
         early_stopping = util.EarlyStopping(patience=self._max_patience)
         self._scaler = torch.cuda.amp.GradScaler(enabled=self._is_gpu)
@@ -366,7 +405,11 @@ class PytorchBaseTask(MLBaseTask):
         self.ml.model.eval()
 
         if dataloader is None:
-            dataloader = self.prepare_dataloader(data, phase)
+            if (phase in self._dataset_args) and (phase in self._dataloader_args):
+                dataloader = self.prepare_dataloader(data, phase, self._dataset_args[phase],
+                                                     self._dataloader_args[phase])
+            else:
+                dataloader = self.prepare_dataloader(data, phase, dict(), dict())
 
         results = self.step_epoch(0, 'test', dataloader, label)
 
