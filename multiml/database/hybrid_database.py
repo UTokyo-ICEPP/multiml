@@ -58,6 +58,12 @@ class HybridDatabase(Database):
 
         self._db[self._mode].delete_data(data_id, var_name, phase)
 
+    def create_empty(self, data_id, var_name, phase, shape, dtype, mode=None):
+        if mode is None:
+            mode = self._mode
+
+        self._db[mode].create_empty(data_id, var_name, phase, shape, dtype)
+
     def get_metadata(self, data_id, phase, mode=None):
         if mode is None:
             return self._db[self._mode].get_metadata(data_id, phase)

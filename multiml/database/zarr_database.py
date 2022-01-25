@@ -61,6 +61,11 @@ class ZarrDatabase(Database):
         if var_name in self._db[data_id][phase].array_keys():
             del self._db[data_id][phase][var_name]
 
+    def create_empty(self, data_id, var_name, phase, shape, dtype):
+        db = self._db[data_id][phase]
+        chunks = (self._chunk, ) + (None, ) * (len(shape) - 1)
+        db.empty(var_name, shape=shape, chunks=chunks, dtype=dtype)
+
     def get_metadata(self, data_id, phase, mode=None):
         results = {}
         if data_id not in list(self._db.group_keys()):

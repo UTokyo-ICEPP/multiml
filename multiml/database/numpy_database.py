@@ -51,6 +51,16 @@ class NumpyDatabase(Database):
             del self._db[data_id][phase][var_name]
             del self._metadata[data_id][phase][var_name]
 
+    def create_empty(self, data_id, var_name, phase, shape, dtype):
+        empty = np.empty(shape, dtype=dtype)
+        self._db[data_id][phase][var_name] = empty
+        self._metadata[data_id][phase][var_name] = {
+            'backend': 'numpy',
+            'type': type(empty[0]).__name__,
+            'shape': empty.shape[1:],
+            'total_events': len(empty)
+        }
+
     def get_metadata(self, data_id, phase, mode=None):
         if data_id not in self._metadata.keys():
             return {}

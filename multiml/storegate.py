@@ -493,6 +493,32 @@ class StoreGate:
             var_names = self.get_var_names(phase)
             self.delete_data(var_names, phase)
 
+    def create_empty(self, var_names, shape, phase='train', dtype='f4'):
+        """Create empty data in the current data_id and backend.
+
+        Args:
+            var_names (str or list): see ``add_data()`` method.
+            shape (int or tuple): shape of empty data.
+            phase (str): see ``update_data()`` method.
+            dtype (str): dtype of empty data. Default float32.
+        """
+        self._check_valid_data_id()
+
+        if isinstance(var_names, str):
+            var_names = [var_names]
+
+        if phase == 'all':
+            phases = const.PHASES
+        else:
+            phases = [phase]
+
+        for iphase in phases:
+            for var_name in var_names:
+                if var_name in self.get_var_names(iphase):
+                    raise ValueError(f'create_empty: {var_name} arleady exists in {phase}.')
+
+                self._db.create_empty(self._data_id, var_name, iphase, shape, dtype)
+
     def get_data_ids(self):
         """Returns registered data_ids in the backend.
 
