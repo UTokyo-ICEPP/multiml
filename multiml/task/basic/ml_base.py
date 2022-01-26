@@ -9,6 +9,7 @@ class MLBaseTask(BaseTask):
                  phases=None,
                  input_var_names=None,
                  output_var_names=None,
+                 save_var_names=None,
                  pred_var_names=None,
                  true_var_names=None,
                  var_names=None,
@@ -50,6 +51,7 @@ class MLBaseTask(BaseTask):
                 ['train', 'valid', 'test'] is set.
             input_var_names (str or list or tuple): input variable names in StoreGate.
             output_var_names (str or list or tuple): output variable names of model.
+            save_var_names (str or list): variable names saved to ``StoreGate``..
             pred_var_names (str or list): prediction variable names passed to loss.
             true_var_names (str or list or tuple): true variable names.
             var_names (str): str of "input output true" variable names for shortcut. This is not
@@ -104,6 +106,7 @@ class MLBaseTask(BaseTask):
         self._phases = phases
         self._input_var_names = input_var_names
         self._output_var_names = output_var_names
+        self._save_var_names = save_var_names
         self._pred_var_names = pred_var_names
         self._true_var_names = true_var_names
         self._var_names = var_names
@@ -235,7 +238,24 @@ class MLBaseTask(BaseTask):
             data (ndarray): new data.
             phase (str): ``train``, ``valid``, ``test``, ``auto``.
         """
-        self.storegate.update_data(data=data, var_names=self._output_var_names, phase=phase)
+        output_var_names = self.output_var_names
+        save_var_names = self.save_var_names
+
+        if save_var_names is None:
+            self.storegate.update_data(data=data, var_names=output_var_names, phase=phase)
+
+        else:
+            if isinstance(save_var_names, str):
+                save_var_names = [save_var_names]
+
+            if isinstance(output_var_names, (tuple, str)):
+                output_var_names, data = self.storegate._view_to_list(output_var_names, data)
+
+            for output_var_name, idata in zip(output_var_names, data):
+                if output_var_name not in save_var_names:
+                    continue
+
+                self.storegate.update_data(data=idata, var_names=output_var_name, phase=phase)
 
     def fit_predict(self, fit_args=None, predict_args=None):
         """Fit and predict model.
@@ -299,6 +319,16 @@ class MLBaseTask(BaseTask):
     def output_var_names(self, output_var_names):
         """Set output_var_names."""
         self._output_var_names = output_var_names
+
+    @property
+    def save_var_names(self):
+        """Returns save_var_names."""
+        return self._save_var_names
+
+    @save_var_names.setter
+    def save_var_names(self, save_var_names):
+        """Set save_var_names."""
+        self._save_var_names = save_var_names
 
     @property
     def pred_var_names(self):
