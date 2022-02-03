@@ -60,8 +60,8 @@ class EpochMetric:
 
     def subloss(self, batch_result):
         result = []
-        for index, subloss in enumerate(batch_result['subloss']):
-            result.append(batch_result['loss']['subloss'].detach().item())
+        for index, subloss in enumerate(batch_result['loss']['subloss']):
+            result.append(subloss.detach().item())
         return result
 
     def acc(self, batch_result):
