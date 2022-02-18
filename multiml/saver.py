@@ -4,6 +4,7 @@ import os
 import copy
 import shelve
 import tempfile
+import zarr
 
 from multiml import logger
 
@@ -50,9 +51,15 @@ class Saver:
         self._shelve = None  # for storage db
         self._shelve_name = 'results.slv'
         self._shelve_mode = 'c'
+        self._zarr = None  # for zarr db, experimental feature
+        self._zarr_name = 'results.zarr'
+        self._zarr_mode = 'a'
 
         if self._mode == 'shelve':
             self.init_shelve(recreate)
+
+        if self._mode == 'zarr':
+            self.init_zarr(recreate)
 
     def __repr__(self):
         result = f'Saver(save_dir={self._save_dir}, '\
@@ -74,6 +81,9 @@ class Saver:
 
         if self._dict is not None:
             total_objs += len(self._dict)
+
+        if self._zarr is not None:
+            total_objs += len(self._zarr)
 
         return total_objs
 
@@ -105,6 +115,9 @@ class Saver:
 
         if key in self._dict:
             return self._dict[key]
+
+        if (self._zarr is not None) and (key in self._zarr):
+            return self._zarr[key]
 
         if self._state == 'open':
             return self._shelve[key]
@@ -140,6 +153,24 @@ class Saver:
             self.open(mode='c')
             self.close()
 
+    def init_zarr(self, recreate=False):
+        """Initialize shelve database and confirm connection.
+
+        Args:
+            recreate (bool): If ``recreate`` is True, existing database is overwritten by an empty
+                database.
+        """
+        if recreate:
+            db = zarr.open(self._save_dir + '/' + self._zarr_name, mode='w')
+            self._zarr = db.create_group('attrs').attrs
+
+        else:
+            db = zarr.open(self._save_dir + '/' + self._zarr_name, mode='a')
+            if 'attrs' in db:
+                self._zarr = db['attrs'].attrs
+            else:
+                self._zarr = db.create_group('attrs').attrs
+
     def set_mode(self, mode):
         """Set default database (backend) mode.
 
@@ -150,6 +181,10 @@ class Saver:
         if mode == 'dict':
             self._shelve_mode = 'r'
             self._mode = 'dict'
+
+        elif mode == 'zarr':
+            self._shelve_mode = 'r'
+            self._mode = 'zarr'
 
         elif mode == 'shelve':
             self.init_shelve()
@@ -211,13 +246,21 @@ class Saver:
 
         dict_keys = list(self._dict.keys())
 
+        if self._zarr is not None:
+            zarr_keys = list(self._zarr.keys())
+        else:
+            zarr_keys = []
+
         if mode == 'shelve':
             return shelve_keys
 
         if mode == 'dict':
             return dict_keys
 
-        return shelve_keys + dict_keys
+        if mode == 'zarr':
+            return zarr_keys
+
+        return shelve_keys + dict_keys + zarr_keys
 
     def add(self, key, obj, mode=None, check=False):
         """Add object to given backend by key.
@@ -253,6 +296,9 @@ class Saver:
         elif mode == 'dict':
             self._dict[key] = obj
 
+        elif mode == 'zarr':
+            self._zarr[key] = obj
+
         else:
             raise ValueError(f'mode is {mode}, which should be shelve or dict')
 
@@ -264,6 +310,9 @@ class Saver:
         """
         if key in self._dict:
             del self._dict[key]
+
+        elif (self._zarr is not None) and (key in self._zarr):
+            del self._zarr[key]
 
         else:
             if self._state == 'open':
