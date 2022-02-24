@@ -98,7 +98,14 @@ class SequentialAgent(BaseAgent):
 
     def execute_pipeline(self, subtasktuples, counter, trial=None):
         """Execute pipeline."""
-        result = {'task_ids': [], 'subtask_ids': [], 'subtask_hps': [], 'metric_value': None}
+        result = {
+            'task_ids': [],
+            'subtask_ids': [],
+            'job_ids': [],
+            'trial_ids': [],
+            'subtask_hps': [],
+            'metric_value': None
+        }
 
         for subtasktuple in subtasktuples:
             task_id = subtasktuple.task_id
@@ -115,6 +122,8 @@ class SequentialAgent(BaseAgent):
 
             result['task_ids'].append(task_id)
             result['subtask_ids'].append(subtask_id)
+            result['job_ids'].append(counter)
+            result['trial_ids'].append(trial)
             result['subtask_hps'].append(subtask_hps)
 
         self._metric.storegate = self._storegate
@@ -124,7 +133,14 @@ class SequentialAgent(BaseAgent):
 
     def execute_differentiable(self, subtasktuples, counter, trial=None):
         """Execute connection model."""
-        result = {'task_ids': [], 'subtask_ids': [], 'subtask_hps': [], 'metric_value': None}
+        result = {
+            'task_ids': [],
+            'subtask_ids': [],
+            'job_ids': [],
+            'trial_ids': [],
+            'subtask_hps': [],
+            'metric_value': None
+        }
 
         if self._diff_pretrain:
             for subtasktuple in subtasktuples:
@@ -142,6 +158,8 @@ class SequentialAgent(BaseAgent):
 
                 result['task_ids'].append(task_id)
                 result['subtask_ids'].append(subtask_id)
+                result['job_ids'].append(counter)
+                result['trial_ids'].append(trial)
                 result['subtask_hps'].append(subtask_hps)
 
         subtasks = [v.env for v in subtasktuples]
