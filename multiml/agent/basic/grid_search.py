@@ -35,7 +35,7 @@ class GridSearchAgent(RandomSearchAgent):
                 raise NotImplementedError(
                     'multiprocessing is supported for only numpy and hybrid backend')
 
-            ctx = mp.get_context('fork')
+            ctx = mp.get_context(self._context)
             queue = ctx.Queue()
             args = []
 

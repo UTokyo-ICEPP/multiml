@@ -13,6 +13,7 @@ class RandomSearchAgent(SequentialAgent):
                  seed=0,
                  metric_type=None,
                  num_workers=None,
+                 context='fork',
                  dump_all_results=False,
                  **kwargs):
         """Initialize simple agent.
@@ -25,6 +26,7 @@ class RandomSearchAgent(SequentialAgent):
                 If it is None, ``type`` is retrieved from metric class instance.
             num_workers (int or list): number of workers for multiprocessing or lsit of GPU ids.
                 If ``num_workers`` is given, multiprocessing is enabled.
+            context (str): fork (default) or spawn.
             dump_all_results (bool): dump all results or not.
         """
         super().__init__(**kwargs)
@@ -38,6 +40,7 @@ class RandomSearchAgent(SequentialAgent):
         self._task_prod = self.task_scheduler.get_all_subtasks_with_hps()
 
         self._num_workers = num_workers
+        self._context = context
         self._multiprocessing = False
 
         if self._num_workers is not None:
@@ -81,7 +84,7 @@ class RandomSearchAgent(SequentialAgent):
                 raise NotImplementedError(
                     'multiprocessing is supported for only numpy and hybrid backend')
 
-            ctx = mp.get_context('fork')
+            ctx = mp.get_context(self._context)
             queue = ctx.Queue()
             args = []
 
