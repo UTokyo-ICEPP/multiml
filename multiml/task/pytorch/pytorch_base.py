@@ -193,6 +193,12 @@ class PytorchBaseTask(MLBaseTask):
         if self._loss is None:
             return
 
+        if 'weight' in self._loss_args:
+            if isinstance(self._loss_args['weight'], list):
+                weight = torch.tensor(self._loss_args['weight'])
+                weight = weight.to(self._device)
+                self._loss_args['weight'] = weight
+
         self.ml.loss = util.compile(self._loss, self._loss_args, tl)
         self.ml.loss_weights = self._loss_weights
 
