@@ -433,7 +433,7 @@ class StoreGate:
 
             for var_name in var_names:
                 if var_name not in metadata.keys():
-                    raise ValueError(f'var_name {var_name} does not exist in storegate.')
+                    raise ValueError(f'var_name {var_name} does not exist in {self.data_id}.')
 
                 phase_results.append(self._db.get_data(self._data_id, var_name, iphase, index))
 
