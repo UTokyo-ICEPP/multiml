@@ -202,6 +202,12 @@ class PytorchBaseTask(MLBaseTask):
         self.ml.loss = util.compile(self._loss, self._loss_args, tl)
         self.ml.loss_weights = self._loss_weights
 
+        if isinstance(self.ml.loss, list):
+            for ii, ml_loss in enumerate(self.ml.loss):
+                self.ml.loss[ii] = ml_loss.to(self._device)
+        else:
+            self.ml.loss = self.ml.loss.to(self._device)
+
     def compile_device(self):
         """Compile device.
 
