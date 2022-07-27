@@ -13,7 +13,7 @@ class RandomSearchAgent(SequentialAgent):
                  seed=0,
                  metric_type=None,
                  num_workers=None,
-                 context='fork',
+                 context='forkserver',
                  dump_all_results=False,
                  **kwargs):
         """Initialize simple agent.
