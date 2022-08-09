@@ -1,5 +1,7 @@
 """RandomSearchAgent module."""
 import random
+import time
+import copy
 import multiprocessing as mp
 
 from multiml import logger
@@ -92,12 +94,7 @@ class RandomSearchAgent(SequentialAgent):
                 subtasktuples = self.task_scheduler[index]
                 args.append([subtasktuples, counter])
 
-                if len(args) == len(self._num_workers):
-                    self.execute_jobs(ctx, queue, args)
-                    args = []
-                    logger.counter(counter + 1, len(self.task_scheduler), divide=1)
-
-            self.execute_jobs(ctx, queue, args)
+            self.execute_pool_jobs(ctx, queue, args)
 
     @logger.logging
     def finalize(self):
@@ -142,10 +139,45 @@ class RandomSearchAgent(SequentialAgent):
         while not queue.empty():
             self._history.append(queue.get())
 
+    def execute_pool_jobs(self, ctx, queue, args):
+        """(expert method) Execute multiprocessing pool jobs."""
+        jobs = copy.deepcopy(args)
+
+        pool = [0] * len(self._num_workers)
+        num_jobs = len(jobs)
+        all_done = False
+
+        while not all_done:
+            time.sleep(0.1)
+
+            if len(jobs) == 0:
+                done = True
+                for ii, process in enumerate(pool):
+                    if (process != 0) and (process.is_alive()):
+                        done = False
+                all_done = done
+
+            else:
+                for ii, process in enumerate(pool):
+                    if len(jobs) == 0:
+                        continue
+
+                    if (process == 0) or (not process.is_alive()):
+                        job_arg = jobs.pop(0)
+                        job_arg[1] = ii  # cuda_id
+                        pool[ii] = ctx.Process(target=self.execute_wrapper,
+                                               args=(queue, *job_arg),
+                                               daemon=False)
+                        pool[ii].start()
+                        logger.info(f'launch process ({num_jobs - len(jobs)}/{num_jobs})')
+
+        while not queue.empty():
+            self._history.append(queue.get())
+
     def execute_wrapper(self, queue, subtasktuples, counter):
         """(expert method) Wrapper method to execute multiprocessing pipeline."""
         for subtasktuple in subtasktuples:
-            subtasktuple.env.pool_id = (counter + 1, self._num_workers, len(self.task_scheduler))
+            subtasktuple.env.pool_id = (counter, self._num_workers, len(self.task_scheduler))
 
         result = self.execute_subtasktuples(subtasktuples, counter)
         queue.put(result)
