@@ -2,6 +2,7 @@
 import random
 import time
 import copy
+from tqdm import tqdm
 import multiprocessing as mp
 
 from multiml import logger
@@ -17,6 +18,7 @@ class RandomSearchAgent(SequentialAgent):
                  num_workers=None,
                  context='forkserver',
                  dump_all_results=False,
+                 disable_tqdm=True,
                  **kwargs):
         """Initialize simple agent.
 
@@ -30,6 +32,7 @@ class RandomSearchAgent(SequentialAgent):
                 If ``num_workers`` is given, multiprocessing is enabled.
             context (str): fork (default) or spawn.
             dump_all_results (bool): dump all results or not.
+            disable_tqdm (bool): enable tqdm bar.
         """
         super().__init__(**kwargs)
         if samplings is None:
@@ -39,6 +42,7 @@ class RandomSearchAgent(SequentialAgent):
         self._samplings = samplings
         self._seed = seed
         self._dump_all_results = dump_all_results
+        self._disable_tqdm = disable_tqdm
         self._task_prod = self.task_scheduler.get_all_subtasks_with_hps()
 
         self._num_workers = num_workers
@@ -147,29 +151,35 @@ class RandomSearchAgent(SequentialAgent):
         num_jobs = len(jobs)
         all_done = False
 
-        while not all_done:
-            time.sleep(0.1)
+        pbar_args = dict(ncols=80, total=num_jobs, disable=self._disable_tqdm)
+        with tqdm(**pbar_args) as pbar:
+            while not all_done:
+                time.sleep(0.1)
 
-            if len(jobs) == 0:
-                done = True
-                for ii, process in enumerate(pool):
-                    if (process != 0) and (process.is_alive()):
-                        done = False
-                all_done = done
+                if len(jobs) == 0:
+                    done = True
+                    for ii, process in enumerate(pool):
+                        if (process != 0) and (process.is_alive()):
+                            done = False
+                    all_done = done
 
-            else:
-                for ii, process in enumerate(pool):
-                    if len(jobs) == 0:
-                        continue
+                else:
+                    for ii, process in enumerate(pool):
+                        if len(jobs) == 0:
+                            continue
 
-                    if (process == 0) or (not process.is_alive()):
-                        job_arg = jobs.pop(0)
-                        job_arg[1] = ii  # cuda_id
-                        pool[ii] = ctx.Process(target=self.execute_wrapper,
-                                               args=(queue, *job_arg),
-                                               daemon=False)
-                        pool[ii].start()
-                        logger.info(f'launch process ({num_jobs - len(jobs)}/{num_jobs})')
+                        if (process == 0) or (not process.is_alive()):
+                            time.sleep(0.05)
+                            job_arg = jobs.pop(0)
+                            job_arg[1] = ii  # cuda_id
+                            pool[ii] = ctx.Process(target=self.execute_wrapper,
+                                                   args=(queue, *job_arg),
+                                                   daemon=False)
+                            pool[ii].start()
+                            pbar.update(1)
+
+                            if self._disable_tqdm:
+                                logger.info(f'launch process ({num_jobs - len(jobs)}/{num_jobs})')
 
         while not queue.empty():
             self._history.append(queue.get())
