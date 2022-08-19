@@ -35,8 +35,15 @@ class StoreGateDataset(tdata.Dataset):
 
     def __getitem__(self, index):
         if self._preload:
-            data = self._data[index]
-            target = self._target[index]
+            if isinstance(self._data, list):
+                data = [idata[index] for idata in self._data]
+            else:
+                data = self._data[index]
+
+            if isinstance(self._target, list):
+                target = [idata[index] for idata in self._target]
+            else:
+                target = self._target[index]
 
         else:
             data = self._storegate.get_data(var_names=self._input_var_names,

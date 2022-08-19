@@ -332,7 +332,7 @@ class Saver:
         if model is not None:
             if model_path is None:
                 model_path = f'{self._save_dir}/{key}'
-            logger.info(f'pytorch model saved path = {model_path}')
+            logger.debug(f'pytorch model saved path = {model_path}')
             import torch
             torch.save(model.state_dict(), model_path)
             kwargs['model_path'] = model_path
@@ -349,7 +349,7 @@ class Saver:
         if model is not None:
             if model_path is None:
                 model_path = f'{self._save_dir}/{key}'
-            logger.info(f'keras model saved path = {model_path}')
+            logger.debug(f'keras model saved path = {model_path}')
             model.save_weights(model_path, save_format='tf')
             # model.save(model_path, save_format='tf')  # not work if the model is complicated
             kwargs['model_path'] = model_path

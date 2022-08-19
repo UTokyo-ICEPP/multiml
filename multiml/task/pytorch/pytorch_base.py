@@ -319,10 +319,11 @@ class PytorchBaseTask(MLBaseTask):
         dataset_args_tmp.update(dataset_args)
         dataset = self.get_dataset(data=data, phase=phase, **dataset_args_tmp)
 
-        dataloader_args_tmp = dict(dataset=dataset,
-                                   pin_memory=True,
-                                   persistent_workers=True,
-                                   num_workers=self._num_workers)
+        dataloader_args_tmp = dict(dataset=dataset, pin_memory=True, num_workers=self._num_workers)
+
+        if self._num_workers > 0:
+            dataloader_args_tmp['persistent_workers'] = True
+
         dataloader_args_tmp.update(dataloader_args)
 
         if not self._batch_sampler:
