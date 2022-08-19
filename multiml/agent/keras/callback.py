@@ -40,7 +40,7 @@ class AlphaDumperCallback(tf.keras.callbacks.Callback):
         logger.debug('')
         for i, var in enumerate(self.model.alpha_vars):
             logger.debug(f"epoch = {epoch}: alpha {var.name} = {self.formatting(var)}")
-            self._alpha_history[i].append(var.numpy().reshape(-1))
+            self._alpha_history[i].append(list(var.numpy().reshape(-1)))
         logger.debug('')
         logger.debug('')
 
@@ -87,12 +87,11 @@ class EachLossDumperCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         loss = []
         for metric in self.model.compiled_loss.metrics:
-            loss.append(metric.result().numpy().reshape(-1))
+            loss.append(list(metric.result().numpy().reshape(-1)))
         self._loss_history.append(loss)
 
     def get_loss_history(self):
-        values = np.array(self._loss_history)  # batch, losses, dim of loss
-        return values
+        return self._loss_history  # batch, losses, dim of loss
 
 
 class NaNKillerCallback(tf.keras.callbacks.Callback):

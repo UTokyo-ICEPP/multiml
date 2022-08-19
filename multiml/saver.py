@@ -2,7 +2,6 @@
 
 import os
 import copy
-import shelve
 import tempfile
 import zarr
 
@@ -13,7 +12,7 @@ class Saver:
     """Miscellaneous object management class.
 
     Dictionary to save miscellaneous objects, and provides utility methods to manage ML metadata.
-    There are two type of backends, *shelve* and *dict*, to store objects. *shelve* mode stores
+    There are two type of backends, *zarr* and *dict*, to store objects. *zarr* mode stores
     persistent objects, and *dict* mode stores temporary objects.
 
     Examples:
@@ -23,7 +22,7 @@ class Saver:
         >>> saver['key0'] = obj0
         >>> saver['key1'] = obj1
     """
-    def __init__(self, save_dir=None, serial_id=None, mode='shelve', recreate=False):
+    def __init__(self, save_dir=None, serial_id=None, mode='zarr', recreate=False):
         """Initialize Saver and create the base directory.
 
         Args:
@@ -32,8 +31,8 @@ class Saver:
             serial_id (int): suffix of ``save_dir``, i.e. *save_dir*.*serial_id*. If ``None`` is
                 given, ``serial_id`` is incremented automatically based on existence of the
                 directory.
-            mode (str): *shelve* or *dict* for default metadata management.
-            recreate (bool): recreate shelve database if True.
+            mode (str): *zarr* or *dict* for default metadata management.
+            recreate (bool): recreate zarr database if True.
         """
         if save_dir is None:
             save_dir = tempfile.mkdtemp()
@@ -45,18 +44,11 @@ class Saver:
         os.makedirs(self._save_dir, exist_ok=True)
 
         self._serial_id = serial_id
-        self._state = 'close'
         self._mode = mode
         self._dict = {}  # for memory db
-        self._shelve = None  # for storage db
-        self._shelve_name = 'results.slv'
-        self._shelve_mode = 'c'
-        self._zarr = None  # for zarr db, experimental feature
+        self._zarr = None  # for zarr db
         self._zarr_name = 'results.zarr'
         self._zarr_mode = 'a'
-
-        if self._mode == 'shelve':
-            self.init_shelve(recreate)
 
         if self._mode == 'zarr':
             self.init_zarr(recreate)
@@ -64,20 +56,16 @@ class Saver:
     def __repr__(self):
         result = f'Saver(save_dir={self._save_dir}, '\
                        f'serial_id={self._serial_id}, '\
-                       f'mode={self._mode}, '\
-                       f'state={self._state})'
+                       f'mode={self._mode}, '
         return result
 
     def __len__(self):
-        """Returns the number of stored objects in shelve and dict.
+        """Returns the number of stored objects in zarr and dict.
 
         Returns:
-            int: the total number of stored objects in shelve and dict.
+            int: the total number of stored objects in zarr and dict.
         """
         total_objs = 0
-
-        if self._shelve is not None:
-            total_objs += len(self._shelve)
 
         if self._dict is not None:
             total_objs += len(self._dict)
@@ -90,7 +78,7 @@ class Saver:
     def __setitem__(self, key, obj):
         """Set key and store object to the default backend.
 
-        ``key`` and ``obj`` are stored to the default backend, shelve or dict.
+        ``key`` and ``obj`` are stored to the default backend, zarr or dict.
 
         Args:
             key (str): unique identifier of given object.
@@ -101,7 +89,7 @@ class Saver:
     def __getitem__(self, key):
         """Returns object for given key.
 
-        ``key`` is searched from the both *shelve* and *dict* backends regardless of the default
+        ``key`` is searched from the both *zarr* and *dict* backends regardless of the default
         backend mode.
 
         Args:
@@ -116,16 +104,7 @@ class Saver:
         if key in self._dict:
             return self._dict[key]
 
-        if (self._zarr is not None) and (key in self._zarr):
-            return self._zarr[key]
-
-        if self._state == 'open':
-            return self._shelve[key]
-
-        self.open('r')
-        result = self._shelve[key]
-        self.close()
-        return result
+        return self._zarr[key]
 
     def __delitem__(self, key):
         """Delete key and object from backends.
@@ -138,23 +117,8 @@ class Saver:
     ##########################################################################
     # Public user APIs
     ##########################################################################
-    def init_shelve(self, recreate=False):
-        """Initialize shelve database and confirm connection.
-
-        Args:
-            recreate (bool): If ``recreate`` is True, existing database is overwritten by an empty
-                database.
-        """
-        if recreate:
-            self.open(mode='n')
-            self.close()
-
-        else:
-            self.open(mode='c')
-            self.close()
-
     def init_zarr(self, recreate=False):
-        """Initialize shelve database and confirm connection.
+        """Initialize zarr database and confirm connection.
 
         Args:
             recreate (bool): If ``recreate`` is True, existing database is overwritten by an empty
@@ -175,75 +139,29 @@ class Saver:
         """Set default database (backend) mode.
 
         Args:
-            mode (str): *shelve* or *dict*. If *dict* is given, *shelve* database will be opened
-                with read only mode.
+            mode (str): *zarr* or *dict*.
         """
         if mode == 'dict':
-            self._shelve_mode = 'r'
             self._mode = 'dict'
 
         elif mode == 'zarr':
-            self._shelve_mode = 'r'
+            self.init_zarr()
             self._mode = 'zarr'
 
-        elif mode == 'shelve':
-            self.init_shelve()
-            self._shelve_mode = 'c'
-            self._mode = 'shelve'
-
         else:
-            raise ValueError(f'mode is {mode}, which should be shelve or dict')
-
-    def open(self, mode=None):
-        """Open shelve database with given mode.
-
-        Args:
-            mode (str): 'r': reading only, 'w': reading and writing, 'c' (default): reading and
-                writing, creating it if it does not exist, 'n': always create a new empty database,
-                reading and writing.
-
-        Examples:
-            >>> saver.open('r')
-            >>> print(saver['key0'])
-            >>> print(saver['key1'])
-            >>> saver.close()
-        """
-        if mode is None:
-            mode = self._shelve_mode
-
-        if self._state == 'open':
-            logger.debug('saver is already open')
-        else:
-            self._shelve = shelve.open(f'{self._save_dir}/{self._shelve_name}', flag=mode)
-            self._state = 'open'
-
-    def close(self):
-        """Close the shelve database."""
-        if self._state == 'close':
-            logger.debug('saver is already close')
-        else:
-            self._shelve.close()
-            self._state = 'close'
+            raise ValueError(f'mode is {mode}, which should be zarr or dict')
 
     def keys(self, mode=None):
         """Return registered keys in backends.
 
         Args:
-            mode (str): If *shelve* is given, keys in shelve database are returned. If *dict* is
+            mode (str): If *zarr* is given, keys in zarr database are returned. If *dict* is
                 given, keys in dict database are returned. If None (default) all keys stored in the
                 both backends are returned.
 
         Returns:
             list: list of registered keys.
         """
-        if self._state == 'open':
-            shelve_keys = list(self._shelve.keys())
-
-        else:
-            self.open()
-            shelve_keys = list(self._shelve.keys())
-            self.close()
-
         dict_keys = list(self._dict.keys())
 
         if self._zarr is not None:
@@ -251,16 +169,13 @@ class Saver:
         else:
             zarr_keys = []
 
-        if mode == 'shelve':
-            return shelve_keys
-
         if mode == 'dict':
             return dict_keys
 
         if mode == 'zarr':
             return zarr_keys
 
-        return shelve_keys + dict_keys + zarr_keys
+        return dict_keys + zarr_keys
 
     def add(self, key, obj, mode=None, check=False):
         """Add object to given backend by key.
@@ -272,76 +187,52 @@ class Saver:
         Args:
             key (str): unique identifier of given object.
             obj (obj): arbitrary object to be stored.
-            mode (str): *shelve* or *dict* to specify the backend database.
+            mode (str): *zarr* or *dict* to specify the backend database.
             check (bool): If True, consistency between the backends is checked.
         """
         if mode is None:
             mode = self._mode
 
-        if check and (mode == 'shelve') and (key in self.keys('dict')):
-            raise ValueError(f'mode is shelve, but {key} already exists in dict')
+        if check and (mode == 'zarr') and (key in self.keys('zarr')):
+            raise ValueError(f'{key} already exists in zarr')
 
-        if check and (mode == 'dict') and (key in self.keys('shelve')):
-            raise ValueError(f'mode is dict, but {key} already exists in shelve')
+        if check and (mode == 'dict') and (key in self.keys('dict')):
+            raise ValueError(f'{key} already exists in dict')
 
-        if mode == 'shelve':
-            if self._state == 'open':
-                self._shelve[key] = obj
-
-            else:
-                self.open()
-                self._shelve[key] = obj
-                self.close()
-
-        elif mode == 'dict':
+        if mode == 'dict':
             self._dict[key] = obj
 
         elif mode == 'zarr':
             self._zarr[key] = obj
 
         else:
-            raise ValueError(f'mode is {mode}, which should be shelve or dict')
+            raise ValueError(f'mode is {mode}, which should be zarr or dict')
 
-    def delete(self, key):
+    def delete(self, key, mode=None):
         """Delete key and object from the backends.
 
         Args:
             key (str): unique identifier to be deleted.
         """
-        if key in self._dict:
-            del self._dict[key]
+        if mode is None:
+            mode = self._mode
 
-        elif (self._zarr is not None) and (key in self._zarr):
-            del self._zarr[key]
+        if mode == 'dict':
+            if key in self._dict:
+                del self._dict[key]
 
-        else:
-            if self._state == 'open':
-                del self._shelve[key]
-
-            else:
-                self.open()
-                del self._shelve[key]
-                self.close()
+        elif mode == 'zarr':
+            if (self._zarr is not None) and (key in self._zarr):
+                del self._zarr[key]
 
     def save(self):
-        """Save the objects registered in dict to shelve."""
-        if self._mode == 'dict':
-            self._mode = 'shelve'
-            self._shelve_mode = 'c'
-
-        for key, value in self._dict.items():
-            ckey = copy.copy(key)
-            cvalue = copy.copy(value)
-            self.add(ckey, cvalue, 'shelve', check=False)
-
-        self._dict.clear()
-
-        if self._mode == 'dict':
-            self._mode = 'dict'
-            self._shelve_mode = 'r'
+        """Save the objects registered in dict to zarr."""
+        dict_keys = copy.copy(list(self._dict.keys()))
+        for key in dict_keys:
+            self.to_storage(key)
 
     def to_memory(self, key):
-        """Move object from shelve to dict.
+        """Move object from zarr to dict.
 
         Args:
             key (str): the unique identifier to be moved.
@@ -349,13 +240,13 @@ class Saver:
         if key in self.keys('dict'):
             logger.debug(f'{key} already exist in dict (memory)')
 
-        elif key in self.keys('shelve'):
-            value = copy.copy(self[key])
-            del self[key]
+        elif key in self.keys('zarr'):
+            value = copy.copy(self._zarr[key])
+            del self._zarr[key]
             self.add(key, value, 'dict')
 
         else:
-            raise ValueError(f'{key} does not exist in shelve')
+            raise ValueError(f'{key} does not exist in zarr')
 
     def to_storage(self, key):
         """Move object from dict to storage.
@@ -363,50 +254,16 @@ class Saver:
         Args:
             key (str): the unique identifier to be moved.
         """
-        if key in self.keys('shelve'):
-            logger.debug(f'{key} already exist in shelve (storage)')
+        if key in self.keys('zarr'):
+            logger.debug(f'{key} already exist in zarr (storage)')
 
         elif key in self.keys('dict'):
-            value = copy.copy(self[key])
-            del self[key]
-            self.add(key, value, 'shelve')
+            value = copy.copy(self._dict[key])
+            del self._dict[key]
+            self.add(key, value, 'zarr')
 
         else:
             raise ValueError(f'{key} does not exist in dict')
-
-    @property
-    def shelve_name(self):
-        """Returns the name of shelve database file.
-
-        Returns:
-            str: the name of shelve database file.
-        """
-        return self._shelve_name
-
-    @shelve_name.setter
-    def shelve_name(self, name):
-        """Set name of shelve database file.
-
-        Default is 'results.slv'.
-        """
-        self._shelve_name = name
-
-    @property
-    def shelve_mode(self):
-        """Returns the mode of shelve database file.
-
-        Returns:
-            str: the mode of shelve database file.
-        """
-        return self._shelve_mode
-
-    @shelve_mode.setter
-    def shelve_mode(self, mode):
-        """Set mode of shelve database file.
-
-        Default is 'c'.
-        """
-        self._shelve_mode = mode
 
     @property
     def save_dir(self):

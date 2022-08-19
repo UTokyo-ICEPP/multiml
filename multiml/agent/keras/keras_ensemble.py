@@ -101,4 +101,4 @@ class KerasEnsembleAgent(KerasConnectionRandomSearchAgent):
         for var in task.env._model._get_variables():
             if "_ensemble_weights/" in var.name:
                 varname = var.name.split('/')[1]
-                self._saver.add(f'{prefix}_{varname}', var.numpy().reshape(-1))
+                self._saver.add(f'{prefix}_{varname}', list(var.numpy().reshape(-1)))

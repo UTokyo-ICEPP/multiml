@@ -164,8 +164,9 @@ class DARTSTask(ModelConnectionTask):
         result['darts_alpha_history'] = alpha_cb.get_alpha_history()
         result['darts_loss_history'] = loss_cb.get_loss_history()
         result['darts_lambda_history'] = history0['lambda']
-        result['darts_alpha_gradients_sum'] = history0['alpha_gradients_sum']
-        result['darts_alpha_gradients_sq_sum'] = history0['alpha_gradients_sq_sum']
+        result['darts_alpha_gradients_sum'] = np.array(history0['alpha_gradients_sum']).tolist()
+        result['darts_alpha_gradients_sq_sum'] = np.array(
+            history0['alpha_gradients_sq_sum']).tolist()
         result['darts_alpha_gradients_n'] = history0['alpha_gradients_n']
 
         # Check nan in alpha parameters

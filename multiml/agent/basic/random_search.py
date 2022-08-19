@@ -124,7 +124,11 @@ class RandomSearchAgent(SequentialAgent):
                 names, tmp_data = self._print_result(result)
                 data += tmp_data + ['-']
             logger.table(header=header, names=names, data=data, max_length=40)
-            self.saver['history'] = self._history
+
+            if 'history' in self.saver.keys():
+                self.saver['history'] = self.saver['history'] + self._history
+            else:
+                self.saver['history'] = self._history
 
         super().finalize()
 
