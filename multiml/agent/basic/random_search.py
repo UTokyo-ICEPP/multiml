@@ -16,7 +16,7 @@ class RandomSearchAgent(SequentialAgent):
                  seed=0,
                  metric_type=None,
                  num_workers=None,
-                 context='forkserver',
+                 context='spawn',
                  dump_all_results=False,
                  disable_tqdm=True,
                  **kwargs):
@@ -124,11 +124,7 @@ class RandomSearchAgent(SequentialAgent):
                 names, tmp_data = self._print_result(result)
                 data += tmp_data + ['-']
             logger.table(header=header, names=names, data=data, max_length=40)
-
-            if 'history' in self.saver.keys():
-                self.saver['history'] = self.saver['history'] + self._history
-            else:
-                self.saver['history'] = self._history
+            self.saver['history'] = self._history
 
         super().finalize()
 
@@ -175,9 +171,8 @@ class RandomSearchAgent(SequentialAgent):
                         if (process == 0) or (not process.is_alive()):
                             time.sleep(0.05)
                             job_arg = jobs.pop(0)
-                            job_arg[1] = ii  # cuda_id
                             pool[ii] = ctx.Process(target=self.execute_wrapper,
-                                                   args=(queue, *job_arg),
+                                                   args=(queue, *job_arg, ii),
                                                    daemon=False)
                             pool[ii].start()
                             pbar.update(1)
@@ -188,10 +183,14 @@ class RandomSearchAgent(SequentialAgent):
         while not queue.empty():
             self._history.append(queue.get())
 
-    def execute_wrapper(self, queue, subtasktuples, counter):
+    def execute_wrapper(self, queue, subtasktuples, counter, cuda_id):
         """(expert method) Wrapper method to execute multiprocessing pipeline."""
         for subtasktuple in subtasktuples:
-            subtasktuple.env.pool_id = (counter, self._num_workers, len(self.task_scheduler))
+            subtasktuple.env.pool_id = (cuda_id, self._num_workers, len(self.task_scheduler))
 
         result = self.execute_subtasktuples(subtasktuples, counter)
+
+        if self._dump_all_results:
+            self.saver[f'history_{counter}'] = result
+
         queue.put(result)
