@@ -154,7 +154,7 @@ class RandomSearchAgent(SequentialAgent):
         pbar_args = dict(ncols=80, total=num_jobs, disable=self._disable_tqdm)
         with tqdm(**pbar_args) as pbar:
             while not all_done:
-                time.sleep(0.1)
+                time.sleep(1)
 
                 if len(jobs) == 0:
                     done = True
@@ -179,6 +179,9 @@ class RandomSearchAgent(SequentialAgent):
 
                             if self._disable_tqdm:
                                 logger.info(f'launch process ({num_jobs - len(jobs)}/{num_jobs})')
+
+                while not queue.empty():
+                    self._history.append(queue.get())
 
         while not queue.empty():
             self._history.append(queue.get())
