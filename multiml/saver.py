@@ -124,12 +124,19 @@ class Saver:
             recreate (bool): If ``recreate`` is True, existing database is overwritten by an empty
                 database.
         """
+        zarr_path = self._save_dir + '/' + self._zarr_name
+        synchronizer = zarr.ProcessSynchronizer(zarr_path + '.sync')
+
         if recreate:
-            db = zarr.open(self._save_dir + '/' + self._zarr_name, mode='w')
+            db = zarr.open(self._save_dir + '/' + self._zarr_name,
+                           mode='w',
+                           synchronizer=synchronizer)
             self._zarr = db.create_group('attrs').attrs
 
         else:
-            db = zarr.open(self._save_dir + '/' + self._zarr_name, mode='a')
+            db = zarr.open(self._save_dir + '/' + self._zarr_name,
+                           mode='a',
+                           synchronizer=synchronizer)
             if 'attrs' in db:
                 self._zarr = db['attrs'].attrs
             else:
