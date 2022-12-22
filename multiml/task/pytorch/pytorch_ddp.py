@@ -171,7 +171,7 @@ class PytorchDDPTask(PytorchBaseTask):
         os.environ['MASTER_PORT'] = self._port
         dist.init_process_group(self._backend, rank=rank, world_size=world_size)
 
-        self._device = rank
+        self._device = self._gpu_ids[rank]
 
         # FIXME
         os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
