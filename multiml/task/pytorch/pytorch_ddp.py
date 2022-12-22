@@ -30,7 +30,7 @@ class PytorchDDPTask(PytorchBaseTask):
         self._port = port
         self._backend = backend
         self._find_unused_parameters = find_unused_parameters
-        self._data_parallel = False
+        self._data_parallel = (not ddp) and (self._gpu_ids is not None)
 
     def compile_model(self, rank=None, world_size=None):
         """ Build model.
