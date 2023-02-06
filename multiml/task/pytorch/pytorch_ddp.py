@@ -37,9 +37,12 @@ class PytorchDDPTask(PytorchBaseTask):
         """
         super().compile_model()
         if self._ddp and dist.is_initialized():
-            self.ml.model = DDP(self.ml.model,
-                                device_ids=[self._device],
-                                find_unused_parameters=self._find_unused_parameters)
+            if 'cpu' in self._device.type:
+                self.ml.model = DDP(self.ml.model)
+            else:
+                self.ml.model = DDP(self.ml.model,
+                                    device_ids=[self._device],
+                                    find_unused_parameters=self._find_unused_parameters)
 
     def compile_device(self):
         """ Compile device.
@@ -171,7 +174,8 @@ class PytorchDDPTask(PytorchBaseTask):
         os.environ['MASTER_PORT'] = self._port
         dist.init_process_group(self._backend, rank=rank, world_size=world_size)
 
-        self._device = self._gpu_ids[rank]
+        if 'cpu' not in self._device.type:
+            self._device = self._gpu_ids[rank]
 
         # FIXME
         os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
