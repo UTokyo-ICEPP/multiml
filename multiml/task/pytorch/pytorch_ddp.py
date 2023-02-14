@@ -37,7 +37,7 @@ class PytorchDDPTask(PytorchBaseTask):
         """
         super().compile_model()
         if self._ddp and dist.is_initialized():
-            if 'cpu' in self._device.type:
+            if (not isinstance(self._device, int)) and ('cpu' in self._device.type):
                 self.ml.model = DDP(self.ml.model)
             else:
                 self.ml.model = DDP(self.ml.model,
