@@ -498,7 +498,7 @@ class StoreGate:
 
         Args:
             var_names (str or list): see ``add_data()`` method.
-            shape (int or tuple): shape of empty data.
+            shape (tuple): shape of empty data.
             phase (str): see ``update_data()`` method.
             dtype (str): dtype of empty data. Default float32.
         """
@@ -507,17 +507,21 @@ class StoreGate:
         if isinstance(var_names, str):
             var_names = [var_names]
 
-        if phase == 'all':
-            phases = const.PHASES
-        else:
-            phases = [phase]
+        self._check_valid_phase(phase)
 
-        for iphase in phases:
-            for var_name in var_names:
+        ndata = shape[0]
+        for var_name in var_names:
+            indices = self._get_phase_indices(phase, ndata)
+
+            dummy_data = np.zeros(ndata)
+            for iphase, phase_data in zip(const.PHASES, np.split(dummy_data, indices)):
+                if len(phase_data) == 0:
+                    continue
+
                 if var_name in self.get_var_names(iphase):
                     raise ValueError(f'create_empty: {var_name} arleady exists in {phase}.')
-
-                self._db.create_empty(self._data_id, var_name, iphase, shape, dtype)
+                phase_shape = (len(phase_data), ) + shape[1:]
+                self._db.create_empty(self._data_id, var_name, iphase, phase_shape, dtype)
 
     def get_data_ids(self):
         """Returns registered data_ids in the backend.
