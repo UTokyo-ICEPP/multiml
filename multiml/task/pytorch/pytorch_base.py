@@ -241,13 +241,14 @@ class PytorchBaseTask(MLBaseTask):
 
         # partial weights
         if ':' in model_path:
-            model_path, partial = model_path.split(':')
+            model_path, *partial = model_path.split(':')
             model_dict = self.ml.model.state_dict()
             state_dict = torch.load(model_path)
             new_state_dict = {}
             for key, value in state_dict.items():
-                if partial in key:
-                    new_state_dict[key] = value
+                for ipartial in partial:
+                    if ipartial in key:
+                        new_state_dict[key] = value
             model_dict.update(new_state_dict)
             self.ml.model.load_state_dict(model_dict)
         else:
