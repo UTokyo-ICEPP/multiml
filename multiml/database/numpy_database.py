@@ -45,7 +45,7 @@ class NumpyDatabase(Database):
 
     def get_data(self, data_id, var_name, phase, index):
         if isinstance(index, list):  # allow fancy index, experimental feature
-            return self._db[data_id][phase][var_name][index]
+            return np.take(self._db[data_id][phase][var_name], index, axis=0)
         else:
             return self._db[data_id][phase][var_name][get_slice(index)]
 

@@ -50,6 +50,7 @@ class PytorchBaseTask(MLBaseTask):
                  gpu_ids=None,
                  torchinfo=False,
                  amp=False,
+                 torch_compile=False,
                  dataset_args=None,
                  dataloader_args=None,
                  batch_sampler=False,
@@ -62,6 +63,7 @@ class PytorchBaseTask(MLBaseTask):
                 ``gpu_ids`` is given.
             torchinfo (bool): show torchinfo summary after model compile.
             amp (bool): *(expert option)* enable amp mode.
+            torch_compile (bool): *(expert option)* enable torch.compile.
             dataset_args (dict): args passed to default DataSet creation.
             dataloader_args (dict): args passed to default DataLoader creation.
             batch_sampler (bool): user batch_sampler or not.
@@ -81,6 +83,7 @@ class PytorchBaseTask(MLBaseTask):
         self._gpu_ids = gpu_ids
         self._torchinfo = torchinfo
         self._amp = amp
+        self._torch_compile = torch_compile
         self._dataset_args = dataset_args
         self._dataloader_args = dataloader_args
         self._batch_sampler = batch_sampler
@@ -131,6 +134,9 @@ class PytorchBaseTask(MLBaseTask):
             raise ValueError(f'{self._device} is not available')
 
         self.ml.model = util.compile(self._model, self._model_args, modules)
+
+        if self._torch_compile:
+            self.ml.model = torch.compile(self.ml.model)
 
         if self.pred_var_names is not None:
             self._pred_index = self.get_pred_index()
@@ -459,12 +465,17 @@ class PytorchBaseTask(MLBaseTask):
 
             for ii, data in enumerate(dataloader):
                 batch_result = self.step_batch(data, phase, label)
-                results.update(epoch_metric(batch_result))
 
                 if phase == 'test':
                     epoch_metric.pred(batch_result)
 
-                if (ii % self._running_step == 0) or (ii == num_batches - 1):
+                if phase == 'train':
+                    if (ii % self._running_step == 0) or (ii == num_batches - 1):
+                        results.update(epoch_metric(batch_result))
+                        pbar_metrics = metrics.get_pbar_metric(results)
+                        pbar.set_postfix(pbar_metrics)
+                else:
+                    results.update(epoch_metric(batch_result))
                     pbar_metrics = metrics.get_pbar_metric(results)
                     pbar.set_postfix(pbar_metrics)
                 pbar.update(1)
