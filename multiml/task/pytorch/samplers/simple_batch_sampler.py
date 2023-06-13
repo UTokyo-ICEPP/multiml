@@ -26,7 +26,7 @@ class SimpleBatchSampler(Sampler):
 
         self.index += 1
 
-        return self.data[index1:index2].tolist()
+        return self.data[index1:index2]
 
     def __len__(self):
         return -(-1 * self.num_samples // self.batch_size)

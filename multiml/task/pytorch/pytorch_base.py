@@ -606,6 +606,7 @@ class PytorchBaseTask(MLBaseTask):
         """Returns storegate dataset."""
         return StoreGateDataset(self.storegate,
                                 phase,
+                                self._device,
                                 input_var_names=self.input_var_names,
                                 true_var_names=self.true_var_names,
                                 preload=preload,
