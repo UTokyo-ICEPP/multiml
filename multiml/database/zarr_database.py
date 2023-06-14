@@ -1,6 +1,7 @@
 """ZarrDatabase module."""
 import tempfile
 import zarr
+import torch
 import numpy as np
 
 from multiml import logger
@@ -53,7 +54,11 @@ class ZarrDatabase(Database):
         self._db[data_id][phase][var_name][get_slice(index)] = idata
 
     def get_data(self, data_id, var_name, phase, index):
-        if isinstance(index, (list, np.ndarray)):  # allow fancy index, experimental feature
+        if isinstance(index,
+                      (list, np.ndarray, torch.Tensor)):  # allow fancy index, experimental feature
+            if isinstance(index, torch.Tensor):
+                index = index.numpy()
+
             return self._db[data_id][phase][var_name].oindex[index]
         else:
             return self._db[data_id][phase][var_name][get_slice(index)]

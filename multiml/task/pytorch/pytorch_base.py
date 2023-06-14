@@ -1,5 +1,6 @@
 """PytorchBaseTask module."""
 import copy
+import math
 import multiprocessing as mp
 
 import numpy as np
@@ -54,6 +55,7 @@ class PytorchBaseTask(MLBaseTask):
                  dataset_args=None,
                  dataloader_args=None,
                  batch_sampler=False,
+                 metric_sample=1,
                  **kwargs):
         """Initialize the pytorch base task.
 
@@ -67,6 +69,7 @@ class PytorchBaseTask(MLBaseTask):
             dataset_args (dict): args passed to default DataSet creation.
             dataloader_args (dict): args passed to default DataLoader creation.
             batch_sampler (bool): user batch_sampler or not.
+            metric_sample (float or int): sampling ratio for running metrics.
         """
         super().__init__(**kwargs)
 
@@ -89,7 +92,7 @@ class PytorchBaseTask(MLBaseTask):
         self._batch_sampler = batch_sampler
 
         self._pbar_args = const.PBAR_ARGS
-        self._running_step = 1
+        self._metric_sample = metric_sample
         self._pred_index = None
         self._early_stopping = False
         self._sampler = None
@@ -459,6 +462,13 @@ class PytorchBaseTask(MLBaseTask):
         pbar_args.update(self._pbar_args)
         pbar_desc = self._get_pbar_description(epoch, phase)
 
+        if self._metric_sample <= 1.0:
+            metric_step = 1.0 // self._metric_sample
+            metric_step = math.floor(metric_step)
+        else:
+            metric_step = num_batches / self._metric_sample
+            metric_step = math.ceil(metric_step)
+
         results = {}
         with tqdm(**pbar_args) as pbar:
             pbar.set_description(pbar_desc)
@@ -470,7 +480,7 @@ class PytorchBaseTask(MLBaseTask):
                     epoch_metric.pred(batch_result)
 
                 if phase == 'train':
-                    if (ii % self._running_step == 0) or (ii == num_batches - 1):
+                    if (ii % metric_step == 0) or (ii == num_batches - 1):
                         results.update(epoch_metric(batch_result))
                         pbar_metrics = metrics.get_pbar_metric(results)
                         pbar.set_postfix(pbar_metrics)

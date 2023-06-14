@@ -1,5 +1,6 @@
 """NumpyDatabase module."""
 
+import torch
 import numpy as np
 
 from multiml.database.database import Database
@@ -44,7 +45,8 @@ class NumpyDatabase(Database):
         self._db[data_id][phase][var_name][get_slice(index)] = idata
 
     def get_data(self, data_id, var_name, phase, index):
-        if isinstance(index, (list, np.ndarray)):  # allow fancy index, experimental feature
+        if isinstance(index,
+                      (list, np.ndarray, torch.Tensor)):  # allow fancy index, experimental feature
             return np.take(self._db[data_id][phase][var_name], index, axis=0)
         else:
             return self._db[data_id][phase][var_name][get_slice(index)]

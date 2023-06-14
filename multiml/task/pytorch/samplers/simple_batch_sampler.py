@@ -4,16 +4,18 @@ import numpy as np
 
 
 class SimpleBatchSampler(Sampler):
-    def __init__(self, num_samples, batch_size, shuffle):
-        self.data = np.arange(num_samples)
+    def __init__(self, num_samples, batch_size, shuffle, device='cpu'):
+        self.data = torch.arange(num_samples, device=device)
         self.index = 0
         self.num_samples = num_samples
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.device = device
 
     def __iter__(self):
         if self.shuffle:
-            np.random.shuffle(self.data)
+            self.data = torch.randperm(len(self.data), device=self.device)
+
         self.index = 0
         return self
 
