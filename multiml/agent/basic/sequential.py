@@ -113,6 +113,7 @@ class SequentialAgent(BaseAgent):
             subtask_env = subtasktuple.env
             subtask_hps = copy.deepcopy(subtasktuple.hps)
 
+            subtask_env.subtask_id = subtask_id
             subtask_env.saver = self._saver
             subtask_env.storegate = self._storegate
             subtask_env.job_id = counter
@@ -149,6 +150,7 @@ class SequentialAgent(BaseAgent):
                 subtask_env = subtasktuple.env
                 subtask_hps = copy.deepcopy(subtasktuple.hps)
 
+                subtask_env.subtask_id = subtask_id
                 subtask_env.saver = self._saver
                 subtask_env.storegate = self._storegate
                 subtask_env.job_id = counter
