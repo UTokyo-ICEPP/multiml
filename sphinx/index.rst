@@ -17,7 +17,7 @@ Installation
 -------
 Requirements:
   * CentosOS 7.6+
-  * Python 3.6+
+  * Python 3.8+
 
 .. code-block:: bash
 

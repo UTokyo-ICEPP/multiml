@@ -12,6 +12,9 @@ multiml
    multiml.Saver
    multiml.Hyperparameters
    multiml.agent.BaseAgent
+   multiml.agent.SequentialAgent
+   multiml.agent.RandomSearchAgent
+   multiml.agent.GridSearchAgent
    multiml.task.BaseTask
    multiml.task.MLBaseTask
    multiml.task.pytorch.PytorchBaseTask

@@ -11,5 +11,5 @@ __all__ = [
     'BaseAgent',
     'SequentialAgent',
     'RandomSearchAgent',
-    'GridSeachAgent',
+    'GridSearchAgent',
 ]
