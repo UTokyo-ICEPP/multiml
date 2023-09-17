@@ -665,10 +665,12 @@ class PytorchBaseTask(MLBaseTask):
             return [y_pred[index] for index in self._pred_index]
 
     def _get_pbar_description(self, epoch, phase):
-        if self.trial_id is None:
+        if (self.job_id is None) and (self.trial_id is None):
             return f'Epoch [{epoch: >4}/{self._num_epochs}] {phase.ljust(5)}'
+        elif (self.trial_id is None):
+            return f'Epoch [{epoch: >4}/{self._num_epochs},{self.job_id: >2}] {phase.ljust(5)}'
         else:
-            return f'Epoch [{epoch: >4}/{self._num_epochs},{self.trial_id+1: >2}] {phase.ljust(5)}'
+            return f'Epoch [{epoch: >4}/{self._num_epochs},{self.job_id: >2},{self.trial_id+1: >2}] {phase.ljust(5)}'
 
     def _disable_tqdm(self):
         disable_tqdm = True

@@ -20,15 +20,15 @@ class GridSearchAgent(RandomSearchAgent):
     def execute(self):
         """Execute grid scan agent."""
         if not self._multiprocessing:
-            for counter, subtasktuples in enumerate(self.task_scheduler):
-                self._storegate.compile()
-                result = self.execute_subtasktuples(subtasktuples, counter)
-                self._history.append(result)
+            for job_id, subtasktuples in enumerate(self.task_scheduler):
+                if self._num_trials is None:
+                    result = self.execute_subtasktuples(subtasktuples, job_id)
+                    self._history.append(result)
 
-                logger.counter(counter + 1,
-                               len(self.task_scheduler),
-                               divide=1,
-                               message=f'metric={result["metric_value"]}')
+                else:
+                    for trial_id in range(self._num_trials):
+                        result = self.execute_subtasktuples(subtasktuples, job_id, trial_id)
+                        self._history.append(result)
 
         else:  # multiprocessing
             if self._storegate.backend not in ('numpy', 'hybrid'):
@@ -39,7 +39,12 @@ class GridSearchAgent(RandomSearchAgent):
             queue = ctx.Queue()
             args = []
 
-            for counter, subtasktuples in enumerate(self.task_scheduler):
-                args.append([subtasktuples, counter])
+            for job_id, subtasktuples in enumerate(self.task_scheduler):
+                if self._num_trials is None:
+                    args.append([subtasktuples, job_id, None])
+              
+                else:
+                    for trial_id in range(self._num_trials):
+                        args.append([subtasktuples, job_id, trial_id])
 
             self.execute_pool_jobs(ctx, queue, args)
