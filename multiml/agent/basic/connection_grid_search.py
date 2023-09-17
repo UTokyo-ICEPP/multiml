@@ -108,7 +108,8 @@ class ConnectionGridSearchAgent(GridSearchAgent, ConnectionRandomSearchAgent):
             self._metric.storegate = self._storegate
             metric = self._metric.calculate()
 
-            result = dict(task_ids=result_task_ids,
+            result = dict(job_id=counter,
+                          task_ids=result_task_ids,
                           subtask_ids=result_subtask_ids,
                           subtask_hps=result_subtask_hps,
                           metric_value=metric)
