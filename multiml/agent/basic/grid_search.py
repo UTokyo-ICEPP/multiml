@@ -42,7 +42,7 @@ class GridSearchAgent(RandomSearchAgent):
             for job_id, subtasktuples in enumerate(self.task_scheduler):
                 if self._num_trials is None:
                     args.append([subtasktuples, job_id, None])
-              
+
                 else:
                     for trial_id in range(self._num_trials):
                         args.append([subtasktuples, job_id, trial_id])

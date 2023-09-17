@@ -9,6 +9,7 @@ import numpy as np
 from tqdm import tqdm
 import multiprocessing as mp
 
+
 class SequentialAgent(BaseAgent):
     """Agent execute sequential tasks.
 
@@ -72,7 +73,6 @@ class SequentialAgent(BaseAgent):
             if isinstance(self._num_workers, int):
                 self._num_workers = list(range(self._num_workers))
 
-
     @property
     def result(self):
         """Return result of execution."""
@@ -124,14 +124,12 @@ class SequentialAgent(BaseAgent):
                     result = self.execute_subtasktuples(subtasktuples, 0, trial_id)
                     self._history.append(result)
 
-
-
     @logger.logging
     def finalize(self):
         """Finalize sequential agent."""
         if (self._result is None) and (not self._history):
             logger.warn(f'No result at finalize of {self.__class__.__name__}')
-       
+
         elif self._result:
             pass
 
@@ -139,7 +137,7 @@ class SequentialAgent(BaseAgent):
             metric_values = []
             for history in self._history:
                 metric_values.append(history['metric_value'])
-            metric_value = sum(metric_values)/self._num_trials
+            metric_value = sum(metric_values) / self._num_trials
             self._result = self._history[0]
 
             self._result['metric_value'] = metric_value
@@ -149,7 +147,6 @@ class SequentialAgent(BaseAgent):
         names, data = self._print_result(self._result)
         logger.table(header=header, names=names, data=data, max_length=40)
         self.saver['result'] = self._result
-
 
     def execute_jobs(self, ctx, queue, args):
         """(expert method) Execute multiprocessing jobs."""
@@ -165,7 +162,6 @@ class SequentialAgent(BaseAgent):
 
         while not queue.empty():
             self._history.append(queue.get())
-
 
     def execute_pool_jobs(self, ctx, queue, args):
         """(expert method) Execute multiprocessing pool jobs."""
@@ -210,7 +206,6 @@ class SequentialAgent(BaseAgent):
         while not queue.empty():
             self._history.append(queue.get())
 
-
     def execute_wrapper(self, queue, subtasktuples, job_id, trial_id, cuda_id):
         """(expert method) Wrapper method to execute multiprocessing pipeline."""
         for subtasktuple in subtasktuples:
@@ -226,7 +221,6 @@ class SequentialAgent(BaseAgent):
             self.saver[history_id] = result
 
         queue.put(result)
-
 
     def execute_subtasktuples(self, subtasktuples, job_id, trial_id=None):
         """Execute given subtasktuples."""
@@ -247,7 +241,7 @@ class SequentialAgent(BaseAgent):
             'subtask_hps': [],
             'metric_value': None
         }
-        
+
         result['job_id'] = job_id
         result['trial_id'] = trial_id
 

@@ -11,11 +11,7 @@ from multiml.agent.basic import SequentialAgent
 
 class RandomSearchAgent(SequentialAgent):
     """Agent executing random search.."""
-    def __init__(self,
-                 samplings=None,
-                 seed=0,
-                 metric_type=None,
-                 **kwargs):
+    def __init__(self, samplings=None, seed=0, metric_type=None, **kwargs):
         """Initialize simple agent.
 
         Args:
@@ -60,7 +56,6 @@ class RandomSearchAgent(SequentialAgent):
                         result = self.execute_subtasktuples(subtasktuples, job_id, trial_id)
                         self._history.append(result)
 
-
         else:  # multiprocessing
             if self._storegate.backend not in ('numpy', 'hybrid'):
                 raise NotImplementedError(
@@ -104,7 +99,7 @@ class RandomSearchAgent(SequentialAgent):
 
                 if self._num_trials is not None:
                     results_dict[key]['metric_values'] = value
-      
+
             if self._metric_type == 'max':
                 job_id = max(metric_value_dict, key=metric_value_dict.get)
             elif self._metric_type == 'min':
@@ -125,4 +120,3 @@ class RandomSearchAgent(SequentialAgent):
                 self.saver['history'] = list(results_dict.values())
 
         super().finalize()
-
