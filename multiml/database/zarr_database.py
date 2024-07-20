@@ -70,12 +70,11 @@ class ZarrDatabase(Database):
     def create_empty(self, data_id, var_name, phase, shape, dtype):
         db = self._db[data_id][phase]
         chunks = (self._chunk, ) + (None, ) * (len(shape) - 1)
-        import numcodecs
-        db.empty(var_name,
-                 shape=shape,
-                 chunks=chunks,
-                 dtype=dtype,
-                 object_codec=numcodecs.Pickle())
+        db_args = dict(shape=shape, chunks=chunks, dtype=dtype)
+        if dtype in ('object', 'O'):
+            import numcodecs
+            db_args['object_codec'] = numcodecs.Pickle()
+        db.empty(var_name, **db_args)
 
     def get_metadata(self, data_id, phase, mode=None):
         results = {}
