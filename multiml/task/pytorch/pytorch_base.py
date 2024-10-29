@@ -105,7 +105,9 @@ class PytorchBaseTask(MLBaseTask):
             self._early_stopping = True
 
         if isinstance(self._dataset_args, dict) and ('train' not in self._dataset_args):
-            self._dataset_args = dict(train=dataset_args, valid=dataset_args, test=dataset_args)
+            self._dataset_args = dict(train=dataset_args.copy(),
+                                      valid=dataset_args.copy(),
+                                      test=dataset_args.copy())
 
         if self._dataset_args is None:
             self._dataset_args = dict(train={}, valid={}, test={})
